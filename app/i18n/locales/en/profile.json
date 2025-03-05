@@ -1,0 +1,65 @@
+{
+  "profiles": "Profiles",
+  "myProfiles": "My Profiles",
+  "createProfile": "Create Profile",
+  "editProfile": "Edit Profile",
+  "deleteProfile": "Delete Profile",
+  "deleteProfileConfirm": "Are you sure you want to delete this profile?",
+  "setAsDefault": "Set as Default",
+  "defaultProfile": "Default Profile",
+  "noActiveProfile": "No active profile",
+  
+  "profileDetails": "Profile Details",
+  "name": "Name",
+  "weight": "Weight",
+  "age": "Age",
+  "gender": "Gender",
+  "drinkingFrequency": "Drinking Frequency",
+  
+  "profileCreated": "Profile created successfully",
+  "profileUpdated": "Profile updated successfully",
+  "profileDeleted": "Profile deleted successfully",
+  "profileSetAsDefault": "Profile set as default",
+  
+  "genderOptions": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  
+  "frequencyOptions": {
+    "rarely": "Rarely",
+    "occasionally": "Occasionally",
+    "frequently": "Frequently"
+  },
+  
+  "formPlaceholders": {
+    "enterName": "Enter name",
+    "enterWeight": "Enter weight in kg",
+    "enterAge": "Enter age"
+  },
+  
+  "validation": {
+    "nameRequired": "Name is required",
+    "weightRequired": "Weight is required",
+    "weightInvalid": "Weight must be a valid number",
+    "ageRequired": "Age is required",
+    "ageInvalid": "Age must be a valid number",
+    "genderRequired": "Gender is required",
+    "frequencyRequired": "Drinking frequency is required"
+  },
+  
+  "noProfiles": "No profiles found",
+  "createFirstProfile": "Create your first profile",
+  "accountSettings": "Account Settings",
+  "changePassword": "Change Password",
+  "appSettings": "App Settings",
+  "notifications": "Notifications",
+  "about": "About",
+  "aboutApp": "About AlcolTest",
+  "help": "Help & Support",
+  "privacyPolicy": "Privacy Policy",
+  "deleteAccount": "Delete Account",
+  "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
+  "accountDeleted": "Your account has been deleted successfully."
+} 
