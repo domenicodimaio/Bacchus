@@ -1,0 +1,1535 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  Platform,
+  StatusBar,
+  Dimensions,
+  ScrollView,
+  SafeAreaView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Modal,
+  Image,
+  Alert,
+  KeyboardAvoidingView
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { COLORS, SIZES } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
+import * as profileService from '../lib/services/profile.service';
+import { useUserProfile } from '../contexts/ProfileContext';
+import { useAuth } from '../contexts/AuthContext';
+import EmojiSelector from 'react-native-emoji-selector';
+
+const { width, height } = Dimensions.get('window');
+
+// Colori disponibili per gli avatar
+const AVATAR_COLORS = [
+  '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', 
+  '#536DFE', '#448AFF', '#40C4FF', '#18FFFF', 
+  '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
+  '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40'
+];
+
+// Le fasi del wizard
+const WIZARD_STEPS = [
+  'welcome',
+  'name',
+  'gender',
+  'weight',
+  'age',
+  'height',
+  'drinkingHabits',
+  'emoji',
+  'complete'
+];
+
+export default function ProfileWizard() {
+  const { t, i18n } = useTranslation(['profile', 'common']);
+  const { currentTheme } = useTheme();
+  const colors = currentTheme.COLORS;
+  const { user } = useAuth();
+  const { setProfile } = useUserProfile();
+  
+  // Stato per tenere traccia della fase attuale del wizard
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // Stato per i dati del profilo
+  const [profile, setProfileState] = useState({
+    name: user?.name || '',
+    gender: '',
+    weightKg: '',
+    age: '',
+    height: '',
+    drinkingFrequency: '',
+    emoji: '',
+    color: AVATAR_COLORS[0],
+    isDefault: true
+  });
+  
+  // Stato per la selezione emoji
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  
+  // Riferimento ai parametri dell'URL
+  const params = useLocalSearchParams();
+  
+  // Funzione per ottenere traduzioni con fallback
+  const getTranslation = (key, defaultValue = "") => {
+    const translation = t(key, { ns: 'profile' });
+    
+    // Se la traduzione è uguale alla chiave, usa il valore di default
+    return translation === key ? defaultValue : translation;
+  };
+  
+  // Funzione per andare allo step successivo
+  const nextStep = () => {
+    if (currentStep < WIZARD_STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+  
+  // Funzione per tornare allo step precedente
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+  
+  // Funzione per aggiornare i dati del profilo
+  const updateProfile = (field, value) => {
+    setProfileState(prevProfile => ({
+      ...prevProfile,
+      [field]: value
+    }));
+  };
+  
+  // Gestisce la selezione delle emoji
+  const handleEmojiSelected = (emoji) => {
+    updateProfile('emoji', emoji);
+    setShowEmojiPicker(false);
+  };
+  
+  // Gestisce la selezione del colore
+  const handleSelectColor = (color) => {
+    updateProfile('color', color);
+    setShowColorPicker(false);
+  };
+  
+  // Funzione per completare il wizard e creare il profilo
+  const handleComplete = async () => {
+    try {
+      console.log('Creazione profilo in corso...');
+      
+      // Validazione dei dati
+      if (!profile.name || !profile.gender || !profile.weightKg || !profile.age || !profile.height || !profile.drinkingFrequency) {
+        console.error('Dati profilo incompleti:', profile);
+        Alert.alert(
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('incompleteProfile', { ns: 'profile', defaultValue: 'Please complete all fields before continuing.' })
+        );
+        return;
+      }
+      
+      // Conversione dei valori numerici
+      const profileData = {
+        ...profile,
+        gender: profile.gender as 'male' | 'female',
+        drinkingFrequency: profile.drinkingFrequency as 'rarely' | 'occasionally' | 'regularly' | 'frequently',
+        weightKg: parseFloat(profile.weightKg),
+        age: parseInt(profile.age, 10),
+        height: parseInt(profile.height, 10)
+      };
+      
+      console.log('Dati profilo validati:', profileData);
+      
+      // Creazione del profilo
+      try {
+        const newProfile = await profileService.createProfile(profileData);
+        console.log('Profilo creato con successo:', newProfile);
+        
+        // Imposta il profilo nel contesto
+        if (newProfile) {
+          setProfile(newProfile);
+          console.log('Profilo impostato nel contesto');
+          
+          // Redirect alla dashboard
+          router.replace('/dashboard');
+        } else {
+          throw new Error('Creazione profilo fallita: nessun profilo restituito');
+        }
+      } catch (createError) {
+        console.error('Errore durante la creazione del profilo:', createError);
+        Alert.alert(
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('profileCreationFailed', { ns: 'profile', defaultValue: 'Failed to create profile. Please try again.' })
+        );
+      }
+    } catch (error) {
+      console.error('Errore imprevisto durante il completamento del wizard:', error);
+      Alert.alert(
+        t('error', { ns: 'common', defaultValue: 'Error' }),
+        t('unexpectedError', { ns: 'common', defaultValue: 'An unexpected error occurred. Please try again.' })
+      );
+    }
+  };
+  
+  // Gestisce l'uscita dal wizard
+  const handleExitWizard = () => {
+    Alert.alert(
+      t('exitWizard', { ns: 'profile', defaultValue: 'Exit Wizard?' }),
+      t('exitWizardConfirmation', { ns: 'profile', defaultValue: 'Are you sure you want to exit? Your progress will be lost.' }),
+      [
+        {
+          text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
+          style: 'cancel'
+        },
+        {
+          text: t('exit', { ns: 'common', defaultValue: 'Exit' }),
+          style: 'destructive',
+          onPress: () => router.back()
+        }
+      ]
+    );
+  };
+
+  // Ripristino la funzione canProceed
+  const canProceed = () => {
+    switch (WIZARD_STEPS[currentStep]) {
+      case 'name':
+        return profile.name.trim() !== '';
+      case 'gender':
+        return profile.gender !== '';
+      case 'weight':
+        return profile.weightKg !== '';
+      case 'age':
+        return profile.age !== '';
+      case 'height':
+        return profile.height !== '';
+      case 'drinkingHabits':
+        return profile.drinkingFrequency !== '';
+      case 'emoji':
+        // La selezione dell'emoji è opzionale
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  // Renderizza il pulsante di proseguimento giusto per ogni step
+  const renderNextButton = () => {
+    // Se siamo all'ultimo step, non mostrare il pulsante "Continua"
+    if (currentStep === WIZARD_STEPS.length - 1) {
+      return null;
+    }
+    
+    // Se siamo alla schermata completato, mostra "Vai alla dashboard"
+    if (currentStep === WIZARD_STEPS.indexOf('complete')) {
+      return (
+        <TouchableOpacity 
+          style={[styles.nextButton, { backgroundColor: colors.primary }]} 
+          onPress={() => router.replace('/dashboard')}
+        >
+          <Text style={styles.nextButtonText}>
+            {t('goToDashboard', { ns: 'profile', defaultValue: 'Go to Dashboard' })}
+          </Text>
+          <Ionicons name="arrow-forward" size={20} color="white" />
+        </TouchableOpacity>
+      );
+    }
+    
+    // Se siamo alla fase di emoji, mostra "Completa"
+    if (currentStep === WIZARD_STEPS.indexOf('emoji')) {
+      return (
+        <TouchableOpacity 
+          style={[styles.nextButton, { backgroundColor: colors.primary }]} 
+          onPress={handleComplete}
+        >
+          <Text style={styles.nextButtonText}>
+            {t('complete', { ns: 'common', defaultValue: 'Complete' })}
+          </Text>
+          <Ionicons name="checkmark" size={20} color="white" />
+        </TouchableOpacity>
+      );
+    }
+    
+    // Per tutti gli altri step, mostra il pulsante "Continua"
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.nextButton, 
+          { 
+            backgroundColor: canProceed() ? colors.primary : `${colors.primary}80`,
+          }
+        ]} 
+        onPress={nextStep}
+        disabled={!canProceed()}
+      >
+        <Text style={styles.nextButtonText}>
+          {t('continue', { ns: 'common', defaultValue: 'Continue' })}
+        </Text>
+        <Ionicons name="arrow-forward" size={20} color="white" />
+      </TouchableOpacity>
+    );
+  };
+  
+  // Correggo il renderStepContent per renderizzare il contenuto correttamente
+  const renderStepContent = () => {
+    let content;
+    
+    // Logica per determinare il contenuto in base allo step corrente
+    switch (WIZARD_STEPS[currentStep]) {
+      case 'welcome':
+        content = (
+          <View style={styles.stepContent}>
+            <FontAwesome5 
+              name="glass-cheers" 
+              size={90} 
+              color={colors.primary} 
+              style={[styles.welcomeIcon, { 
+                shadowColor: colors.primaryNeon,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.8,
+                shadowRadius: 15,
+                elevation: 10
+              }]} 
+            />
+            <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+              {t('welcomeToApp')}
+            </Text>
+            <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>
+              {t('setupProfilePrompt')}
+            </Text>
+          </View>
+        );
+        break;
+      case 'name':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {getTranslation('yourName', "Your Name")}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {getTranslation('nameExplanation', "How would you like to be called in the app?")}
+            </Text>
+            <TextInput
+              style={[
+                styles.input, 
+                { 
+                  backgroundColor: colors.cardElevated, 
+                  color: colors.text,
+                  borderColor: profile.name ? colors.primary : colors.border,
+                  borderWidth: profile.name ? 3 : 1,
+                }
+              ]}
+              placeholder={t('enterName')}
+              placeholderTextColor={colors.textTertiary}
+              value={profile.name}
+              onChangeText={(text) => updateProfile('name', text)}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (profile.name) nextStep();
+              }}
+            />
+            
+            {profile.name && (
+              <View style={[styles.previewContainer, { 
+                backgroundColor: `${colors.primary}20`,
+                borderWidth: 1,
+                borderColor: colors.primary
+              }]}>
+                <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>
+                  {t('name')}:
+                </Text>
+                <Text style={[styles.previewValue, { color: colors.primary, fontSize: SIZES.subtitle }]}>
+                  {profile.name}
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+        break;
+      case 'gender':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {getTranslation('yourGender', "Your Gender")}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {getTranslation('genderExplanation', "This is important to calculate your BAC correctly")}
+            </Text>
+            <View style={styles.genderOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.genderOption,
+                  profile.gender === 'male' && { 
+                    borderColor: colors.primary, 
+                    borderWidth: 3,
+                    backgroundColor: `${colors.primary}20` 
+                  },
+                  { 
+                    backgroundColor: colors.cardElevated,
+                    shadowColor: profile.gender === 'male' ? colors.primaryNeon : colors.shadow,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: profile.gender === 'male' ? 0.5 : 0.2,
+                    shadowRadius: profile.gender === 'male' ? 8 : 3,
+                    elevation: profile.gender === 'male' ? 6 : 3,
+                  }
+                ]}
+                onPress={() => updateProfile('gender', 'male')}
+              >
+                <FontAwesome5 
+                  name="mars" 
+                  size={40} 
+                  color={profile.gender === 'male' ? colors.primary : colors.textSecondary} 
+                />
+                <Text style={[
+                  styles.genderText, 
+                  { 
+                    color: profile.gender === 'male' ? colors.primary : colors.text,
+                    fontSize: SIZES.subtitle,
+                    marginTop: 12
+                  }
+                ]}>
+                  {t('male')}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.genderOption,
+                  profile.gender === 'female' && { 
+                    borderColor: colors.primary, 
+                    borderWidth: 3,
+                    backgroundColor: `${colors.primary}20` 
+                  },
+                  { 
+                    backgroundColor: colors.cardElevated,
+                    shadowColor: profile.gender === 'female' ? colors.primaryNeon : colors.shadow,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: profile.gender === 'female' ? 0.5 : 0.2,
+                    shadowRadius: profile.gender === 'female' ? 8 : 3,
+                    elevation: profile.gender === 'female' ? 6 : 3,
+                  }
+                ]}
+                onPress={() => updateProfile('gender', 'female')}
+              >
+                <FontAwesome5 
+                  name="venus" 
+                  size={40} 
+                  color={profile.gender === 'female' ? colors.primary : colors.textSecondary} 
+                />
+                <Text style={[
+                  styles.genderText, 
+                  { 
+                    color: profile.gender === 'female' ? colors.primary : colors.text,
+                    fontSize: SIZES.subtitle,
+                    marginTop: 12
+                  }
+                ]}>
+                  {t('female')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            {profile.gender && (
+              <View style={[styles.previewContainer, { 
+                backgroundColor: `${colors.primary}20`,
+                borderWidth: 1,
+                borderColor: colors.primary
+              }]}>
+                <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>
+                  {t('gender')}:
+                </Text>
+                <Text style={[styles.previewValue, { color: colors.primary, fontSize: SIZES.subtitle }]}>
+                  {t(profile.gender)}
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+        break;
+      case 'weight':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {t('yourWeight')}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {t('weightExplanation')}
+            </Text>
+            <View style={styles.weightInputContainer}>
+              <TextInput
+                style={[
+                  styles.weightInput, 
+                  { 
+                    backgroundColor: colors.cardElevated, 
+                    color: colors.text,
+                    borderColor: profile.weightKg ? colors.primary : colors.border,
+                    borderWidth: profile.weightKg ? 3 : 1,
+                    fontSize: SIZES.extraLarge
+                  }
+                ]}
+                placeholder="70"
+                placeholderTextColor={colors.textTertiary}
+                value={profile.weightKg}
+                onChangeText={(text) => updateProfile('weightKg', text)}
+                keyboardType="numeric"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (profile.weightKg) nextStep();
+                }}
+                autoFocus
+              />
+              <Text style={[styles.weightUnit, { color: colors.text, fontSize: SIZES.large }]}>kg</Text>
+
+              {/* Aggiungiamo un pulsante per chiudere la tastiera */}
+              <TouchableOpacity 
+                style={styles.dismissKeyboardButton}
+                onPress={() => Keyboard.dismiss()}
+              >
+                <Ionicons name="checkmark-circle" size={40} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+            
+            {profile.weightKg && (
+              <View style={[styles.previewContainer, { 
+                backgroundColor: `${colors.primary}20`,
+                borderWidth: 1,
+                borderColor: colors.primary
+              }]}>
+                <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>
+                  {t('weight')}:
+                </Text>
+                <Text style={[styles.previewValue, { color: colors.primary, fontSize: SIZES.subtitle }]}>
+                  {profile.weightKg} kg
+                </Text>
+              </View>
+            )}
+
+            {/* Istruzioni per chiudere la tastiera */}
+            <Text style={[styles.keyboardHelp, { color: colors.textSecondary }]}>
+              {i18n.language === 'it' ? 
+                "Tocca il pulsante verde o 'Fine' sulla tastiera per continuare" : 
+                "Tap the green button or 'Done' on keyboard to continue"}
+            </Text>
+          </View>
+        );
+        break;
+      case 'age':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {t('yourAge')}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {i18n.language === 'it' ? 
+                "La tua età è importante per calcolare correttamente il tasso alcolemico." : 
+                "Your age is important for accurate BAC calculations."}
+            </Text>
+            <View style={styles.weightInputContainer}>
+              <TextInput
+                style={[
+                  styles.weightInput, 
+                  { 
+                    backgroundColor: colors.cardElevated, 
+                    color: colors.text,
+                    borderColor: profile.age ? colors.primary : colors.border,
+                    borderWidth: profile.age ? 3 : 1,
+                    fontSize: SIZES.extraLarge
+                  }
+                ]}
+                placeholder="30"
+                placeholderTextColor={colors.textTertiary}
+                value={profile.age}
+                onChangeText={(text) => updateProfile('age', text)}
+                keyboardType="numeric"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (profile.age) nextStep();
+                }}
+                autoFocus
+              />
+              <Text style={[styles.weightUnit, { color: colors.text, fontSize: SIZES.large }]}>{t('years')}</Text>
+
+              {/* Aggiungiamo un pulsante per chiudere la tastiera */}
+              <TouchableOpacity 
+                style={styles.dismissKeyboardButton}
+                onPress={() => Keyboard.dismiss()}
+              >
+                <Ionicons name="checkmark-circle" size={40} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+            
+            {profile.age && (
+              <View style={[styles.previewContainer, { 
+                backgroundColor: `${colors.primary}20`,
+                borderWidth: 1,
+                borderColor: colors.primary
+              }]}>
+                <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>
+                  {t('age')}:
+                </Text>
+                <Text style={[styles.previewValue, { color: colors.primary, fontSize: SIZES.subtitle }]}>
+                  {profile.age} {t('years')}
+                </Text>
+              </View>
+            )}
+
+            {/* Istruzioni per chiudere la tastiera */}
+            <Text style={[styles.keyboardHelp, { color: colors.textSecondary }]}>
+              {i18n.language === 'it' ? 
+                "Tocca il pulsante verde o 'Fine' sulla tastiera per continuare" : 
+                "Tap the green button or 'Done' on keyboard to continue"}
+            </Text>
+          </View>
+        );
+        break;
+      case 'height':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {t('yourHeight')}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {i18n.language === 'it' ? 
+                "La tua altezza aiuta a completare il tuo profilo." : 
+                "Your height helps to complete your profile."}
+            </Text>
+            <View style={styles.weightInputContainer}>
+              <TextInput
+                style={[
+                  styles.weightInput, 
+                  { 
+                    backgroundColor: colors.cardElevated, 
+                    color: colors.text,
+                    borderColor: profile.height ? colors.primary : colors.border,
+                    borderWidth: profile.height ? 3 : 1,
+                    fontSize: SIZES.extraLarge
+                  }
+                ]}
+                placeholder="175"
+                placeholderTextColor={colors.textTertiary}
+                value={profile.height}
+                onChangeText={(text) => updateProfile('height', text)}
+                keyboardType="numeric"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (profile.height) nextStep();
+                }}
+                autoFocus
+              />
+              <Text style={[styles.weightUnit, { color: colors.text, fontSize: SIZES.large }]}>cm</Text>
+
+              {/* Aggiungiamo un pulsante per chiudere la tastiera */}
+              <TouchableOpacity 
+                style={styles.dismissKeyboardButton}
+                onPress={() => Keyboard.dismiss()}
+              >
+                <Ionicons name="checkmark-circle" size={40} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+            
+            {profile.height && (
+              <View style={[styles.previewContainer, { 
+                backgroundColor: `${colors.primary}20`,
+                borderWidth: 1,
+                borderColor: colors.primary
+              }]}>
+                <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>
+                  {t('height')}:
+                </Text>
+                <Text style={[styles.previewValue, { color: colors.primary, fontSize: SIZES.subtitle }]}>
+                  {profile.height} cm
+                </Text>
+              </View>
+            )}
+
+            {/* Istruzioni per chiudere la tastiera */}
+            <Text style={[styles.keyboardHelp, { color: colors.textSecondary }]}>
+              {i18n.language === 'it' ? 
+                "Tocca il pulsante verde o 'Fine' sulla tastiera per continuare" : 
+                "Tap the green button or 'Done' on keyboard to continue"}
+            </Text>
+          </View>
+        );
+        break;
+      case 'drinkingHabits':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {getTranslation('drinkingHabits', "Drinking Habits")}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {getTranslation('drinkingHabitsExplanation', "How often do you consume alcoholic beverages?")}
+            </Text>
+            
+            <View style={styles.optionsContainer}>
+              {['rarely', 'occasionally', 'regularly', 'frequently'].map((frequency) => (
+                <TouchableOpacity
+                  key={frequency}
+                  style={[
+                    styles.optionButton,
+                    { 
+                      backgroundColor: profile.drinkingFrequency === frequency ? colors.primary : colors.cardElevated,
+                      borderColor: profile.drinkingFrequency === frequency ? colors.primary : colors.border,
+                    }
+                  ]}
+                  onPress={() => updateProfile('drinkingFrequency', frequency)}
+                >
+                  <Text 
+                    style={[
+                      styles.optionText, 
+                      { 
+                        color: profile.drinkingFrequency === frequency ? '#FFFFFF' : colors.text,
+                        fontWeight: profile.drinkingFrequency === frequency ? 'bold' : 'normal',
+                      }
+                    ]}
+                  >
+                    {t(frequency)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+        break;
+      case 'emoji':
+        content = (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {getTranslation('profileEmoji', "Profile Emoji")}
+            </Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+              {getTranslation('profileEmojiExplanation', "Choose an emoji for your profile (optional)")}
+            </Text>
+            
+            {/* Anteprima dell'emoji selezionata */}
+            {profile.emoji ? (
+              <View style={[styles.emojiPreviewContainer, { backgroundColor: profile.color || colors.primary }]}>
+                <Text style={styles.emojiPreview}>{profile.emoji}</Text>
+              </View>
+            ) : (
+              <View style={[styles.emojiPreviewContainer, { backgroundColor: profile.color || colors.primary }]}>
+                <Text style={styles.profileInitial}>{profile.name ? profile.name.charAt(0).toUpperCase() : '?'}</Text>
+              </View>
+            )}
+            
+            <View style={styles.emojiOptionsContainer}>
+              {/* Opzione: Seleziona emoji */}
+              <TouchableOpacity
+                style={[
+                  styles.emojiOptionButton,
+                  { 
+                    backgroundColor: colors.cardElevated,
+                    borderColor: colors.border,
+                  }
+                ]}
+                onPress={() => setShowEmojiPicker(true)}
+              >
+                <Ionicons name="happy-outline" size={40} color={colors.primary} />
+                <Text 
+                  style={[
+                    styles.optionText, 
+                    { color: colors.text }
+                  ]}
+                >
+                  {t('selectEmoji', { ns: 'profile', defaultValue: 'Select Emoji' })}
+                </Text>
+              </TouchableOpacity>
+              
+              {/* Opzione: Seleziona colore */}
+              <TouchableOpacity
+                style={[
+                  styles.emojiOptionButton,
+                  { 
+                    backgroundColor: colors.cardElevated,
+                    borderColor: colors.border,
+                  }
+                ]}
+                onPress={() => setShowColorPicker(true)}
+              >
+                <Ionicons name="color-palette-outline" size={40} color={colors.primary} />
+                <Text 
+                  style={[
+                    styles.optionText, 
+                    { color: colors.text }
+                  ]}
+                >
+                  {t('selectColor', { ns: 'profile', defaultValue: 'Select Color' })}
+                </Text>
+              </TouchableOpacity>
+              
+              {/* Rimuovi emoji */}
+              {profile.emoji && (
+                <TouchableOpacity
+                  style={[
+                    styles.emojiOptionButton,
+                    { 
+                      backgroundColor: colors.cardElevated,
+                      borderColor: colors.border,
+                    }
+                  ]}
+                  onPress={() => updateProfile('emoji', '')}
+                >
+                  <Ionicons name="close-circle-outline" size={40} color={colors.error} />
+                  <Text 
+                    style={[
+                      styles.optionText, 
+                      { color: colors.text }
+                    ]}
+                  >
+                    {t('removeEmoji', { ns: 'profile', defaultValue: 'Remove Emoji' })}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Modal per la selezione delle emoji */}
+            <Modal
+              visible={showEmojiPicker}
+              transparent={false}
+              animationType="slide"
+            >
+              <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+                {/* Header stile AppHeader */}
+                <View style={[styles.modalHeader, { 
+                  backgroundColor: colors.headerBackground || colors.background,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border
+                }]}>
+                  <TouchableOpacity 
+                    style={styles.modalBackButton}
+                    onPress={() => setShowEmojiPicker(false)}
+                  >
+                    <Ionicons name="arrow-back" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    {t('selectEmoji', { ns: 'profile', defaultValue: 'Select Emoji' })}
+                  </Text>
+                  <View style={{ width: 40 }} />
+                </View>
+                
+                {/* Emoji Selector */}
+                <View style={styles.emojiPickerContainer}>
+                  <EmojiSelector
+                    onEmojiSelected={handleEmojiSelected}
+                    showSearchBar={true}
+                    showTabs={true}
+                    showHistory={true}
+                    showSectionTitles={true}
+                    columns={8}
+                  />
+                </View>
+              </SafeAreaView>
+            </Modal>
+            
+            {/* Modal per la selezione del colore */}
+            <Modal
+              visible={showColorPicker}
+              transparent={true}
+              animationType="fade"
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowColorPicker(false)}
+              >
+                <View style={[styles.colorPickerModal, { backgroundColor: colors.cardBackground }]}>
+                  <View style={styles.modalHeader}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>
+                      {t('selectColor', { ns: 'profile', defaultValue: 'Select Color' })}
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowColorPicker(false)}>
+                      <Ionicons name="close" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.colorGrid}>
+                    {[
+                      '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', 
+                      '#536DFE', '#448AFF', '#40C4FF', '#18FFFF', 
+                      '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
+                      '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40'
+                    ].map((color, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.colorItem, 
+                          { 
+                            backgroundColor: color,
+                            borderWidth: profile.color === color ? 4 : 2,
+                            borderColor: profile.color === color ? '#FFFFFF' : 'rgba(255,255,255,0.2)',
+                          }
+                        ]}
+                        onPress={() => handleSelectColor(color)}
+                      >
+                        {profile.color === color && (
+                          <Ionicons name="checkmark" size={28} color="white" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </View>
+        );
+        break;
+      case 'complete':
+        content = (
+          <View style={styles.stepContent}>
+            <Ionicons 
+              name="checkmark-circle" 
+              size={100} 
+              color={colors.primary} 
+              style={[styles.completeIcon, {
+                shadowColor: colors.primaryNeon,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.8,
+                shadowRadius: 15,
+                elevation: 10
+              }]} 
+            />
+            <Text style={[styles.completeTitle, { color: colors.text, fontSize: SIZES.large }]}>
+              {t('allSet')}
+            </Text>
+            <Text style={[styles.completeText, { color: colors.textSecondary }]}>
+              {t('profileCreated')}
+            </Text>
+            <View style={styles.profileSummary}>
+              <View style={[styles.summaryCard, { 
+                backgroundColor: colors.cardElevated, 
+                borderLeftWidth: 4,
+                borderLeftColor: colors.primary,
+              }]}>
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                  {t('name')}
+                </Text>
+                <Text style={[styles.summaryValue, { color: colors.text, fontSize: SIZES.subtitle }]}>
+                  {profile.name}
+                </Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <View style={[styles.summaryCard, { 
+                  backgroundColor: colors.cardElevated, 
+                  flex: 1, 
+                  marginRight: 8, 
+                  borderLeftWidth: 4,
+                  borderLeftColor: colors.primary,
+                }]}>
+                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                    {t('gender')}
+                  </Text>
+                  <Text style={[styles.summaryValue, { color: colors.text, fontSize: SIZES.subtitle }]}>
+                    {t(profile.gender)}
+                  </Text>
+                </View>
+                <View style={[styles.summaryCard, { 
+                  backgroundColor: colors.cardElevated, 
+                  flex: 1, 
+                  marginLeft: 8, 
+                  borderLeftWidth: 4,
+                  borderLeftColor: colors.primary,
+                }]}>
+                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                    {t('weight')}
+                  </Text>
+                  <Text style={[styles.summaryValue, { color: colors.text, fontSize: SIZES.subtitle }]}>
+                    {profile.weightKg} kg
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.summaryCard, { 
+                backgroundColor: colors.cardElevated, 
+                borderLeftWidth: 4,
+                borderLeftColor: colors.primary,
+              }]}>
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                  {t('drinkingFrequency')}
+                </Text>
+                <Text style={[styles.summaryValue, { color: colors.text, fontSize: SIZES.subtitle }]}>
+                  {t(profile.drinkingFrequency)}
+                </Text>
+              </View>
+            </View>
+            
+            {/* Opzione per impostare il profilo come predefinito */}
+            <TouchableOpacity 
+              style={[styles.defaultProfileOption, { 
+                backgroundColor: colors.cardElevated,
+                borderColor: colors.border,
+                marginTop: 16,
+              }]}
+              onPress={() => updateProfile('isDefault', !profile.isDefault)}
+            >
+              <View style={styles.defaultProfileContent}>
+                <Text style={[styles.defaultProfileText, { color: colors.text }]}>
+                  {t('setAsDefaultProfile', { ns: 'profile', defaultValue: 'Set as default profile' })}
+                </Text>
+                <Text style={[styles.defaultProfileDescription, { color: colors.textSecondary }]}>
+                  {t('defaultProfileDescription', { ns: 'profile', defaultValue: 'This profile will be automatically selected when you log in' })}
+                </Text>
+              </View>
+              <Ionicons 
+                name={profile.isDefault ? "checkbox" : "square-outline"} 
+                size={24} 
+                color={profile.isDefault ? colors.primary : colors.textSecondary} 
+              />
+            </TouchableOpacity>
+          </View>
+        );
+        break;
+      default:
+        content = (
+          <View style={styles.stepContentContainer}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>
+              {t('unexpectedStep', { ns: 'profile', defaultValue: 'Unexpected step' })}
+            </Text>
+          </View>
+        );
+    }
+    
+    return content;
+  };
+  
+  // Calcola la percentuale di progresso
+  const progressPercentage = (currentStep / (WIZARD_STEPS.length - 1)) * 100;
+  
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        
+        {/* Pulsante di chiusura (X) - spostato più in basso */}
+        <TouchableOpacity 
+          style={[styles.closeButton, { 
+            left: 20,
+            top: Platform.OS === 'ios' ? 80 : 60,
+            backgroundColor: 'rgba(0, 0, 0, 0.2)'
+          }]} 
+          onPress={handleExitWizard}
+        >
+          <Ionicons name="close" size={28} color={colors.text} />
+        </TouchableOpacity>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View 
+            style={[
+              styles.progressBar, 
+              { 
+                width: `${progressPercentage}%`, 
+                backgroundColor: colors.primary 
+              }
+            ]} 
+          />
+        </View>
+        
+        {/* Step Indicator */}
+        <View style={styles.stepIndicator}>
+          <Text style={[styles.stepNumber, { color: colors.textSecondary }]}>
+            {currentStep + 1}/{WIZARD_STEPS.length}
+          </Text>
+        </View>
+        
+        {/* Content */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContentContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.stepContainer}>
+                {renderStepContent()}
+              </View>
+            </TouchableWithoutFeedback>
+          </ScrollView>
+          
+          {/* Rendi il pulsante sempre visibile */}
+          <View style={[styles.buttonsContainer, { backgroundColor: colors.background }]}>
+            {renderNextButton()}
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  progressContainer: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: '100%',
+  },
+  progressBar: {
+    height: '100%',
+  },
+  stepIndicator: {
+    alignItems: 'flex-end',
+    paddingHorizontal: SIZES.padding,
+    paddingTop: SIZES.padding,
+  },
+  stepNumber: {
+    fontSize: SIZES.body,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    padding: SIZES.padding,
+    justifyContent: 'center',
+  },
+  stepContent: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  welcomeIcon: {
+    marginBottom: SIZES.marginLarge,
+  },
+  welcomeTitle: {
+    fontSize: SIZES.large,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: SIZES.margin,
+  },
+  welcomeText: {
+    fontSize: SIZES.body,
+    textAlign: 'center',
+    marginHorizontal: SIZES.padding,
+  },
+  stepTitle: {
+    fontSize: SIZES.large,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: SIZES.margin,
+  },
+  stepDescription: {
+    fontSize: SIZES.body,
+    textAlign: 'center',
+    marginHorizontal: SIZES.padding,
+    marginBottom: SIZES.marginLarge,
+  },
+  input: {
+    width: '100%',
+    height: 56,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.padding,
+    fontSize: SIZES.body,
+    marginTop: SIZES.marginSmall,
+  },
+  previewContainer: {
+    marginTop: SIZES.marginLarge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingVertical: SIZES.paddingSmall,
+    paddingHorizontal: SIZES.padding,
+    borderRadius: SIZES.radius,
+  },
+  previewLabel: {
+    fontSize: SIZES.body,
+    marginRight: 8,
+  },
+  previewValue: {
+    fontSize: SIZES.subtitle,
+    fontWeight: 'bold',
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: SIZES.marginLarge,
+  },
+  genderOption: {
+    width: '45%',
+    height: 130,
+    borderRadius: SIZES.radius,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  genderText: {
+    marginTop: SIZES.marginSmall,
+    fontSize: SIZES.body,
+    fontWeight: '500',
+  },
+  weightInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SIZES.marginLarge,
+    position: 'relative',
+  },
+  weightInput: {
+    flex: 1,
+    height: 52,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.padding,
+    fontSize: SIZES.large,
+    marginTop: SIZES.marginSmall,
+  },
+  weightUnit: {
+    fontSize: SIZES.title,
+    marginLeft: SIZES.margin,
+  },
+  dismissKeyboardButton: {
+    marginLeft: 15,
+    padding: 5,
+  },
+  keyboardHelp: {
+    marginTop: 15,
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  optionsContainer: {
+    width: '100%',
+    marginTop: SIZES.marginLarge,
+  },
+  optionButton: {
+    width: '100%',
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    marginBottom: SIZES.marginSmall,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  optionText: {
+    fontSize: SIZES.body,
+    fontWeight: '500',
+  },
+  imageOptionsContainer: {
+    width: '100%',
+    marginTop: SIZES.marginLarge,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  imageOptionButton: {
+    width: '48%',
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    marginBottom: SIZES.marginSmall,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    height: 120,
+    marginHorizontal: '1%',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  completeIcon: {
+    marginBottom: SIZES.marginLarge,
+  },
+  completeTitle: {
+    fontSize: SIZES.title,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: SIZES.margin,
+  },
+  completeText: {
+    fontSize: SIZES.body,
+    textAlign: 'center',
+    marginHorizontal: SIZES.padding,
+    marginBottom: SIZES.marginLarge,
+  },
+  profileSummary: {
+    width: '100%',
+    marginTop: SIZES.marginLarge,
+  },
+  summaryCard: {
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    marginBottom: SIZES.marginSmall,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  summaryRow: {
+    flexDirection: 'row',
+  },
+  summaryLabel: {
+    fontSize: SIZES.small,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: SIZES.subtitle,
+    fontWeight: 'bold',
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150, 150, 150, 0.1)',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    backgroundColor: 'rgba(150, 150, 150, 0.1)',
+  },
+  backButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    marginLeft: 10,
+  },
+  nextButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 20,
+    top: Platform.OS === 'ios' ? 80 : 60,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  imagePreviewContainer: {
+    marginBottom: SIZES.marginLarge,
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  emojiPreview: {
+    fontSize: SIZES.large,
+    fontWeight: 'bold',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 120,
+    borderRadius: SIZES.radius,
+  },
+  emojiPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SIZES.padding,
+    height: 60,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  modalBackButton: {
+    padding: 8,
+  },
+  emojiPickerContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  emojiPreviewContainer: {
+    marginBottom: SIZES.marginLarge,
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  emojiOptionsContainer: {
+    width: '100%',
+    marginTop: SIZES.marginLarge,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  emojiOptionButton: {
+    width: '48%',
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    marginBottom: SIZES.marginSmall,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    height: 120,
+    marginHorizontal: '1%',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colorPickerModal: {
+    width: '90%',
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.34,
+    shadowRadius: 6.27,
+    elevation: 10,
+    maxWidth: 400,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    padding: 10,
+  },
+  colorItem: {
+    width: 65,
+    height: 65,
+    borderRadius: 12,
+    marginBottom: 12,
+    marginHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
+  },
+  profileInitial: {
+    fontSize: SIZES.large,
+    fontWeight: 'bold',
+  },
+  defaultProfileOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SIZES.padding,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    marginHorizontal: SIZES.padding,
+  },
+  defaultProfileContent: {
+    flex: 1,
+    marginRight: 16,
+  },
+  defaultProfileText: {
+    fontSize: SIZES.body,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  defaultProfileDescription: {
+    fontSize: SIZES.small,
+  },
+  ageInput: {
+    flex: 1,
+    height: 52,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.padding,
+    fontSize: SIZES.large,
+    marginTop: SIZES.marginSmall,
+  },
+  heightInput: {
+    flex: 1,
+    height: 52,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.padding,
+    fontSize: SIZES.large,
+    marginTop: SIZES.marginSmall,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    padding: SIZES.padding,
+    justifyContent: 'center',
+  },
+  stepContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+}); 

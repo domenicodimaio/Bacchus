@@ -18,7 +18,7 @@ type NotificationContextType = {
   updateSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
 };
 
-const SETTINGS_STORAGE_KEY = 'alcoltest_notification_settings';
+const SETTINGS_STORAGE_KEY = 'bacchus_notification_settings';
 
 // Definisci i valori di default
 const defaultSettings: NotificationSettings = {

@@ -4,8 +4,8 @@
  */
 
 // Tasso di metabolismo dell'alcol (g/L per ora) - valore aggiornato basato su studi scientifici
-// Adjusted for more accuracy based on scientific studies
-export const METABOLISM_RATE = 0.015; // Most realistic value according to recent studies
+// Corretto per assicurare tempi più realistici (0.1-0.2 g/L per ora è il range realistico)
+export const METABOLISM_RATE = 0.15;
 
 // Limite legale in Italia per guidare (per conducenti standard)
 export const LEGAL_DRIVING_LIMIT = 0.5;

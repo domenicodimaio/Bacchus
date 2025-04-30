@@ -52,12 +52,105 @@ export function generateBACTimeSeries(
   endTime: Date,
   intervalMinutes: number = 15
 ): TimePoint[] {
+  console.log(`Generazione serie BAC - Inizio: ${startTime.toISOString()}, Fine: ${endTime.toISOString()}, Intervallo: ${intervalMinutes}min`);
+  
+  // Validazione input
+  if (!profile || !drinks || !Array.isArray(drinks) || !startTime || !endTime) {
+    console.error('Parametri invalidi in generateBACTimeSeries', { profile, drinks: drinks?.length, startTime, endTime });
+    return [];
+  }
+  
+  // Assicurati che startTime ed endTime siano oggetti Date validi
+  let validStartTime: Date, validEndTime: Date;
+  
+  try {
+    validStartTime = startTime instanceof Date ? new Date(startTime.getTime()) : new Date(startTime);
+    if (isNaN(validStartTime.getTime())) {
+      console.error('Data di inizio invalida:', startTime);
+      validStartTime = new Date(); // Fallback a data corrente
+    }
+  } catch (e) {
+    console.error('Errore nel parsing della data di inizio:', e);
+    validStartTime = new Date();
+  }
+  
+  try {
+    validEndTime = endTime instanceof Date ? new Date(endTime.getTime()) : new Date(endTime);
+    if (isNaN(validEndTime.getTime())) {
+      console.error('Data di fine invalida:', endTime);
+      // Usa il tempo corrente + 6 ore come fallback
+      validEndTime = new Date();
+      validEndTime.setHours(validEndTime.getHours() + 6);
+    }
+  } catch (e) {
+    console.error('Errore nel parsing della data di fine:', e);
+    validEndTime = new Date();
+    validEndTime.setHours(validEndTime.getHours() + 6);
+  }
+  
+  // Assicurati che endTime sia successivo a startTime
+  if (validEndTime <= validStartTime) {
+    console.warn('endTime <= startTime, aggiusto automaticamente');
+    validEndTime = new Date(validStartTime.getTime());
+    validEndTime.setHours(validEndTime.getHours() + 6);
+  }
+  
+  console.log(`Date valide - Inizio: ${validStartTime.toISOString()}, Fine: ${validEndTime.toISOString()}`);
+  
   const result: TimePoint[] = [];
   
   // If no drinks, return zero BAC for the time period
   if (drinks.length === 0) {
-    const current = new Date(startTime);
-    while (current <= endTime) {
+    console.log('Nessun drink, generando serie con BAC a zero');
+    const current = new Date(validStartTime);
+    while (current <= validEndTime) {
+      result.push({
+        time: new Date(current),
+        bac: 0,
+        status: BACDangerLevel.SAFE,
+        color: BAC_COLORS.safe
+      });
+      current.setMinutes(current.getMinutes() + intervalMinutes);
+    }
+    console.log(`Serie generata: ${result.length} punti, tutti a zero`);
+    return result;
+  }
+  
+  // Valida ogni drink e converti le date
+  const validatedDrinks: DrinkRecord[] = [];
+  for (const drink of drinks) {
+    if (!drink.timeConsumed || isNaN(drink.alcoholGrams)) {
+      console.warn('Drink invalido ignorato:', drink);
+      continue;
+    }
+    
+    let drinkTime: Date;
+    try {
+      drinkTime = drink.timeConsumed instanceof Date ? 
+        new Date(drink.timeConsumed.getTime()) : 
+        new Date(drink.timeConsumed);
+        
+      if (isNaN(drinkTime.getTime())) {
+        console.warn('Tempo consumo drink invalido:', drink.timeConsumed);
+        continue;
+      }
+    } catch (e) {
+      console.error('Errore nel parsing del tempo di consumo:', e);
+      continue;
+    }
+    
+    validatedDrinks.push({
+      timeConsumed: drinkTime,
+      alcoholGrams: Number(drink.alcoholGrams)
+    });
+  }
+  
+  console.log(`Drinks validati: ${validatedDrinks.length} su ${drinks.length}`);
+  
+  if (validatedDrinks.length === 0) {
+    console.warn('Nessun drink valido, generando serie con BAC a zero');
+    const current = new Date(validStartTime);
+    while (current <= validEndTime) {
       result.push({
         time: new Date(current),
         bac: 0,
@@ -70,19 +163,47 @@ export function generateBACTimeSeries(
   }
   
   // Sort drinks by time consumed
-  const sortedDrinks = [...drinks].sort(
+  const sortedDrinks = [...validatedDrinks].sort(
     (a, b) => a.timeConsumed.getTime() - b.timeConsumed.getTime()
   );
   
   // Get the earliest drink time
   const firstDrinkTime = sortedDrinks[0].timeConsumed;
+  console.log(`Primo drink consumato alle: ${firstDrinkTime.toISOString()}`);
+  
+  // Valida e converti anche i dati del cibo
+  let validatedFood: FoodRecord[] = [];
+  if (food && Array.isArray(food) && food.length > 0) {
+    validatedFood = food.filter(item => {
+      if (!item.timeConsumed) return false;
+      
+      try {
+        const foodTime = item.timeConsumed instanceof Date ? 
+          item.timeConsumed : 
+          new Date(item.timeConsumed);
+          
+        return !isNaN(foodTime.getTime());
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    validatedFood.sort((a, b) => {
+      const timeA = a.timeConsumed instanceof Date ? a.timeConsumed.getTime() : new Date(a.timeConsumed).getTime();
+      const timeB = b.timeConsumed instanceof Date ? b.timeConsumed.getTime() : new Date(b.timeConsumed).getTime();
+      return timeA - timeB;
+    });
+    
+    console.log(`Cibo validato: ${validatedFood.length} elementi`);
+  }
   
   // Aggiungi un punto iniziale al tempo di inizio con BAC=0
   // Solo se il tempo di inizio è prima del primo drink
-  if (startTime < firstDrinkTime) {
+  if (validStartTime < firstDrinkTime) {
     // Aggiungi un punto iniziale con BAC=0
+    console.log(`Aggiunto punto iniziale a ${validStartTime.toISOString()} con BAC=0`);
     result.push({
-      time: new Date(startTime),
+      time: new Date(validStartTime),
       bac: 0,
       status: BACDangerLevel.SAFE,
       color: BAC_COLORS.safe
@@ -93,7 +214,8 @@ export function generateBACTimeSeries(
     const preFirstDrinkTime = new Date(firstDrinkTime);
     preFirstDrinkTime.setMinutes(preFirstDrinkTime.getMinutes() - 5);
     
-    if (preFirstDrinkTime > startTime) {
+    if (preFirstDrinkTime > validStartTime) {
+      console.log(`Aggiunto punto pre-drink a ${preFirstDrinkTime.toISOString()} con BAC=0`);
       result.push({
         time: preFirstDrinkTime,
         bac: 0,
@@ -109,7 +231,7 @@ export function generateBACTimeSeries(
     let factor = 1.0;
     
     // Find all food consumed before the given time
-    const relevantFood = food.filter(f => f.timeConsumed <= time);
+    const relevantFood = validatedFood.filter(f => f.timeConsumed <= time);
     
     if (relevantFood.length === 0) {
       return factor;
@@ -137,10 +259,10 @@ export function generateBACTimeSeries(
   };
   
   // Generate time points
-  const current = new Date(startTime);
-  while (current <= endTime) {
+  const current = new Date(validStartTime);
+  while (current <= validEndTime) {
     // Calculate total alcohol grams at this point
-    const relevantDrinks = drinks.filter(d => d.timeConsumed <= current);
+    const relevantDrinks = validatedDrinks.filter(d => d.timeConsumed <= current);
     const totalAlcoholGrams = relevantDrinks.reduce(
       (sum, drink) => sum + drink.alcoholGrams, 0
     );

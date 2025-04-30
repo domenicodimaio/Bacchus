@@ -49,11 +49,10 @@ const TabButton = ({
       [colors.tabBackground, colors.tabActiveBackground]
     );
     
-    const scale = 1 + (animValue.value * 0.05);
-    
+    // Rimuovo la scala animata che causa l'effetto "friggente"
+    // Invece, usiamo solo il cambio di colore di sfondo
     return {
-      backgroundColor,
-      transform: [{ scale }]
+      backgroundColor
     };
   });
 
@@ -65,7 +64,7 @@ const TabButton = ({
         animatedStyle
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.95} // Aumenta per ridurre l'effetto di pulsazione
     >
       <Ionicons
         name={isActive ? tab.activeIcon : tab.icon}
@@ -133,7 +132,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
     },
     {
       name: 'profiles',
-      label: t('common:tabs.profiles', 'Profiles'),
+      label: t('common:tabs.profile', 'Profilo'),
       icon: 'person-outline',
       activeIcon: 'person',
       path: '/profiles',
@@ -164,7 +163,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
     router.push(path as any);
   };
 
-  // Update animations based on active state
+  // Update animations based on active state with smoother transitions
   React.useEffect(() => {
     if (!tabAnimations || !tabs) return;
     
@@ -178,7 +177,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
       if (animValue) {
         animValue.value = withTiming(
           isActive(tab.path) ? 1 : 0,
-          { duration: 250 }
+          { duration: 500 }  // Aumenta la durata per un'animazione più fluida
         );
       }
     }

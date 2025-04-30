@@ -1,13 +1,40 @@
 {
   "cli": {
-    "version": ">= 3.13.3"
+    "version": ">= 15.0.14",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "APP_ENVIRONMENT": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENVIRONMENT": "staging"
+      }
+    },
+    "production": {
+      "autoIncrement": false,
+      "distribution": "store",
+      "env": {
+        "APP_ENVIRONMENT": "production",
+        "EAS_BUILD_VERBOSE": "true"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
       "ios": {
-        "simulator": false
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release",
+        "image": "latest",
+        "scheme": "Bacchus"
       }
     },
     "development-simulator": {
@@ -15,14 +42,77 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "APP_ENVIRONMENT": "development"
       }
     },
-    "preview": {
-      "distribution": "internal"
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Debug"
+      },
+      "env": {
+        "APP_ENVIRONMENT": "development"
+      }
     },
-    "production": {}
+    "standalone": {
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "APP_ENVIRONMENT": "staging"
+      }
+    },
+    "internal": {
+      "autoIncrement": true,
+      "distribution": "internal",
+      "releaseChannel": "internal",
+      "env": {
+        "APP_ENVIRONMENT": "staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "dimaio-domenico@hotmail.it",
+        "ascAppId": "6745018158",
+        "appleTeamId": "79P6XEQFGB"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    },
+    "internal": {
+      "ios": {
+        "companyName": "Bacchus App",
+        "appleId": "dimaio-domenico@hotmail.it",
+        "ascAppId": "6745018158",
+        "appleTeamId": "79P6XEQFGB",
+        "sku": "com.bacchusapp.app"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    },
+    "beta": {
+      "ios": {
+        "appleId": "dimaio-domenico@hotmail.it",
+        "ascAppId": "6745018158",
+        "appleTeamId": "79P6XEQFGB"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "beta"
+      }
+    }
   }
-} 
+}

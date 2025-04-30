@@ -1,10 +1,20 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Redirect } from 'expo-router';
+import CustomTabBar from '../components/CustomTabBar';
+import { View, StyleSheet } from 'react-native';
 
 export default function ProfileTab() {
-  // Use a ref to track if we've already redirected
-  const hasRedirectedRef = useRef(false);
+  // Reindirizza a /profiles mantenendo il tab bar
+  return (
+    <View style={styles.container}>
+      <Redirect href="/profiles" />
+      <CustomTabBar />
+    </View>
+  );
+}
 
-  // This tab redirects to the profiles management screen
-  return <Redirect href="/profiles" />;
-} 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+}); 

@@ -1,0 +1,2327 @@
+/**
+ * Session Service
+ * 
+ * Gestisce le sessioni di consumo, tracciamento BAC, aggiunta di bevande e cibo.
+ */
+
+import { 
+  calculateBAC,
+  getBACDangerLevel,
+  BACDangerLevel,
+  calculateAlcoholGrams,
+  calculateTimeToLegalLimit,
+  calculateTimeToSober
+} from '../bac/calculator';
+import { 
+  DrinkRecord, 
+  FoodRecord, 
+  calculateSoberTime as importedCalculateSoberTime,
+  generateBACTimeSeries,
+  ProfileData,
+  TimePoint
+} from '../bac/visualization';
+import {
+  getProfiles,
+  getProfileById,
+  getActiveProfile,
+  saveProfileLocally
+} from './profile.service';
+import * as profileService from './profile.service';
+import { BAC_LIMITS, getBACLevel, METABOLISM_RATE } from '../../constants/bac';
+import { formatTimeToSober } from '../../utils/bacCalculator';
+import supabase from '../supabase/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import offlineService from './offline.service';
+import { v4 as uuidv4 } from 'uuid';
+
+// Chiavi per lo storage locale
+const ACTIVE_SESSION_KEY = 'alcoltest_active_session';
+const SESSION_HISTORY_KEY = 'alcoltest_session_history';
+const GUEST_SESSION_HISTORY_KEY = 'alcoltest_guest_session_history';
+const GUEST_ACTIVE_SESSION_KEY = "guest_active_session";
+
+// Migliora la gestione delle chiavi di storage con prefissi per utenti
+const getStorageKeyPrefix = (userId: string | null): string => {
+  if (!userId) return 'guest_';
+  return `user_${userId}_`;
+};
+
+// Recupera la chiave completa per l'active session
+const getActiveSessionKey = (userId: string | null): string => {
+  return `${getStorageKeyPrefix(userId)}active_session`;
+};
+
+// Recupera la chiave completa per la session history
+const getSessionHistoryKey = (userId: string | null): string => {
+  return `${getStorageKeyPrefix(userId)}session_history`;
+};
+
+// Tipo per il profilo dell'utente
+export interface UserProfile {
+  id: string;
+  name: string;
+  gender: 'male' | 'female';
+  weightKg: number;
+  age: number;
+  height: number;
+  drinkingFrequency: 'rarely' | 'occasionally' | 'regularly' | 'frequently';
+  color?: string;     // Colore associato al profilo
+  emoji?: string;     // Emoji che rappresenta il profilo (opzionale)
+  _h?: string;        // Campo usato per identificazione (può essere vuoto)
+  _i?: string;        // Campo aggiuntivo usato dall'app
+  _j?: string;        // Campo aggiuntivo usato dall'app
+  _k?: string;        // Campo aggiuntivo usato dall'app
+  isDefault?: boolean; // Indica se il profilo è quello predefinito (non salvato nel DB)
+  userId?: string;     // ID dell'utente a cui appartiene il profilo
+}
+
+// Tipo per la sessione di consumo
+export interface Session {
+  id: string;
+  startTime: Date | string;
+  sessionStartTime: Date | string;
+  endTime?: Date | string; // Campo opzionale per indicare quando la sessione è terminata
+  profile: UserProfile;
+  drinks: Array<DrinkRecord & { 
+    id: string; 
+    name: string; 
+    volume: string;
+    time: string;
+    alcoholPercentage?: string | number;
+    alcoholGrams?: string | number;
+  }>;
+  foods: Array<FoodRecord & { 
+    id: string; 
+    name: string;
+    time: string;
+  }>;
+  currentBAC: number;
+  status: 'safe' | 'caution' | 'warning' | 'danger' | 'critical';
+  bacTimePoints: number[];
+  soberTime: string;
+  sessionDuration: string;
+  timeToSober?: number; // Tempo in minuti per tornare sobri
+  legalTime?: string; // Tempo formattato per raggiungere il limite legale
+  timeToLegal?: number; // Tempo in minuti per raggiungere il limite legale
+  bacSeries?: Array<{ time: string | Date; bac: number }>; // Serie temporale per il grafico BAC
+  user_id?: string; // ID dell'utente che ha creato la sessione
+  updated_at?: string | Date; // Timestamp dell'ultimo aggiornamento
+  isClosed?: boolean; // Indica se la sessione è stata chiusa
+}
+
+// Stato globale delle sessioni
+let activeSession: Session | null = null;
+let sessionHistory: Session[] = [];
+let _initialized = false;
+let _currentUserId: string | null = null;
+
+// Aggiungo variabili di controllo per limitare la sincronizzazione eccessiva
+const SYNC_THROTTLE_MS = 5000; // Minimo tempo tra sincronizzazioni consecutive (5 secondi)
+let _syncInProgress = false;
+
+// Aggiungi questa variabile per tracciare l'ultima sincronizzazione
+const _lastSyncTime: {[userId: string]: number} = {};
+
+// Aggiunta all'inizio del file, subito dopo le importazioni
+let _schemaChecked = false;
+
+/**
+ * Ottiene la sessione attiva o null se non esiste
+ */
+export function getActiveSession(): Session | null {
+  return activeSession;
+}
+
+/**
+ * Ottiene la cronologia delle sessioni - versione più robusta
+ */
+export function getSessionHistory(): Session[] {
+  try {
+    // Verifichiamo se sessionHistory è un array valido
+    if (!Array.isArray(sessionHistory)) {
+      console.warn('getSessionHistory: sessionHistory non è un array, inizializzando array vuoto');
+      sessionHistory = [];
+      return [];
+    }
+    
+    // Filtra eventuali elementi non validi
+    const validSessions = sessionHistory.filter(session => 
+      session && typeof session === 'object' && session.id
+    );
+    
+    if (validSessions.length !== sessionHistory.length) {
+      console.warn(`getSessionHistory: Filtrati ${sessionHistory.length - validSessions.length} elementi non validi`);
+      sessionHistory = validSessions;
+    }
+    
+    console.log(`getSessionHistory: Restituzione di ${sessionHistory.length} sessioni`);
+    return [...sessionHistory]; // Crea una copia per evitare modifiche indesiderate
+  } catch (error) {
+    console.error('Errore in getSessionHistory:', error);
+    return []; // Fallback a array vuoto in caso di errore
+  }
+}
+
+/**
+ * Crea una nuova sessione
+ */
+export async function createSession(profile: UserProfile): Promise<Session | null> {
+  try {
+    if (!profile || !profile.id) {
+      console.error('Invalid profile data');
+      return null;
+    }
+    
+    // Crea una nuova sessione
+    const newSession: Session = {
+      id: uuidv4(),
+      startTime: new Date(),
+      sessionStartTime: new Date(),
+      profile: profile,
+      drinks: [],
+      foods: [],
+      currentBAC: 0,
+      status: 'safe',
+      bacTimePoints: [],
+      soberTime: '0:00',
+      sessionDuration: '0:00',
+      timeToSober: 0,
+      legalTime: '0:00',
+      timeToLegal: 0,
+      bacSeries: [],
+      user_id: profile.userId,
+      updated_at: new Date().toISOString(),
+      isClosed: false
+    };
+
+    // Imposta la sessione come attiva in memoria
+    activeSession = newSession;
+    console.log('Nuova sessione creata con ID:', newSession.id);
+
+    // Salva la sessione localmente
+    await saveSessionLocally(newSession, 'active');
+
+    // Sincronizza con Supabase se l'utente è autenticato
+    if (profile.userId) {
+      await saveSessionToSupabase(newSession, true);
+    }
+    
+    return newSession;
+  } catch (error) {
+    console.error('Error creating session:', error);
+    return null;
+  }
+}
+
+/**
+ * Ottiene o crea una sessione con il primo profilo trovato
+ */
+export async function getOrCreateSessionWithFirstProfile(): Promise<Session | null> {
+  try {
+    // Controlla se c'è già una sessione attiva
+    if (activeSession) {
+      return activeSession;
+    }
+    
+    // Ottieni il primo profilo disponibile
+    const profiles = await getProfiles();
+    if (profiles && Array.isArray(profiles) && profiles.length > 0) {
+      // Se c'è almeno un profilo, crea una sessione con esso
+      return await createSession(profiles[0]);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting or creating session with first profile:', error);
+    return null;
+  }
+}
+
+// Rimpiazza la vecchia funzione con la nuova
+export const getOrCreateSessionWithDefaultProfile = getOrCreateSessionWithFirstProfile;
+
+/**
+ * Aggiunge una bevanda alla sessione attiva e ricalcola il BAC
+ */
+export async function addDrink(drink: DrinkRecord & { id: string; name: string; volume: string; time: string; alcoholPercentage?: string | number; alcoholGrams?: string | number }): Promise<boolean> {
+  try {
+    const session = getActiveSession();
+    if (!session) {
+      console.error('No active session found');
+      return false;
+    }
+
+    console.log('Aggiunta bevanda alla sessione attiva:', drink.name);
+
+    // Converti la data in oggetto Date se è una stringa
+    const drinkTime = typeof drink.time === 'string' ? new Date(drink.time) : drink.time;
+    
+    // Calcola i grammi di alcol se non sono forniti
+    let alcoholGrams = drink.alcoholGrams;
+    if (!alcoholGrams) {
+      const volume = typeof drink.volume === 'string' ? parseFloat(drink.volume) : drink.volume;
+      const percentage = typeof drink.alcoholPercentage === 'string' ? parseFloat(drink.alcoholPercentage) : drink.alcoholPercentage || 5;
+      alcoholGrams = (volume * percentage * 0.789) / 100; // 0.789 è la densità dell'alcol
+    }
+
+    // Crea una copia della bevanda con i dati normalizzati
+    const drinkToAdd = {
+      ...drink,
+      time: drinkTime.toISOString(),
+      timeConsumed: drinkTime,
+      alcoholGrams: typeof alcoholGrams === 'number' ? alcoholGrams : Number(alcoholGrams)
+    };
+    
+    // Aggiungi la bevanda alla sessione
+    session.drinks.push(drinkToAdd);
+    
+    // Aggiorna la sessione attiva
+    activeSession = session;
+    
+    // Ricalcola il BAC
+  updateSessionBAC();
+  
+    // Salva la sessione localmente
+    await saveSessionLocally(session, 'active');
+    
+    // Sincronizza con Supabase se l'utente è autenticato
+    if (session.user_id) {
+      await saveSessionToSupabase(session);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding drink to session:', error);
+    return false;
+  }
+}
+
+/**
+ * Aggiunge cibo alla sessione attiva e ricalcola il BAC
+ */
+export async function addFood(food: FoodRecord & { id: string; name: string; time: string; }): Promise<boolean> {
+  try {
+    const session = getActiveSession();
+    if (!session) {
+      console.error('No active session found');
+      return false;
+    }
+
+    console.log('Aggiunta cibo alla sessione attiva:', food.name);
+
+    // Converti la data in oggetto Date se è una stringa
+    const foodTime = typeof food.time === 'string' ? new Date(food.time) : food.time;
+    
+    // Crea una copia del cibo con i dati normalizzati
+    const foodToAdd = {
+      ...food,
+      time: foodTime.toISOString(),
+      timeConsumed: foodTime
+    };
+    
+    // Aggiungi il cibo alla sessione
+    session.foods.push(foodToAdd);
+    
+    // Aggiorna la sessione attiva
+    activeSession = session;
+    
+    // Ricalcola il BAC
+  updateSessionBAC();
+  
+    // Salva la sessione localmente
+    await saveSessionLocally(session, 'active');
+    
+    // Sincronizza con Supabase se l'utente è autenticato
+    if (session.user_id) {
+      await saveSessionToSupabase(session);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding food to session:', error);
+    return false;
+  }
+}
+
+/**
+ * Rimuove una bevanda dalla sessione attiva
+ */
+export function removeDrink(drinkId: string): Session | null {
+  if (!activeSession) return null;
+  
+  // Trova l'indice della bevanda
+  const index = activeSession.drinks.findIndex(d => d.id === drinkId);
+  
+  if (index !== -1) {
+    // Rimuovi la bevanda dalla lista
+    activeSession.drinks.splice(index, 1);
+    
+    // Ricalcola il BAC
+    updateSessionBAC();
+  }
+  
+  return activeSession;
+}
+
+/**
+ * Rimuove un cibo dalla sessione attiva
+ */
+export function removeFood(foodId: string): Session | null {
+  if (!activeSession) return null;
+  
+  // Trova l'indice del cibo
+  const index = activeSession.foods.findIndex(f => f.id === foodId);
+  
+  if (index !== -1) {
+    // Rimuovi il cibo dalla lista
+    activeSession.foods.splice(index, 1);
+    
+    // Ricalcola il BAC
+    updateSessionBAC();
+  }
+  
+  return activeSession;
+}
+
+/**
+ * Aggiorna il BAC della sessione attiva e genera bacSeries aggiornati
+ * @returns La sessione aggiornata o null se non c'è una sessione attiva
+ */
+export function updateSessionBAC(): Session | null {
+  try {
+    const session = getActiveSession();
+    if (!session) {
+      console.log('Nessuna sessione attiva trovata per l\'aggiornamento del BAC');
+      return null;
+    }
+
+    // Calcola il BAC iniziale
+    let currentBAC = 0;
+    const now = new Date();
+    let startTime: Date;
+    
+    try {
+      startTime = typeof session.startTime === 'string' ? new Date(session.startTime) : new Date(session.startTime);
+      if (isNaN(startTime.getTime())) {
+        console.error('Data di inizio sessione non valida:', session.startTime);
+        startTime = new Date(); // Fallback alla data attuale
+      }
+    } catch (e) {
+      console.error('Errore nel parsing della data di inizio sessione:', e);
+      startTime = new Date(); // Fallback alla data attuale
+    }
+    
+    const sessionDuration = (now.getTime() - startTime.getTime()) / (1000 * 60); // in minuti
+
+    console.log('Aggiornamento BAC - Sessione ID:', session.id, 'Data ora:', now.toISOString());
+    console.log('Data inizio sessione:', startTime.toISOString());
+    
+    // Calcola il BAC per ogni drink
+    if (session.drinks.length === 0) {
+      console.log('Nessuna bevanda trovata nella sessione');
+      session.currentBAC = 0;
+      session.status = 'safe';
+      session.bacSeries = [];
+      session.bacTimePoints = [];
+      session.soberTime = '0:00';
+      session.timeToSober = 0;
+      session.legalTime = '0:00';
+      session.timeToLegal = 0;
+      session.sessionDuration = formatDuration(sessionDuration);
+      
+      // Salva la sessione aggiornata
+      saveSessionLocally(session, 'active');
+      return session;
+    }
+
+    console.log(`Calcolo BAC per ${session.drinks.length} bevande`);
+    
+    // Funzione di utility per convertire una data in maniera sicura
+    const safeParseDate = (dateValue: any): Date => {
+      try {
+        if (dateValue instanceof Date) return dateValue;
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) {
+          console.error('Data non valida:', dateValue);
+          return new Date(); // Fallback alla data attuale
+        }
+        return date;
+      } catch (e) {
+        console.error('Errore di parsing della data:', e);
+        return new Date(); // Fallback alla data attuale
+      }
+    };
+    
+    session.drinks.forEach(drink => {
+      // Assicurati che drink.time sia una data valida
+      const drinkTime = safeParseDate(drink.time);
+      console.log(`Bevanda: ${drink.name}, Orario: ${drinkTime.toISOString()}`);
+      
+      const timeSinceDrink = (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60); // in ore
+      
+      // Se il drink è stato consumato nel futuro (errore di input), non contribuisce al BAC
+      if (timeSinceDrink < 0) {
+        console.warn(`Bevanda nel futuro ignorata: ${drink.name}, tempo: ${timeSinceDrink}h`);
+        return;
+      }
+      
+      // Calcola il BAC per questo drink
+      const alcoholGrams = typeof drink.alcoholGrams === 'string' ? parseFloat(drink.alcoholGrams) : (drink.alcoholGrams || 0);
+      const weightKg = session.profile.weightKg;
+      const gender = session.profile.gender;
+      
+      console.log(`Bevanda: ${drink.name}, Alcol: ${alcoholGrams}g, Tempo trascorso: ${timeSinceDrink.toFixed(2)}h`);
+      
+      // Usa la funzione calculateBAC dal modulo calculator
+      const drinkBAC = calculateBAC(
+        gender,
+        weightKg,
+        alcoholGrams,
+        timeSinceDrink
+      );
+      
+      console.log(`BAC contribuito: ${drinkBAC.toFixed(4)}`);
+      
+      currentBAC += drinkBAC;
+    });
+
+    console.log(`BAC totale calcolato: ${currentBAC.toFixed(4)}`);
+    
+    // Aggiorna il BAC nella sessione
+    session.currentBAC = currentBAC;
+    
+    // Aggiorna lo stato del BAC
+    if (currentBAC >= 0.4) {
+      session.status = 'critical';
+    } else if (currentBAC >= 0.3) {
+      session.status = 'danger';
+    } else if (currentBAC >= 0.2) {
+      session.status = 'warning';
+    } else if (currentBAC >= 0.1) {
+      session.status = 'caution';
+    } else {
+      session.status = 'safe';
+    }
+
+    // Aggiorna i punti temporali del BAC
+    session.bacTimePoints = session.drinks.map(drink => {
+      const drinkTime = safeParseDate(drink.time);
+      const timeSinceDrink = (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60); // in ore
+      if (timeSinceDrink < 0) return 0; // Bevanda nel futuro, nessun contributo
+      
+      const alcoholGrams = typeof drink.alcoholGrams === 'string' ? parseFloat(drink.alcoholGrams) : (drink.alcoholGrams || 0);
+      return calculateBAC(
+        session.profile.gender,
+        session.profile.weightKg,
+        alcoholGrams,
+        timeSinceDrink
+      );
+    });
+
+    // Calcola il tempo per tornare sobri
+    const soberTimeMinutes = calculateTimeToSober(currentBAC) * 60; // Converti ore in minuti
+    session.soberTime = formatTimeToSober(soberTimeMinutes);
+    session.timeToSober = soberTimeMinutes;
+
+    // Calcola il tempo per raggiungere il limite legale (0.05%)
+    const timeToLegalMinutes = calculateTimeToLegalLimit(currentBAC) * 60; // Converti ore in minuti
+    session.legalTime = formatTimeToSober(timeToLegalMinutes);
+    session.timeToLegal = timeToLegalMinutes;
+
+    // Aggiorna la durata della sessione
+    session.sessionDuration = formatDuration(sessionDuration);
+
+    // Genera bacSeries per il grafico se abbiamo bevande
+    if (session.drinks && session.drinks.length > 0) {
+      try {
+        console.log('Generazione dati grafico BAC...');
+        
+        // Crea una serie temporale realistica
+        const seriesPoints: Array<{ time: string; bac: number }> = [];
+        
+        // Prepara i drink ordinati per orario
+        const sortedDrinks = [...session.drinks]
+          .map(drink => ({
+            ...drink,
+            parsedTime: safeParseDate(drink.time)
+          }))
+          .filter(drink => drink.parsedTime <= now) // Esclude le bevande nel futuro
+          .sort((a, b) => a.parsedTime.getTime() - b.parsedTime.getTime());
+        
+        if (sortedDrinks.length === 0) {
+          console.warn('Nessuna bevanda valida per generare il grafico');
+          session.bacSeries = [];
+          saveSessionLocally(session, 'active');
+          return session;
+        }
+        
+        // Orario della prima e ultima bevanda
+        const firstDrinkTime = sortedDrinks[0].parsedTime;
+        const lastDrinkTime = sortedDrinks[sortedDrinks.length - 1].parsedTime;
+        
+        console.log(`Prima bevanda: ${firstDrinkTime.toISOString()} (${sortedDrinks[0].name})`);
+        console.log(`Ultima bevanda: ${lastDrinkTime.toISOString()} (${sortedDrinks[sortedDrinks.length - 1].name})`);
+        console.log(`Orario corrente: ${now.toISOString()}`);
+        
+        // Tempo stimato per tornare a zero (in ore)
+        const soberTime = calculateTimeToSober(currentBAC);
+        console.log(`Tempo stimato per arrivare a zero: ${soberTime.toFixed(2)} ore`);
+        
+        // Calcola inizio e fine del grafico
+        // Inizia 15 minuti prima della prima bevanda, o all'inizio della sessione se più recente
+        const graphStartTime = new Date(Math.max(
+          firstDrinkTime.getTime() - 15 * 60 * 1000,
+          startTime.getTime()
+        ));
+        
+        // Termina all'orario stimato di sobrietà o almeno 2 ore dopo l'ultima bevanda o dopo l'orario corrente
+        const estimatedSoberTime = new Date(now.getTime() + soberTime * 60 * 60 * 1000);
+        const minimumEndTime = new Date(Math.max(
+          lastDrinkTime.getTime() + 2 * 60 * 60 * 1000,
+          now.getTime() + 1 * 60 * 60 * 1000  // Almeno un'ora dopo l'orario corrente
+        ));
+        const graphEndTime = new Date(Math.max(
+          estimatedSoberTime.getTime(),
+          minimumEndTime.getTime()
+        ));
+        
+        console.log(`Grafico da: ${graphStartTime.toISOString()} a ${graphEndTime.toISOString()}`);
+        
+        // Aggiungi punto a BAC zero all'inizio (per visualizzazione migliore)
+        seriesPoints.push({
+          time: graphStartTime.toISOString(),
+          bac: 0
+        });
+        
+        // Calcola e aggiungi tutti i punti di interesse
+        
+        // 1. Un punto per ogni bevanda aggiunta (momento esatto)
+        sortedDrinks.forEach(drink => {
+          // Calcola il BAC totale al momento del consumo della bevanda
+          let totalBacAtDrinkTime = 0;
+          
+          // Considera solo le bevande consumate prima o contemporaneamente a questa
+          sortedDrinks.forEach(previousDrink => {
+            if (previousDrink.parsedTime <= drink.parsedTime) {
+              const hoursBetween = (drink.parsedTime.getTime() - previousDrink.parsedTime.getTime()) / (1000 * 60 * 60);
+              const alcoholGrams = typeof previousDrink.alcoholGrams === 'number' ? 
+                previousDrink.alcoholGrams : 
+                parseFloat(String(previousDrink.alcoholGrams || 0));
+              
+              // Se la bevanda è appena stata aggiunta, il suo contributo è immediato
+              const adjustedHours = previousDrink === drink ? 0 : hoursBetween;
+              
+              const pointBac = calculateBAC(
+                session.profile.gender,
+                session.profile.weightKg,
+                alcoholGrams,
+                adjustedHours
+              );
+              
+              totalBacAtDrinkTime += pointBac;
+            }
+          });
+          
+          seriesPoints.push({
+            time: drink.parsedTime.toISOString(),
+            bac: Math.max(0, totalBacAtDrinkTime)
+          });
+        });
+        
+        // 2. Punto all'orario attuale
+        seriesPoints.push({
+          time: now.toISOString(),
+          bac: currentBAC
+        });
+        
+        // 3. Punto finale quando il BAC sarà a zero (se attualmente > 0)
+        if (currentBAC > 0) {
+          seriesPoints.push({
+            time: estimatedSoberTime.toISOString(),
+            bac: 0
+          });
+        }
+        
+        // Ordina i punti per orario e rimuovi duplicati
+        const sortedPoints = seriesPoints
+          .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+        
+        // Filtra punti troppo vicini tra loro
+        const filteredPoints: typeof seriesPoints = [];
+        
+        // Primo punto sempre incluso
+        if (sortedPoints.length > 0) {
+          filteredPoints.push(sortedPoints[0]);
+        }
+        
+        // Filtra i punti intermedi (mantieni almeno 5 minuti di differenza)
+        for (let i = 1; i < sortedPoints.length; i++) {
+          const prevTime = new Date(sortedPoints[i-1].time).getTime();
+          const currTime = new Date(sortedPoints[i].time).getTime();
+          
+          if (currTime - prevTime >= 5 * 60 * 1000) { // 5 minuti di differenza minima
+            filteredPoints.push(sortedPoints[i]);
+          }
+        }
+        
+        // Aggiungi sempre l'ultimo punto se manca
+        const lastPoint = sortedPoints[sortedPoints.length - 1];
+        if (filteredPoints[filteredPoints.length - 1] !== lastPoint) {
+          filteredPoints.push(lastPoint);
+        }
+        
+        console.log(`Punti BAC generati: ${filteredPoints.length}`);
+        
+        // Debug: mostra tutti i punti
+        filteredPoints.forEach((point, i) => {
+          const timeStr = new Date(point.time).toLocaleTimeString();
+          console.log(`BAC Punto ${i}: ${timeStr} - ${point.bac.toFixed(3)}`);
+        });
+        
+        session.bacSeries = filteredPoints;
+      } catch (error) {
+        console.error('Errore nella generazione dei dati del grafico:', error);
+        // In caso di errore, mantieni l'array vuoto
+        session.bacSeries = [];
+      }
+    } else {
+      // Nessuna bevanda, nessun grafico
+      session.bacSeries = [];
+    }
+    
+    // Aggiorna la sessione attiva
+    activeSession = session;
+    
+    // Salva la sessione aggiornata
+    saveSessionLocally(session, 'active');
+    
+    // Sincronizza con Supabase se l'utente è autenticato
+    if (session.user_id) {
+      saveSessionToSupabase(session, true).catch(err => {
+        console.error('Errore nel salvataggio della sessione su Supabase:', err);
+      });
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error updating session BAC:', error);
+    return null;
+  }
+}
+
+/**
+ * End the current active session and save it to history.
+ */
+export async function endSession(): Promise<boolean> {
+  try {
+    console.log('Iniziando la procedura di chiusura della sessione...');
+    const session = getActiveSession();
+    if (!session) {
+      console.log('Nessuna sessione attiva trovata per la chiusura');
+      return false;
+    }
+    
+    // Imposta il tempo di fine e segna come chiusa
+    session.endTime = new Date().toISOString();
+    session.isClosed = true;
+
+    // Aggiorna la durata della sessione
+    if (session.startTime) {
+      const start = typeof session.startTime === 'string' ? new Date(session.startTime) : session.startTime;
+      const end = new Date();
+      const durationMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+      session.sessionDuration = formatDuration(durationMinutes);
+      console.log('Durata sessione calcolata:', session.sessionDuration);
+    }
+
+    // Aggiorna il BAC una volta finale per assicurarsi che bacSeries sia completo
+    updateSessionBAC();
+
+    try {
+      // Ottieni la cronologia corrente
+      console.log('Ottieni cronologia sessioni corrente...');
+      const history = await getSessionHistory() || [];
+      console.log(`Cronologia esistente: ${history.length} sessioni`);
+      
+      // Crea una copia profonda della sessione da salvare nella cronologia
+      console.log('Creazione copia profonda della sessione...');
+      const sessionToSave = JSON.parse(JSON.stringify(session));
+      
+      // Aggiungi la sessione alla cronologia
+      console.log('Aggiungendo alla cronologia sessione con ID:', sessionToSave.id);
+      history.push(sessionToSave);
+      
+      // Salva la cronologia aggiornata
+      console.log('Salvando cronologia aggiornata, ora contiene:', history.length, 'sessioni');
+      await saveSessionLocally(history, 'history');
+      
+      // Salva la sessione completata in Supabase
+      console.log('Salvando su Supabase sessione completata:', session.id);
+      if (session.user_id) {
+        console.log('Utente autenticato, sincronizzazione con Supabase...');
+        try {
+          const success = await saveSessionToSupabase(session, false);
+          if (!success) {
+            console.warn('Avviso: errore nel salvataggio della sessione in Supabase');
+            // Continua comunque con la chiusura locale
+          } else {
+            console.log('Sessione salvata con successo su Supabase');
+          }
+        } catch (supabaseError) {
+          console.error('Errore durante sincronizzazione con Supabase:', supabaseError);
+          // Continua comunque con la chiusura locale
+        }
+      } else {
+        console.log('Utente ospite, sessione salvata solo localmente');
+      }
+      
+      // Aggiorna la variabile globale sessionHistory
+      console.log('Aggiornando variabile globale sessionHistory...');
+      sessionHistory = history;
+      
+      // Rimuovi la sessione attiva dalla memoria
+      console.log('Rimozione sessione attiva dalla memoria...');
+      activeSession = null;
+      
+      // Rimuovi la sessione attiva dal local storage
+      console.log('Rimozione sessione attiva dal local storage...');
+      const userId = await getCurrentUserId();
+      const storageKey = userId ? getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : GUEST_ACTIVE_SESSION_KEY;
+      await AsyncStorage.removeItem(storageKey);
+      
+      console.log('Procedura di chiusura sessione completata con successo');
+      return true;
+    } catch (innerError) {
+      console.error('Errore dettagliato durante la chiusura della sessione:', innerError);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error ending session:', error);
+    return false;
+  }
+}
+
+/**
+ * Save a session to local history
+ */
+export async function saveSessionToHistory(
+  sessionId: string,
+): Promise<boolean> {
+  try {
+    console.log('Tentativo di salvare la sessione nella cronologia:', sessionId);
+    const session = getActiveSession();
+    if (!session) {
+      console.error(`No active session found with ID ${sessionId}`);
+      return false;
+    }
+
+    if (session.id !== sessionId) {
+      console.error(`La sessione attiva (ID: ${session.id}) non corrisponde alla sessione richiesta (ID: ${sessionId})`);
+      return false;
+    }
+
+    console.log('Sessione attiva trovata, contrassegno come chiusa');
+    // Mark the session as inactive and update end time
+    session.isClosed = true;
+    session.endTime = new Date();
+    
+    // Calculate session duration
+    if (session.startTime) {
+      const start = typeof session.startTime === 'string' ? new Date(session.startTime) : session.startTime;
+      const end = typeof session.endTime === 'string' ? new Date(session.endTime) : session.endTime;
+      const durationMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+      session.sessionDuration = `${Math.floor(durationMinutes / 60)}h ${Math.floor(durationMinutes % 60)}m`;
+      console.log('Durata sessione calcolata:', session.sessionDuration);
+    }
+
+    try {
+      // Crea una copia della sessione per la cronologia
+      const sessionForHistory = {...session};
+      console.log('Aggiungo alla cronologia locale');
+    
+    // Aggiungi alla cronologia
+      sessionHistory.push(sessionForHistory);
+      
+      // Salva la cronologia in localStorage
+      console.log('Salvo la cronologia in localStorage');
+      const historyResult = await saveSessionLocally(sessionHistory, 'history');
+      if (!historyResult) {
+        console.warn('Errore nel salvare la cronologia in localStorage');
+      }
+      
+      // Salva la sessione attiva aggiornata (contrassegnata come chiusa)
+      await saveSessionLocally(session, 'active');
+      
+      // Sync with Supabase if possible
+      const userId = await getCurrentUserId();
+      if (userId) {
+        try {
+          console.log('Salvando sessione terminata su Supabase come inattiva');
+          // Salva nella cronologia di Supabase
+          const result = await saveSessionToSupabase(session, false);
+          if (result) {
+            console.log('Sessione salvata con successo su Supabase come inattiva');
+            
+            // Cancella la sessione attiva
+            console.log('Cancello la sessione attiva dalla memoria');
+    activeSession = null;
+    
+            // Cancella la sessione attiva da localStorage
+            console.log('Cancello la sessione attiva da localStorage');
+            const activeKey = userId ? 
+              getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : 
+              GUEST_ACTIVE_SESSION_KEY;
+            
+            await AsyncStorage.removeItem(activeKey);
+          } else {
+            console.error('Errore nel salvataggio della sessione su Supabase come inattiva');
+          }
+        } catch (e) {
+          console.error("Exception in saveSessionToHistory Supabase operation:", e);
+        }
+      } else {
+        console.log('Utente ospite: la sessione è stata salvata solo localmente');
+        
+        // Per gli utenti ospiti, cancella la sessione attiva
+        console.log('Cancello la sessione attiva dalla memoria');
+        activeSession = null;
+        
+        // Cancella la sessione attiva da localStorage
+        console.log('Cancello la sessione attiva da localStorage');
+        await AsyncStorage.removeItem(GUEST_ACTIVE_SESSION_KEY);
+      }
+      
+      console.log('Sessione terminata con successo');
+      return true;
+    } catch (localError) {
+      console.error('Errore nel salvataggio locale della sessione terminata:', localError);
+      return false;
+    }
+  } catch (e) {
+    console.error("Error in saveSessionToHistory:", e);
+    return false;
+  }
+}
+
+/**
+ * Modified version of syncWithSupabase to prevent circular dependencies
+ */
+export async function syncWithSupabase(userId: string): Promise<boolean> {
+  try {
+    // Verifica se l'utente ID è valido
+    if (!userId) {
+      console.log('Nessun ID utente fornito per la sincronizzazione');
+      return false;
+    }
+
+    console.log('Sincronizzazione con Supabase per l\'utente:', userId);
+    
+    // Carica le sessioni locali prima di ogni sincronizzazione
+    const { active: localActiveSession, history: localHistory } = await loadSessionsFromLocalStorage(userId);
+    console.log(`Sessioni locali caricate: attiva=${localActiveSession ? 'sì' : 'no'}, storia=${localHistory.length}`);
+    
+    // Carica le sessioni da Supabase
+    const { data: remoteActiveSessions, error: activeError } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    if (activeError) {
+      console.error('Errore nel caricamento della sessione attiva da Supabase:', activeError);
+      // In caso di errore, continuiamo a usare i dati locali
+      return false;
+    }
+
+    // Filtra le sessioni attive valide
+    const validRemoteActiveSessions = remoteActiveSessions?.filter(s => s && s.session_data) || [];
+    console.log(`Trovate ${validRemoteActiveSessions.length} sessioni attive su Supabase`);
+
+    const { data: remoteHistory, error: historyError } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', false)
+      .order('updated_at', { ascending: false });
+
+    if (historyError) {
+      console.error('Errore nel caricamento della cronologia delle sessioni da Supabase:', historyError);
+      // In caso di errore, continuiamo a usare i dati locali
+      return false;
+    }
+
+    console.log(`Caricate ${remoteHistory?.length || 0} sessioni storia da Supabase`);
+
+    // Converte le sessioni remote nel formato locale con controlli di validità più rigorosi
+    function convertRemoteSessionToLocal(remoteSession: any): Session | null {
+      try {
+        if (!remoteSession) return null;
+        
+        // Verifica che session_data sia presente e sia un oggetto valido
+        if (!remoteSession.session_data || typeof remoteSession.session_data !== 'object') {
+          console.error('session_data mancante o non valido nella sessione remota:', remoteSession.id);
+          return null;
+        }
+        
+        // Estrai i dati della sessione
+        const sessionData = remoteSession.session_data;
+        
+        // Verifica che i campi essenziali siano presenti
+        if (!sessionData.profile || !sessionData.startTime) {
+          console.error('Dati essenziali mancanti nella sessione:', remoteSession.id);
+          return null;
+        }
+
+        // Assicurati che le date siano valide
+        let startTime, endTime, updatedAt;
+        try {
+          startTime = new Date(sessionData.startTime);
+          if (isNaN(startTime.getTime())) {
+            console.error('startTime non valida:', sessionData.startTime);
+            startTime = new Date(); // Fallback a data attuale
+          }
+          
+          if (sessionData.endTime) {
+            endTime = new Date(sessionData.endTime);
+            if (isNaN(endTime.getTime())) {
+              console.error('endTime non valida:', sessionData.endTime);
+              endTime = new Date(); // Fallback a data attuale
+            }
+          }
+          
+          if (remoteSession.updated_at) {
+            updatedAt = new Date(remoteSession.updated_at);
+            if (isNaN(updatedAt.getTime())) {
+              updatedAt = new Date(); // Fallback a data attuale
+            }
+          } else {
+            updatedAt = new Date();
+          }
+        } catch (e) {
+          console.error('Errore nel parsing delle date:', e);
+          startTime = new Date();
+          updatedAt = new Date();
+        }
+        
+        // Assicurati che bacSeries contenga dati validi
+        let bacSeries = [];
+        if (Array.isArray(sessionData.bacSeries)) {
+          bacSeries = sessionData.bacSeries.map(point => {
+            if (!point || typeof point !== 'object') return null;
+            
+            let time;
+            try {
+              time = new Date(point.time);
+              if (isNaN(time.getTime())) {
+                time = new Date();
+              }
+            } catch (e) {
+              time = new Date();
+            }
+            
+            return {
+              time: time,
+              bac: typeof point.bac === 'number' ? point.bac : 0
+            };
+          }).filter(point => point !== null);
+        }
+        
+        // Crea l'oggetto Session con controlli di tipo
+        return {
+          id: remoteSession.id,
+          startTime: startTime,
+          sessionStartTime: startTime,
+          endTime: endTime,
+          profile: sessionData.profile,
+          drinks: Array.isArray(sessionData.drinks) ? sessionData.drinks : [],
+          foods: Array.isArray(sessionData.foods) ? sessionData.foods : [],
+          currentBAC: typeof sessionData.currentBAC === 'number' ? sessionData.currentBAC : 0,
+          status: sessionData.status || 'safe',
+          bacTimePoints: Array.isArray(sessionData.bacTimePoints) ? sessionData.bacTimePoints : [],
+          soberTime: sessionData.soberTime || '0:00',
+          sessionDuration: sessionData.sessionDuration || '0:00',
+          timeToSober: typeof sessionData.timeToSober === 'number' ? sessionData.timeToSober : 0,
+          legalTime: sessionData.legalTime || '0:00',
+          timeToLegal: typeof sessionData.timeToLegal === 'number' ? sessionData.timeToLegal : 0,
+          bacSeries: bacSeries,
+          user_id: remoteSession.user_id,
+          updated_at: updatedAt,
+          isClosed: sessionData.isClosed !== undefined ? sessionData.isClosed : !remoteSession.is_active
+        };
+      } catch (error) {
+        console.error('Errore nella conversione della sessione remota:', error);
+        return null;
+      }
+    }
+
+    // Funzione helper per ottenere l'ultimo aggiornamento di una sessione
+    const getLastUpdateTime = (session: any): number => {
+      if (!session) return 0;
+      
+      // Se la sessione ha un updated_at, usalo
+      if (session.updated_at) {
+        const updateTime = new Date(session.updated_at).getTime();
+        if (!isNaN(updateTime)) return updateTime;
+      }
+      
+      // Fallback: controlla endTime (per sessioni chiuse) o startTime
+      if (session.endTime) {
+        const endTime = new Date(session.endTime).getTime();
+        if (!isNaN(endTime)) return endTime;
+      }
+      
+      if (session.startTime) {
+        const startTime = new Date(session.startTime).getTime();
+        if (!isNaN(startTime)) return startTime;
+      }
+      
+      return 0; // Se non possiamo determinare un timestamp valido
+    };
+    
+    // ====== GESTIONE SESSIONE ATTIVA ======
+    // Trova la sessione attiva più recente tra quelle remote
+    let mostRecentRemoteActiveSession = null;
+    if (validRemoteActiveSessions.length > 0) {
+      mostRecentRemoteActiveSession = validRemoteActiveSessions.reduce((latest, current) => {
+        return getLastUpdateTime(current) > getLastUpdateTime(latest) ? current : latest;
+      }, validRemoteActiveSessions[0]);
+      
+      // Converte la sessione più recente nel formato locale
+      mostRecentRemoteActiveSession = convertRemoteSessionToLocal(mostRecentRemoteActiveSession);
+    }
+    
+    // Scegli quale sessione attiva usare (locale o remota)
+    let updatedActiveSession = null;
+    
+    if (localActiveSession && mostRecentRemoteActiveSession) {
+      // Entrambe esistono, confronta i timestamp
+      const localUpdateTime = getLastUpdateTime(localActiveSession);
+      const remoteUpdateTime = getLastUpdateTime(mostRecentRemoteActiveSession);
+      
+      console.log(`Confronto timestamp: locale=${new Date(localUpdateTime).toISOString()}, remoto=${new Date(remoteUpdateTime).toISOString()}`);
+      
+      if (remoteUpdateTime > localUpdateTime) {
+        // La remota è più recente
+        console.log('Utilizzo sessione attiva remota (più recente)');
+        updatedActiveSession = mostRecentRemoteActiveSession;
+      } else {
+        // La locale è più recente
+        console.log('Utilizzo sessione attiva locale (più recente)');
+        updatedActiveSession = localActiveSession;
+        // Sincronizza la locale su Supabase
+        await saveSessionToSupabase(localActiveSession, true);
+      }
+    } else if (localActiveSession) {
+      // Solo locale esiste
+      console.log('Solo sessione locale attiva trovata');
+      updatedActiveSession = localActiveSession;
+      // Sincronizza la locale su Supabase
+      await saveSessionToSupabase(localActiveSession, true);
+    } else if (mostRecentRemoteActiveSession) {
+      // Solo remota esiste
+      console.log('Solo sessione remota attiva trovata');
+      updatedActiveSession = mostRecentRemoteActiveSession;
+    }
+    
+    // Aggiorna la variabile globale e il local storage
+    activeSession = updatedActiveSession;
+    if (updatedActiveSession) {
+      await saveSessionLocally(updatedActiveSession, 'active');
+    } else {
+      // Se non c'è nessuna sessione attiva, rimuovi quella locale per sicurezza
+      await AsyncStorage.removeItem(getUserSpecificKey(ACTIVE_SESSION_KEY, userId));
+    }
+    
+    // ====== GESTIONE CRONOLOGIA SESSIONI ======
+    const parsedRemoteHistory = (remoteHistory || [])
+      .map(convertRemoteSessionToLocal)
+      .filter(session => session !== null) as Session[];
+    
+    // Crea mappe per un accesso più efficiente
+    const remoteHistoryMap = new Map(
+      parsedRemoteHistory.map((session) => [session.id, session])
+    );
+    
+    const localHistoryMap = new Map(
+      (localHistory || []).map((session) => [session.id, session])
+    );
+    
+    // Unisci le cronologie mantenendo le versioni più recenti
+    const mergedHistory: Session[] = [];
+    const processedIds = new Set<string>();
+    
+    // Elabora prima le sessioni remote
+    parsedRemoteHistory.forEach((remoteSession) => {
+      const localSession = localHistoryMap.get(remoteSession.id);
+      
+      if (localSession) {
+        // La sessione esiste sia localmente che su Supabase
+        const remoteUpdateTime = getLastUpdateTime(remoteSession);
+        const localUpdateTime = getLastUpdateTime(localSession);
+        
+        if (remoteUpdateTime >= localUpdateTime) {
+          mergedHistory.push(remoteSession);
+        } else {
+          mergedHistory.push(localSession);
+          // Sincronizza la locale su Supabase
+          saveSessionToSupabase(localSession, false).catch(err => 
+            console.error('Errore nella sincronizzazione della sessione locale:', err)
+          );
+        }
+      } else {
+        // La sessione esiste solo remotamente
+        mergedHistory.push(remoteSession);
+      }
+      
+      processedIds.add(remoteSession.id);
+    });
+    
+    // Aggiungi le sessioni che esistono solo localmente
+    (localHistory || []).forEach((session) => {
+      if (!processedIds.has(session.id)) {
+        mergedHistory.push(session);
+        // Sincronizza la locale su Supabase
+        saveSessionToSupabase(session, false).catch(err => 
+          console.error('Errore nella sincronizzazione della sessione locale:', err)
+        );
+      }
+    });
+    
+    // Ordina la cronologia per data di inizio (più recenti prima)
+    mergedHistory.sort((a, b) => {
+      try {
+        const dateA = new Date(a.startTime).getTime();
+        const dateB = new Date(b.startTime).getTime();
+        return dateB - dateA;
+      } catch (e) {
+        return 0;
+      }
+    });
+    
+    console.log(`Cronologia unita: ${mergedHistory.length} sessioni`);
+    
+    // Aggiorna la variabile globale
+    sessionHistory = mergedHistory;
+    
+    // Salva la cronologia unita localmente
+    await saveSessionLocally(mergedHistory, 'history');
+    
+    return true;
+  } catch (error) {
+    console.error('Errore in syncWithSupabase:', error);
+    // In caso di errore, continuiamo a usare i dati locali
+    return false;
+  }
+}
+
+/**
+ * Versione completamente rivista di saveSessionToSupabase che si adatta alla struttura del database esistente
+ */
+export async function saveSessionToSupabase(session: Session, is_active: boolean = false): Promise<boolean> {
+  try {
+    if (!session || !session.id) {
+      console.error('Invalid session data');
+      return false;
+    }
+
+    // Verifica se l'utente è autenticato
+    if (!session.user_id) {
+      console.log('Sessione di ospite, non salvata su Supabase');
+      return true;  // Restituisci true per non interrompere il flusso
+    }
+
+    console.log('Salvando sessione su Supabase con ID:', session.id);
+
+    // Verifica che session.profile sia definito e abbia un ID
+    if (!session.profile || !session.profile.id) {
+      console.error('Profile non valido nella sessione');
+      return false;
+    }
+
+    // Verifica se le date sono valide
+    try {
+      let startTimeIso: string;
+      if (typeof session.startTime === 'string') {
+        const testDate = new Date(session.startTime);
+        if (isNaN(testDate.getTime())) {
+          console.error('startTime invalido:', session.startTime);
+          startTimeIso = new Date().toISOString(); // Fallback
+        } else {
+          startTimeIso = session.startTime;
+        }
+      } else {
+        startTimeIso = new Date(session.startTime).toISOString();
+      }
+
+      let endTimeIso: string | null = null;
+      if (session.endTime) {
+        if (typeof session.endTime === 'string') {
+          const testDate = new Date(session.endTime);
+          if (isNaN(testDate.getTime())) {
+            console.error('endTime invalido:', session.endTime);
+            endTimeIso = null;
+          } else {
+            endTimeIso = session.endTime;
+          }
+        } else {
+          endTimeIso = new Date(session.endTime).toISOString();
+        }
+      }
+
+      // Prepara i dati della sessione con formato corretto
+      const normalizedDrinks = session.drinks.map(drink => ({
+        ...drink,
+        time: typeof drink.time === 'string' 
+          ? (new Date(drink.time).getTime() ? drink.time : new Date().toISOString())
+          : new Date(drink.time).toISOString(),
+        alcoholGrams: typeof drink.alcoholGrams === 'number' 
+          ? drink.alcoholGrams 
+          : parseFloat(String(drink.alcoholGrams || 0))
+      }));
+
+      const normalizedFoods = session.foods.map(food => ({
+        ...food,
+        time: typeof food.time === 'string' 
+          ? (new Date(food.time).getTime() ? food.time : new Date().toISOString())
+          : new Date(food.time).toISOString()
+      }));
+
+      const normalizedBacSeries = session.bacSeries?.map(point => ({
+        time: typeof point.time === 'string' 
+          ? (new Date(point.time).getTime() ? point.time : new Date().toISOString())
+          : new Date(point.time).toISOString(),
+        bac: typeof point.bac === 'number' ? point.bac : parseFloat(String(point.bac || 0))
+      })) || [];
+
+      // Usa il formato corretto considerando le colonne nella tabella Supabase
+      const sessionData = {
+        id: session.id,
+        user_id: session.user_id,
+        profile_id: session.profile.id,
+        is_active: is_active,
+        start_time: startTimeIso,
+        end_time: endTimeIso,
+        data: JSON.stringify({
+          profile: session.profile,
+          drinks: normalizedDrinks,
+          foods: normalizedFoods,
+          currentBAC: session.currentBAC,
+          status: session.status,
+          soberTime: session.soberTime,
+          sessionDuration: session.sessionDuration,
+          bacSeries: normalizedBacSeries,
+          isClosed: !is_active
+        }),
+        session_data: {
+          profile: session.profile,
+          drinks: normalizedDrinks,
+          foods: normalizedFoods,
+          startTime: startTimeIso,
+          endTime: endTimeIso,
+          currentBAC: session.currentBAC,
+          status: session.status,
+          soberTime: session.soberTime,
+          sessionDuration: session.sessionDuration,
+          bacSeries: normalizedBacSeries,
+          isClosed: !is_active
+        },
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Campi nel sessionData:', Object.keys(sessionData).join(', '));
+      
+      try {
+        // Aggiorna o inserisci la sessione
+        const { error } = await supabase
+          .from('sessions')
+          .upsert(sessionData, {
+            onConflict: 'id',
+            ignoreDuplicates: false
+          });
+
+        if (error) {
+          console.error('Error saving session to Supabase:', error);
+          console.log('Dettagli errore:', JSON.stringify(error));
+          return false;
+        }
+
+        console.log('Sessione salvata con successo su Supabase');
+        return true;
+      } catch (dbError) {
+        console.error('Errore durante l\'operazione sul database:', dbError);
+        return false;
+      }
+    } catch (error) {
+      console.error('Errore nella preparazione dei dati della sessione:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error in saveSessionToSupabase:', error);
+    return false;
+  }
+}
+
+// Aggiornamento ad una funzione più robusta per salvare le sessioni
+export async function saveSessionLocally(session: Session | Session[] | null, type: 'active' | 'history' = 'history'): Promise<boolean> {
+  try {
+    // Se session è null e type è 'active', rimuovi la sessione attiva
+    if (session === null && type === 'active') {
+      // Determina la chiave di storage appropriata
+      const userId = await getCurrentUserId();
+      const key = userId ? getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : GUEST_ACTIVE_SESSION_KEY;
+      
+      // Rimuovi la sessione attiva
+      await AsyncStorage.removeItem(key);
+      console.log(`Sessione attiva rimossa dalla chiave: ${key}`);
+      return true;
+    }
+    
+    if (!session) {
+      console.error('Invalid session data');
+      return false;
+    }
+
+    // Determina la chiave di storage appropriata (per guest o utente autenticato)
+    let key: string;
+    const userId = Array.isArray(session) ? session[0]?.user_id : session.user_id;
+    
+    if (type === 'active') {
+      key = userId ? getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : GUEST_ACTIVE_SESSION_KEY;
+      } else {
+      key = userId ? getUserSpecificKey(SESSION_HISTORY_KEY, userId) : GUEST_SESSION_HISTORY_KEY;
+    }
+
+    // Prepara i dati per il salvataggio
+    let dataToSave: any;
+    if (Array.isArray(session)) {
+      // Per la cronologia, salva l'array di sessioni
+      dataToSave = session.map(s => ({
+        ...s,
+        startTime: typeof s.startTime === 'string' ? s.startTime : new Date(s.startTime).toISOString(),
+        sessionStartTime: typeof s.sessionStartTime === 'string' ? s.sessionStartTime : new Date(s.sessionStartTime).toISOString(),
+        endTime: s.endTime ? (typeof s.endTime === 'string' ? s.endTime : new Date(s.endTime).toISOString()) : null,
+        updated_at: typeof s.updated_at === 'string' ? s.updated_at : new Date(s.updated_at).toISOString(),
+        drinks: s.drinks.map(drink => ({
+          ...drink,
+          time: typeof drink.time === 'string' ? drink.time : new Date(drink.time).toISOString()
+        })),
+        foods: s.foods.map(food => ({
+          ...food,
+          time: typeof food.time === 'string' ? food.time : new Date(food.time).toISOString()
+        })),
+        bacSeries: s.bacSeries?.map(point => ({
+          ...point,
+          time: typeof point.time === 'string' ? point.time : new Date(point.time).toISOString()
+        }))
+      }));
+        } else {
+      // Per la sessione attiva, salva una singola sessione
+      dataToSave = {
+        ...session,
+        startTime: typeof session.startTime === 'string' ? session.startTime : new Date(session.startTime).toISOString(),
+        sessionStartTime: typeof session.sessionStartTime === 'string' ? session.sessionStartTime : new Date(session.sessionStartTime).toISOString(),
+        endTime: session.endTime ? (typeof session.endTime === 'string' ? session.endTime : new Date(session.endTime).toISOString()) : null,
+        updated_at: typeof session.updated_at === 'string' ? session.updated_at : new Date(session.updated_at).toISOString(),
+        drinks: session.drinks.map(drink => ({
+          ...drink,
+          time: typeof drink.time === 'string' ? drink.time : new Date(drink.time).toISOString()
+        })),
+        foods: session.foods.map(food => ({
+          ...food,
+          time: typeof food.time === 'string' ? food.time : new Date(food.time).toISOString()
+        })),
+        bacSeries: session.bacSeries?.map(point => ({
+          ...point,
+          time: typeof point.time === 'string' ? point.time : new Date(point.time).toISOString()
+        }))
+      };
+    }
+
+    // Salva i dati
+    await AsyncStorage.setItem(key, JSON.stringify(dataToSave));
+    console.log(`Dati sessione salvati in ${key}`);
+
+    return true;
+  } catch (error) {
+    console.error('Error saving session locally:', error);
+    return false;
+  }
+}
+
+// Migliora la funzione loadSessionsFromLocalStorage per gestire meglio il caricamento delle sessioni
+export async function loadSessionsFromLocalStorage(userId?: string): Promise<{active: Session | null, history: Session[]}> {
+  try {
+    console.log('loadSessionsFromLocalStorage: Caricamento sessioni per userId:', userId || 'guest');
+    
+    // Determina le chiavi di storage corrette
+    const activeKey = userId ? getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : GUEST_ACTIVE_SESSION_KEY;
+    const historyKey = userId ? getUserSpecificKey(SESSION_HISTORY_KEY, userId) : GUEST_SESSION_HISTORY_KEY;
+    
+    console.log('Chiavi di storage:', { activeKey, historyKey });
+    
+    // Carica la sessione attiva
+    const activeData = await AsyncStorage.getItem(activeKey);
+    let activeSession: Session | null = null;
+
+    if (activeData) {
+      try {
+        console.log('Sessione attiva trovata in storage');
+        const parsed = JSON.parse(activeData);
+        
+        if (!parsed || !parsed.id) {
+          console.warn('Dati sessione attiva non validi, ignorati');
+        } else {
+          activeSession = parsed;
+          console.log('Sessione attiva caricata con ID:', activeSession.id);
+        }
+      } catch (parseError) {
+        console.error('Errore parsing sessione attiva:', parseError);
+        // Rimuovi dati corrotti
+        await AsyncStorage.removeItem(activeKey);
+      }
+    } else {
+      console.log('Nessuna sessione attiva trovata in storage');
+    }
+
+    // Carica la cronologia
+    const historyData = await AsyncStorage.getItem(historyKey);
+    let sessionHistory: Session[] = [];
+
+    if (historyData) {
+      try {
+        console.log('Dati cronologia trovati in storage');
+        const parsed = JSON.parse(historyData);
+        
+        if (!Array.isArray(parsed)) {
+          console.warn('Dati cronologia non sono un array, inizializzando array vuoto');
+        } else {
+          // Filtra sessioni non valide
+          sessionHistory = parsed.filter(item => item && typeof item === 'object' && item.id);
+          console.log(`Caricate ${sessionHistory.length} sessioni valide dalla cronologia`);
+        }
+      } catch (parseError) {
+        console.error('Errore parsing cronologia sessioni:', parseError);
+        // Rimuovi dati corrotti
+        await AsyncStorage.removeItem(historyKey);
+      }
+    } else {
+      console.log('Nessun dato cronologia trovato in storage');
+    }
+
+    return {
+      active: activeSession,
+      history: sessionHistory
+    };
+  } catch (error) {
+    console.error('Errore in loadSessionsFromLocalStorage:', error);
+    return {
+      active: null,
+      history: []
+    };
+  }
+}
+
+// Fix the getCurrentUser function definition since it was removed 
+export async function getCurrentUser() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  } catch (error) {
+    console.error('Errore nel recupero dell\'utente corrente:', error);
+    return null;
+  }
+}
+
+// Modifica anche getCurrentUserId per gestire meglio gli utenti ospiti
+export async function getCurrentUserId() {
+  try {
+    const user = await getCurrentUser();
+    
+    // Se c'è un utente autenticato, usa il suo ID
+    if (user && user.id) {
+      // Aggiorna l'ID dell'utente corrente memorizzato
+      _currentUserId = user.id;
+      return user.id;
+    }
+    
+    // Altrimenti, è un utente ospite
+    _currentUserId = null;
+    return null;
+  } catch (error) {
+    console.error('Errore nel recupero dell\'ID utente:', error);
+    _currentUserId = null;
+    return null;
+  }
+}
+
+export function ensureServicesInitialized() {
+  if (!_initialized) {
+    return initSessionService();
+  }
+  return Promise.resolve();
+}
+
+export async function createNewSession(profileId: string) {
+  try {
+    const profile = await profileService.getProfileById(profileId);
+    if (!profile) {
+      console.error(`Profile with ID ${profileId} not found`);
+      return null;
+    }
+    
+    return createSession(profile);
+  } catch (error) {
+    console.error('Error creating new session:', error);
+    return null;
+  }
+}
+
+export function saveSession(session: any) {
+  if (!session) return false;
+  
+  // If it's the active session
+  if (activeSession && activeSession.id === session.id) {
+    activeSession = session;
+    return saveSessionLocally(session, 'active');
+  }
+  
+  // If it's in history
+  const index = sessionHistory.findIndex(s => s.id === session.id);
+  if (index >= 0) {
+    sessionHistory[index] = session;
+    return saveSessionLocally(session, 'history');
+  }
+  
+  // If it's a new session, add to history
+  sessionHistory.push(session);
+  return saveSessionLocally(session, 'history');
+}
+
+// Export default for compatibility
+export default {
+  getActiveSession,
+  getSessionHistory,
+  createSession,
+  saveSession,
+  endSession,
+  saveSessionToHistory,
+  addDrink,
+  addFood,
+  removeDrink,
+  removeFood,
+  updateSessionBAC,
+  syncWithSupabase,
+  saveSessionToSupabase,
+  saveSessionLocally,
+  loadSessionsFromLocalStorage,
+  getCurrentUserId,
+  ensureServicesInitialized,
+  createNewSession,
+  deleteSession,
+  initSessionService,
+  deleteSessionFromSupabase,
+  cleanupOrphanedSessions,
+  syncSessions,
+  getSessionDetails,
+  checkDatabaseSchema,
+  repairDatabaseSchema,
+};
+
+// Pulisce tutte le sessioni dell'utente
+export async function clearUserSessions(): Promise<void> {
+  try {
+    const user = await getCurrentUser();
+    const userId = user?.id;
+    if (!userId) {
+      console.log('Nessun utente autenticato, operazione ignorata');
+      return;
+    }
+    
+    console.log(`Pulizia sessioni per l'utente: ${userId}`);
+    
+    // Elimina la sessione attiva
+    activeSession = null;
+    await AsyncStorage.removeItem(getUserSpecificKey(ACTIVE_SESSION_KEY, userId));
+    
+    // Elimina la cronologia delle sessioni
+    sessionHistory = [];
+    await AsyncStorage.removeItem(getUserSpecificKey(SESSION_HISTORY_KEY, userId));
+    
+    console.log('Tutte le sessioni utente eliminate correttamente');
+  } catch (error) {
+    console.error('Errore durante la pulizia delle sessioni utente:', error);
+  }
+}
+
+/**
+ * Funzione per gestire il login e il caricamento delle sessioni appropriate
+ * @param userId L'ID dell'utente che ha effettuato il login
+ */
+export async function handleUserLogin(userId: string): Promise<boolean> {
+  try {
+    console.log(`Utente autenticato con ID: ${userId}`);
+    
+    // Memorizza l'ID utente corrente
+    _currentUserId = userId;
+    
+    // Inizializza le variabili globali
+    activeSession = null;
+    sessionHistory = [];
+    
+    // Sincronizza le sessioni con Supabase
+    const success = await syncWithSupabase(userId);
+    if (!success) {
+      console.error('Errore nella sincronizzazione con Supabase dopo il login');
+    }
+    
+    // Dopo la sincronizzazione, carica le sessioni dell'utente autenticato
+    const { active, history } = await loadSessionsFromLocalStorage(userId);
+    
+    // Imposta la sessione attiva se presente
+    if (active) {
+      activeSession = active;
+      console.log(`Sessione attiva caricata: ${active.id}`);
+    } else {
+      console.log('Nessuna sessione attiva trovata per l\'utente');
+    }
+    
+    // Imposta la cronologia delle sessioni
+    if (history && history.length > 0) {
+      sessionHistory = history;
+      console.log(`Caricate ${history.length} sessioni dalla cronologia dell'utente`);
+    } else {
+      console.log('Nessuna sessione nella cronologia dell\'utente');
+    }
+    
+    // Elimina i dati dell'utente ospite per evitare conflitti
+    await AsyncStorage.removeItem(GUEST_ACTIVE_SESSION_KEY);
+    await AsyncStorage.removeItem(GUEST_SESSION_HISTORY_KEY);
+    console.log('Dati ospite rimossi per evitare contaminazioni');
+    
+    console.log('Login utente completato con successo');
+    return true;
+  } catch (error) {
+    console.error('Errore durante il login utente:', error);
+    return false;
+  }
+}
+
+/**
+ * Funzione per gestire correttamente il logout e cancellare solo i dati appropriati
+ */
+export async function handleLogout(): Promise<void> {
+  try {
+    console.log('Inizio procedura di logout...');
+    
+    // 1. Ottieni l'ID dell'utente attuale prima del logout
+    const userId = await getCurrentUserId();
+    
+    // 2. Resetta subito le variabili in memoria per evitare contaminazioni
+    const oldActiveSession = activeSession;
+    const oldSessionHistory = sessionHistory;
+    
+    activeSession = null;
+    sessionHistory = [];
+    _currentUserId = null;
+    
+    if (userId) {
+      console.log(`Gestione logout per l'utente: ${userId}`);
+      
+      // 3. Assicurati che le sessioni dell'utente autenticato siano salvate nel cloud
+      // prima di effettuare la pulizia locale
+      if (oldActiveSession && oldActiveSession.user_id === userId) {
+        console.log('Salvataggio sessione attiva su Supabase prima del logout');
+        await saveSessionToSupabase(oldActiveSession, true);
+      }
+      
+      // 4. Sincronizza la cronologia con Supabase
+      for (const session of oldSessionHistory) {
+        if (session.user_id === userId) {
+          await saveSessionToSupabase(session, false);
+        }
+      }
+      
+      // 5. Cancella i dati dell'utente autenticato da localStorage
+      console.log('Rimozione dati utente dal localStorage...');
+      const userActiveKey = getUserSpecificKey(ACTIVE_SESSION_KEY, userId);
+      const userHistoryKey = getUserSpecificKey(SESSION_HISTORY_KEY, userId);
+      
+      await AsyncStorage.removeItem(userActiveKey);
+      await AsyncStorage.removeItem(userHistoryKey);
+      console.log(`Rimossi dati utente da: ${userActiveKey} e ${userHistoryKey}`);
+      
+      // 6. I dati su Supabase non vengono cancellati, ma solo mantenuti remoti
+    }
+    
+    // 7. Rimuovi anche i dati dell'utente ospite
+    await AsyncStorage.removeItem(GUEST_ACTIVE_SESSION_KEY);
+    await AsyncStorage.removeItem(GUEST_SESSION_HISTORY_KEY);
+    console.log('Dati ospite rimossi dal localStorage');
+    
+    console.log('Logout completato con successo');
+  } catch (error) {
+    console.error('Errore durante la procedura di logout:', error);
+  }
+}
+
+// Rimuovo la funzione repairDatabaseSchema e la sostituisco con una versione semplificata
+export async function repairDatabaseSchema(): Promise<boolean> {
+  try {
+    console.log('Tentativo di riparazione del database disabilitato - utilizzo tabella esistente');
+    return true; // Ritorna sempre true per non bloccare il flusso dell'app
+  } catch (error) {
+    console.error('Errore nella riparazione dello schema:', error);
+    return false;
+  }
+}
+
+// Rimuovo la funzione checkAndRepairDatabase e creo una versione semplificata
+async function checkAndRepairDatabase(): Promise<void> {
+  if (_schemaChecked) return;
+  
+  console.log('Controllo database disabilitato - uso tabella esistente');
+  _schemaChecked = true;
+}
+
+// Inizializza il servizio delle sessioni
+export async function initSessionService(userId?: string): Promise<void> {
+  if (_initialized) return;
+
+  try {
+    // Primo controlla e ripara il database
+    await checkAndRepairDatabase();
+    
+    // Carica la sessione attiva e la cronologia
+    const userId = await getCurrentUserId();
+    const { active, history } = await loadSessionsFromLocalStorage(userId);
+    
+    // Imposta la sessione attiva in memoria
+    activeSession = active;
+    sessionHistory = history || [];
+    
+    if (active) {
+      console.log('Sessione attiva caricata:', active.id);
+    } else {
+      console.log('Nessuna sessione attiva trovata');
+    }
+    
+    // Imposta l'ID utente corrente
+    _currentUserId = userId;
+    
+    // Inizializza il servizio
+    _initialized = true;
+    console.log('Session service inizializzato con successo');
+  } catch (error) {
+    console.error('Error initializing session service:', error);
+    _initialized = true; // Imposta comunque come inizializzato per evitare tentativi ripetuti
+    return;
+  }
+}
+
+// Funzione per verificare lo schema del database
+export async function checkDatabaseSchema(): Promise<boolean> {
+  try {
+    console.log('Verifico lo schema del database Supabase...');
+    
+    // Ottieni le tabelle
+    const { data: tables, error: tablesError } = await supabase
+      .from('pg_catalog.pg_tables')
+      .select('tablename')
+      .eq('schemaname', 'public');
+    
+    if (tablesError) {
+      console.error('Errore nel recupero delle tabelle:', tablesError);
+      
+      // Prova con un approccio alternativo
+      console.log('Provo a verificare la tabella sessions direttamente...');
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('id')
+        .limit(1);
+      
+      if (sessionsError) {
+        console.error('Errore nella verifica della tabella sessions:', sessionsError);
+        console.log('Dettagli errore sessions:', JSON.stringify(sessionsError));
+      } else {
+        console.log('La tabella sessions esiste e contiene dati:', sessions);
+      }
+      
+      return false;
+    }
+    
+    console.log('Tabelle trovate nel database:', tables.map(t => t.tablename).join(', '));
+    
+    // Verifica della tabella sessions
+    if (tables.some(t => t.tablename === 'sessions')) {
+      console.log('La tabella sessions esiste, verifico le colonne...');
+      
+      // Tentativo di salvataggio di una sessione di test
+      const testSession = {
+        id: 'test_' + Date.now(),
+        user_id: 'test_user',
+        profile_id: 'test_profile',
+        session_data: { test: true },
+        is_active: true
+      };
+      
+      const { error: insertError } = await supabase
+        .from('sessions')
+        .upsert(testSession);
+      
+      if (insertError) {
+        console.error('Errore nell\'inserimento del test:', insertError);
+        console.log('Dettagli errore:', JSON.stringify(insertError));
+      } else {
+        console.log('Test inserito con successo!');
+        
+        // Pulizia
+        await supabase
+          .from('sessions')
+          .delete()
+          .eq('id', testSession.id);
+      }
+    } else {
+      console.error('La tabella sessions non esiste!');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Errore nella verifica dello schema:', error);
+    return false;
+  }
+}
+
+// Funzione di utilità per formattare la durata
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = Math.floor(minutes % 60);
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+// Funzioni specifiche per caricamento sessioni per utenti ospiti
+export async function loadGuestSessions(): Promise<{active: Session | null, history: Session[]}> {
+  try {
+    console.log('Caricamento sessioni per utente ospite');
+    // Carica la sessione attiva
+    let guestActiveSession: Session | null = null;
+    try {
+      const activeData = await AsyncStorage.getItem(GUEST_ACTIVE_SESSION_KEY);
+      if (activeData) {
+        const parsed = JSON.parse(activeData);
+        guestActiveSession = {
+          ...parsed,
+          startTime: new Date(parsed.startTime),
+          sessionStartTime: new Date(parsed.sessionStartTime),
+          endTime: parsed.endTime ? new Date(parsed.endTime) : undefined,
+          updated_at: parsed.updated_at ? new Date(parsed.updated_at) : undefined
+        };
+        console.log('Sessione attiva ospite caricata:', guestActiveSession.id);
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento della sessione attiva ospite:', error);
+    }
+
+    // Carica la cronologia
+    let guestHistory: Session[] = [];
+    try {
+      const historyData = await AsyncStorage.getItem(GUEST_SESSION_HISTORY_KEY);
+      if (historyData) {
+        const parsed = JSON.parse(historyData);
+        guestHistory = parsed.map((session: any) => ({
+          ...session,
+          startTime: new Date(session.startTime),
+          sessionStartTime: new Date(session.sessionStartTime),
+          endTime: session.endTime ? new Date(session.endTime) : undefined,
+          updated_at: session.updated_at ? new Date(session.updated_at) : undefined
+        }));
+        console.log(`Caricate ${guestHistory.length} sessioni dalla cronologia ospite`);
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento della cronologia ospite:', error);
+    }
+
+    return { active: guestActiveSession, history: guestHistory };
+  } catch (error) {
+    console.error('Errore nel caricamento delle sessioni ospite:', error);
+    return { active: null, history: [] };
+  }
+}
+
+// Funzione di utility semplificata per deleteSession
+export function deleteSession(sessionId: string): boolean {
+  try {
+    // Se è la sessione attiva, cancellala
+    if (activeSession && activeSession.id === sessionId) {
+      console.log(`Cancellazione sessione attiva ${sessionId}`);
+      activeSession = null;
+      
+      // Rimuovi da localStorage in modo asincrono
+      getCurrentUserId().then(userId => {
+        const key = userId ? 
+          getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : 
+          GUEST_ACTIVE_SESSION_KEY;
+          
+        AsyncStorage.removeItem(key);
+      });
+    }
+    
+    // Se è nella cronologia, rimuovila
+    const index = sessionHistory.findIndex(s => s.id === sessionId);
+    if (index >= 0) {
+      sessionHistory.splice(index, 1);
+      
+      // Salva la cronologia aggiornata
+      getCurrentUserId().then(userId => {
+        const key = userId ? 
+          getUserSpecificKey(SESSION_HISTORY_KEY, userId) : 
+          GUEST_SESSION_HISTORY_KEY;
+          
+        AsyncStorage.setItem(key, JSON.stringify(sessionHistory));
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Errore nella cancellazione della sessione:', error);
+    return false;
+  }
+}
+
+// Funzione semplificata per eliminare una sessione da Supabase
+export async function deleteSessionFromSupabase(sessionId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .match({ id: sessionId });
+      
+    return !error;
+  } catch (error) {
+    console.error('Errore nell\'eliminazione della sessione da Supabase:', error);
+    return false;
+  }
+}
+
+// Stub functions per mantenere la compatibilità
+export function cleanupOrphanedSessions() {
+  return Promise.resolve(true);
+}
+
+export function syncSessions() {
+  return Promise.resolve(true);
+}
+
+// Funzione per ottenere i dettagli di una sessione
+export function getSessionDetails(sessionId: string): Session | null {
+  if (activeSession && activeSession.id === sessionId) {
+    return activeSession;
+  }
+  
+  const historySession = sessionHistory.find(s => s.id === sessionId);
+  return historySession || null;
+}
+
+// Funzione per eliminare tutte le sessioni attive
+export async function clearAllSessions(): Promise<boolean> {
+  try {
+    // Resetta la sessione attiva in memoria
+    activeSession = null;
+    
+    // Ottieni l'ID utente corrente
+    const userId = await getCurrentUserId();
+    
+    // Rimuovi la sessione attiva dallo storage
+    const activeSessionKey = userId ? 
+      getUserSpecificKey(ACTIVE_SESSION_KEY, userId) : 
+      GUEST_ACTIVE_SESSION_KEY;
+    await AsyncStorage.removeItem(activeSessionKey);
+    
+    // Se l'utente è autenticato, elimina anche la sessione attiva da Supabase
+    if (userId) {
+      try {
+        const { error } = await supabase
+          .from('sessions')
+          .update({ is_active: false, end_time: new Date().toISOString() })
+          .match({ user_id: userId, is_active: true });
+          
+        if (error) {
+          console.error('Errore nell\'aggiornamento delle sessioni attive su Supabase:', error);
+        }
+      } catch (supabaseError) {
+        console.error('Errore durante la disattivazione delle sessioni in Supabase:', supabaseError);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Errore durante la cancellazione di tutte le sessioni:', error);
+    return false;
+  }
+} 
+
+export const loadActiveSession = async (userId: string | null = null): Promise<Session | null> => {
+  try {
+    console.log(`Caricamento sessione attiva per ${userId || 'guest'}`);
+    const key = getActiveSessionKey(userId);
+    const activeSessionJson = await AsyncStorage.getItem(key);
+    
+    // ... existing code ...
+  } catch (error) {
+    console.error('Errore caricamento sessione attiva:', error);
+    return null;
+  }
+};
+
+export const saveActiveSession = async (
+  session: Session | null,
+  userId: string | null = null
+): Promise<void> => {
+  try {
+    const key = getActiveSessionKey(userId);
+    if (!session) {
+      console.log(`Eliminazione sessione attiva per ${userId || 'guest'}`);
+      await AsyncStorage.removeItem(key);
+      return;
+    }
+
+    // Verifica che l'ID utente nella sessione corrisponda all'ID utente fornito
+    if (userId && session.user_id && session.user_id !== userId) {
+      console.warn(`ID utente non corrispondente: ${session.user_id} vs ${userId}. Aggiornamento nella sessione.`);
+      session.user_id = userId;
+    }
+    
+    // Se l'ID utente non è impostato nella sessione, impostalo
+    if (userId && !session.user_id) {
+      session.user_id = userId;
+    }
+
+    const sessionJson = JSON.stringify(session);
+    await AsyncStorage.setItem(key, sessionJson);
+    console.log(`Sessione attiva salvata con successo per ${userId || 'guest'}`);
+  } catch (error) {
+    console.error('Errore salvataggio sessione attiva:', error);
+  }
+};
+
+export const loadSessionHistory = async (userId: string | null = null): Promise<Session[]> => {
+  try {
+    console.log(`Caricamento storico sessioni per ${userId || 'guest'}`);
+    const key = getSessionHistoryKey(userId);
+    // ... existing code ...
+  } catch (error) {
+    console.error('Errore caricamento storico sessioni:', error);
+    return [];
+  }
+};
+
+export const saveSessionHistory = async (
+  history: Session[],
+  userId: string | null = null
+): Promise<void> => {
+  try {
+    const key = getSessionHistoryKey(userId);
+    
+    // Verifica e filtra sessioni valide
+    const validHistory = history.filter(session => {
+      if (!session || typeof session !== 'object') {
+        console.warn('Sessione invalida rimossa dallo storico');
+        return false;
+      }
+      
+      // Verifica che l'ID utente nella sessione corrisponda all'ID utente fornito
+      if (userId && session.user_id && session.user_id !== userId) {
+        console.warn(`ID utente non corrispondente in storico: ${session.user_id} vs ${userId}. Aggiornamento ID.`);
+        session.user_id = userId;
+      }
+      
+      // Se l'ID utente non è impostato nella sessione, impostalo
+      if (userId && !session.user_id) {
+        session.user_id = userId;
+      }
+      
+      return true;
+    });
+    
+    const historyJson = JSON.stringify(validHistory);
+    await AsyncStorage.setItem(key, historyJson);
+    console.log(`Storico sessioni salvato con successo per ${userId || 'guest'}: ${validHistory.length} sessioni`);
+  } catch (error) {
+    console.error('Errore salvataggio storico sessioni:', error);
+  }
+};
+
+export const saveSessionToSupabaseHistory = async (session: Session, userId: string): Promise<boolean> => {
+  // Usiamo la funzione esistente ma specificando is_active = false
+  return saveSessionToSupabase(session, false);
+};
+
+/**
+ * Pulisce tutti i dati di un utente quando effettua il logout
+ */
+export const clearUserData = async (userId: string): Promise<void> => {
+  if (!userId) {
+    console.error('clearUserData: userId non fornito');
+    return;
+  }
+  
+  console.log(`Pulizia dati per l'utente ${userId}`);
+  
+  try {
+    // Salva la sessione attiva su Supabase se esiste
+    const activeSession = await loadSession(userId);
+    if (activeSession) {
+      console.log('Salvataggio sessione attiva su Supabase prima del logout');
+      try {
+        await saveSessionToSupabase(activeSession, true);
+      } catch (e) {
+        console.error('Errore nel salvare la sessione su Supabase:', e);
+      }
+    }
+    
+    // Rimuovi la sessione attiva locale
+    await AsyncStorage.removeItem(`user_${userId}_active_session`);
+    console.log('Sessione attiva locale rimossa');
+    
+    // Sincronizziamo una ultima volta la cronologia con Supabase
+    try {
+      const sessionHistory = await loadSessionHistory(userId);
+      if (sessionHistory && sessionHistory.length > 0) {
+        console.log(`Sincronizzazione di ${sessionHistory.length} sessioni storiche con Supabase`);
+        for (const session of sessionHistory) {
+          await saveSessionToSupabase(session, false);
+        }
+      }
+    } catch (e) {
+      console.error('Errore nel sincronizzare lo storico sessioni:', e);
+    }
+    
+    // Non cancelliamo lo storico locale
+    console.log('Pulizia dati utente completata');
+  } catch (error) {
+    console.error('Errore nella pulizia dei dati utente:', error);
+  }
+};
+
+// Fix loadSession
+export async function loadSession(userId?: string): Promise<Session | null> {
+  try {
+    console.log('Caricamento sessione, userId:', userId);
+    const storageKey = getActiveSessionKey(userId || null);
+    
+    const sessionJson = await AsyncStorage.getItem(storageKey);
+    if (!sessionJson) {
+      console.log('Nessuna sessione trovata in storage');
+      return null;
+    }
+    
+    return JSON.parse(sessionJson);
+  } catch (error) {
+    console.error('Error loading session:', error);
+    return null;
+  }
+}
+
+// Fix saveSession
+export async function saveSession(
+  session: Session | null,
+  userId?: string,
+  type: 'active' | 'history' = 'active'
+): Promise<boolean> {
+  if (!session) {
+    console.log('No session to save');
+    return false;
+  }
+
+  try {
+    const key = type === 'active' 
+      ? getActiveSessionKey(userId || null)
+      : getSessionHistoryKey(userId || null);
+      
+    await AsyncStorage.setItem(key, JSON.stringify(session));
+    return true;
+  } catch (error) {
+    console.error('Error saving session:', error);
+    return false;
+  }
+}
+
+// Fix endSession
+export async function endSession(): Promise<boolean> {
+  try {
+    console.log('Iniziando la procedura di chiusura della sessione...');
+    const session = getActiveSession();
+    if (!session) {
+      console.log('Nessuna sessione attiva trovata per la chiusura');
+      return false;
+    }
+    
+    // ... existing code ...
+    
+    // Update session in AsyncStorage and Supabase
+    try {
+      const userId = session.user_id;
+      await AsyncStorage.removeItem(getActiveSessionKey(userId || null));
+      // ... existing code ...
+      
+      console.log('Procedura di chiusura sessione completata con successo');
+      return true;
+    } catch (innerError) {
+      console.error('Errore dettagliato durante la chiusura della sessione:', innerError);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error ending session:', error);
+    return false;
+  }
+}
+
+// Fix loadLastSession
+export async function loadLastSession(userId?: string): Promise<Session | null> {
+  try {
+    const key = getActiveSessionKey(userId || null);
+    const sessionJson = await AsyncStorage.getItem(key);
+    if (!sessionJson) {
+      return null;
+    }
+    return JSON.parse(sessionJson);
+  } catch (error) {
+    console.error('Error loading last session:', error);
+    return null;
+  }
+}
+
+// Fix loadUserSessions
+export async function loadUserSessions(type: 'active' | 'history', userId?: string): Promise<any> {
+  let key: string;
+  if (type === 'active') {
+    key = getActiveSessionKey(userId || null);
+  } else {
+    key = getSessionHistoryKey(userId || null);
+  }
+  
+  try {
+    const data = await AsyncStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.error('Error loading user sessions:', error);
+    return null;
+  }
+}
+
+// Fix cleanupUserSessions
+export async function cleanupUserSessions(userId?: string): Promise<void> {
+  if (!userId) {
+    console.warn('cleanupUserSessions called without userId');
+    return;
+  }
+
+  try {
+    await AsyncStorage.removeItem(getActiveSessionKey(userId));
+    console.log('Active session removed');
+    await AsyncStorage.removeItem(getSessionHistoryKey(userId));
+    console.log('Session history removed');
+    console.log('User sessions cleanup completed');
+  } catch (error) {
+    console.error('Error cleaning up user sessions:', error);
+  }
+}

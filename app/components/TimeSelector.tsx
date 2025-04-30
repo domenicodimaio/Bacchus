@@ -11,144 +11,108 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
+import { FontAwesome } from '@expo/vector-icons';
+import { formatTime } from '../utils/dateUtils';
 
-interface TimeSelectorProps {
+export interface TimeSelectorProps {
   value: Date;
   onChange: (date: Date) => void;
   label?: string;
+  nowLabel?: string;
 }
 
 const TimeSelector: React.FC<TimeSelectorProps> = ({ 
   value, 
   onChange, 
-  label = 'Orario' 
+  label = 'Orario',
+  nowLabel = 'Now'
 }) => {
   const { t } = useTranslation();
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   
-  const [showPicker, setShowPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempDate, setTempDate] = useState(value);
   
-  // Gestisce il cambiamento di data/ora
-  const handleChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || value;
-    
-    if (Platform.OS === 'android') {
-      setShowPicker(false);
-    }
-    
+    setShowDatePicker(Platform.OS === 'ios');
     setTempDate(currentDate);
-    
-    if (Platform.OS === 'ios') {
-      // Su iOS, la conferma avviene con il pulsante "Done"
-    } else {
-      // Su Android, ogni selezione è una conferma
       onChange(currentDate);
-    }
   };
   
-  // Conferma la selezione su iOS
-  const handleConfirm = () => {
-    onChange(tempDate);
-    setShowPicker(false);
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    const currentTime = selectedTime || value;
+    setShowTimePicker(Platform.OS === 'ios');
+    setTempDate(currentTime);
+    onChange(currentTime);
+  };
+
+  const setNow = () => {
+    onChange(new Date());
   };
   
-  // Imposta l'orario attuale
-  const handleNow = () => {
-    const now = new Date();
-    onChange(now);
-    setTempDate(now);
-  };
-  
-  // Formatta l'orario per la visualizzazione
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Formato semplice per la data
+  const formatDateSimple = (date: Date) => {
+    return date.toLocaleDateString();
   };
   
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>
-        {label}
-      </Text>
+      {label && <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>}
       
-      <View style={styles.timeContainer}>
+      <View style={styles.selectors}>
+        <View style={styles.dateTimeContainer}>
+          <TouchableOpacity
+            style={[styles.dateSelector, { backgroundColor: colors.cardBackground }]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={[styles.dateText, { color: colors.text }]}>
+              {formatDateSimple(value)}
+            </Text>
+            <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
         <TouchableOpacity 
-          style={[styles.timeButton, { backgroundColor: colors.cardBackground }]} 
-          onPress={() => setShowPicker(true)}
+            style={[styles.timeSelector, { backgroundColor: colors.cardBackground }]}
+            onPress={() => setShowTimePicker(true)}
         >
           <Text style={[styles.timeText, { color: colors.text }]}>
             {formatTime(value)}
           </Text>
-          <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+            <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
+        </View>
         
         <TouchableOpacity 
-          style={[styles.nowButton, { backgroundColor: colors.primary }]}
-          onPress={handleNow}
+          style={[styles.nowButton, { backgroundColor: colors.secondary }]}
+          onPress={setNow}
         >
           <Text style={styles.nowButtonText}>
-            {t('now')}
+            {nowLabel}
           </Text>
         </TouchableOpacity>
       </View>
       
-      {Platform.OS === 'android' ? (
-        // Android usa il picker nativo
-        showPicker && (
+      {showDatePicker && (
           <DateTimePicker
             value={tempDate}
-            mode="time"
-            is24Hour={true}
+          mode="date"
             display="default"
-            onChange={handleChange}
-          />
-        )
-      ) : (
-        // iOS usa un modal personalizzato
-        <Modal
-          visible={showPicker}
-          transparent={true}
-          animationType="slide"
-        >
-          <View style={styles.modalContainer}>
-            <View style={[styles.pickerContainer, { backgroundColor: colors.cardBackground }]}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity 
-                  onPress={() => setShowPicker(false)}
-                  style={styles.cancelButton}
-                >
-                  <Text style={[styles.headerButtonText, { color: colors.danger }]}>
-                    {t('cancel')}
-                  </Text>
-                </TouchableOpacity>
-                
-                <Text style={[styles.pickerTitle, { color: colors.text }]}>
-                  {label}
-                </Text>
-                
-                <TouchableOpacity 
-                  onPress={handleConfirm}
-                  style={styles.doneButton}
-                >
-                  <Text style={[styles.headerButtonText, { color: colors.primary }]}>
-                    {t('done')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
+          onChange={handleDateChange}
+          maximumDate={new Date()}
+        />
+      )}
+      
+      {showTimePicker && (
               <DateTimePicker
                 value={tempDate}
                 mode="time"
                 is24Hour={true}
-                display="spinner"
-                onChange={handleChange}
-                textColor={colors.text}
-                style={styles.picker}
-              />
-            </View>
-          </View>
-        </Modal>
+          display="default"
+          onChange={handleTimeChange}
+        />
       )}
     </View>
   );
@@ -156,38 +120,59 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 10,
+    marginVertical: 8,
   },
   label: {
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeButton: {
+  selectors: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+  },
+  dateTimeContainer: {
+    flexDirection: 'row',
     flex: 1,
+    marginRight: 8,
+  },
+  dateSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flex: 3,
+    marginRight: 6,
+  },
+  dateText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  timeSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flex: 2,
   },
   timeText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
   nowButton: {
-    marginLeft: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     borderRadius: 8,
+    minWidth: 70,
+    alignItems: 'center',
   },
   nowButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
   modalContainer: {

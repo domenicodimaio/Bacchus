@@ -1,3 +1,14 @@
+/**
+ * Schermata per l'aggiunta di cibo alle sessioni
+ * 
+ * Redesign completo per essere identica alla pagina di aggiunta bevande:
+ * - Stesso stile di header e pulsanti 
+ * - Stesse animazioni e transizioni
+ * - Stesso layout generale
+ * - Selezione orario in stile identico a quello delle bevande
+ * - Visualizzazione chiara dell'effetto del cibo sul tasso alcolemico
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
@@ -8,11 +19,15 @@ import {
   Platform,
   StatusBar,
   Alert,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+  Image,
+  Pressable
 } from 'react-native';
-import { router, useNavigation } from 'expo-router';
-import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useNavigation, useRouter, useLocalSearchParams } from 'expo-router';
+import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { COLORS, SIZES } from '../constants/theme';
+import { COLORS, SIZES, SHADOWS, ANIMATION } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import Animated, { 
   useSharedValue, 
@@ -20,68 +35,79 @@ import Animated, {
   withTiming, 
   withSequence,
   withDelay,
-  Easing
+  withSpring,
+  Easing,
+  FadeIn,
+  interpolate,
+  Extrapolate
 } from 'react-native-reanimated';
-import { FoodRecord } from '../lib/bac/visualization';
+import { FoodRecord, FoodPreset } from '../types/session';
 import AppHeader from '../components/AppHeader';
 import { useToast } from '../components/Toast';
 import TimeSelector from '../components/TimeSelector';
-import Header from '../components/Header';
+import * as sessionService from '../lib/services/session.service';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Presets di cibo
-const foodPresets = [
+const foodPresets: FoodPreset[] = [
   {
-    id: 'lightSnack',
-    name: 'foodTypes.lightSnack',
+    id: 'snack',
+    name: 'Snack',
     icon: 'cookie',
-    absorptionFactor: 0.9,
-    iconColor: '#FF9800',
+    absorptionFactor: 0.3,
+    iconColor: '#FFA000', // Colore arancione
   },
   {
-    id: 'smallMeal',
-    name: 'foodTypes.smallMeal',
-    icon: 'hamburger',
-    absorptionFactor: 0.8,
-    iconColor: '#8BC34A',
-  },
-  {
-    id: 'fullMeal',
-    name: 'foodTypes.fullMeal',
+    id: 'light_meal',
+    name: 'Pasto leggero',
     icon: 'utensils',
-    absorptionFactor: 0.6,
-    iconColor: '#4CAF50',
+    absorptionFactor: 0.5,
+    iconColor: '#4CAF50', // Colore verde
   },
   {
-    id: 'heavyMeal',
-    name: 'foodTypes.heavyMeal',
+    id: 'full_meal',
+    name: 'Pasto completo',
+    icon: 'hamburger',
+    absorptionFactor: 0.7,
+    iconColor: '#2196F3', // Colore blu
+  },
+  {
+    id: 'heavy_meal',
+    name: 'Pasto abbondante',
     icon: 'pizza-slice',
-    absorptionFactor: 0.4,
-    iconColor: '#3F51B5',
+    absorptionFactor: 0.8,
+    iconColor: '#9C27B0', // Colore viola
   }
 ];
 
 // Quando si è mangiato rispetto al bere
 const timingOptions = [
-  { id: 'before', name: 'foodTiming.before', description: 'foodTiming.beforeDescription', factor: 1.0 },
-  { id: 'during', name: 'foodTiming.during', description: 'foodTiming.duringDescription', factor: 0.8 },
-  { id: 'after', name: 'foodTiming.after', description: 'foodTiming.afterDescription', factor: 0.6 },
+  { id: 'before', name: 'Prima di bere', description: 'Effetto ridotto sulla diminuzione del tasso alcolico', factor: 1.0 },
+  { id: 'during', name: 'Durante il bere', description: 'Effetto moderato sulla diminuzione del tasso alcolico', factor: 0.8 },
+  { id: 'after', name: 'Dopo aver bevuto', description: 'Effetto significativo sulla diminuzione del tasso alcolico', factor: 0.6 },
 ];
 
-function AddFoodScreen() {
+export default function AddFoodScreen() {
   const { t } = useTranslation(['session', 'common']);
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   const navigation = useNavigation();
+  const toast = useToast();
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   
   // Stati per il form
-  const [selectedFood, setSelectedFood] = useState(foodPresets[2]); // Default: pasto completo
+  const [selectedFood, setSelectedFood] = useState<FoodPreset | null>(null);
   const [selectedTiming, setSelectedTiming] = useState(timingOptions[1]); // Default: durante il bere
-  const [finalAbsorptionFactor, setFinalAbsorptionFactor] = useState(selectedFood.absorptionFactor * selectedTiming.factor);
+  const [finalAbsorptionFactor, setFinalAbsorptionFactor] = useState(0);
+  const [consumptionTime, setConsumptionTime] = useState(new Date());
+  const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   
-  // Animazioni
-  const contentOpacity = useSharedValue(0);
-  const contentTranslateY = useSharedValue(30);
-  const buttonScale = useSharedValue(0.95);
+  // Stato per gli step del wizard
+  const [currentStep, setCurrentStep] = useState(0);
+  const totalSteps = 2; // 0: tipo di alimento, 1: quando hai mangiato
   
   // Nasconde l'header standard per usare il nostro componente AppHeader
   useEffect(() => {
@@ -90,238 +116,377 @@ function AddFoodScreen() {
     });
   }, [navigation]);
   
-  // Avvio animazioni
-  useEffect(() => {
-    contentOpacity.value = withSequence(
-      withDelay(300, withTiming(1, { duration: 800 }))
-    );
-    
-    contentTranslateY.value = withSequence(
-      withDelay(300, withTiming(0, { duration: 800, easing: Easing.bezier(0.25, 0.1, 0.25, 1) }))
-    );
-    
-    buttonScale.value = withSequence(
-      withDelay(800, withTiming(1, { duration: 300 })),
-      withTiming(1, { duration: 200 })
-    );
-  }, []);
-  
   // Ricalcola il fattore di assorbimento quando cambiano le selezioni
   useEffect(() => {
-    const factor = selectedFood.absorptionFactor * selectedTiming.factor;
-    setFinalAbsorptionFactor(factor);
+    if (selectedFood && selectedTiming) {
+      const factor = selectedFood.absorptionFactor * selectedTiming.factor;
+      setFinalAbsorptionFactor(factor);
+    }
   }, [selectedFood, selectedTiming]);
   
-  // Handler per la selezione del cibo
-  const handleSelectFood = (food) => {
-    setSelectedFood(food);
-  };
-  
-  // Handler per la selezione del timing
-  const handleSelectTiming = (timing) => {
-    setSelectedTiming(timing);
-  };
-  
-  // Funzione per salvare il cibo migliorata
-  const handleSaveFood = () => {
-    console.log("🍔 Saving food...");
-    
-    try {
-      // Validazione dell'input
-      if (!selectedFood) {
-        Alert.alert("Errore", "Seleziona un alimento");
-        return;
-      }
-      
-      const timestamp = new Date().getTime(); // Timestamp unico per identificare questo cibo
-      
-      // Preparazione dei dati
-      const foodData = {
-        id: `food_${timestamp}`,
-        name: selectedFood.name,
-        absorptionFactor: selectedFood.absorptionFactor,
-        timeConsumed: new Date().toISOString(),
-        icon: selectedFood.icon || 'utensils'
-      };
-      
-      console.log("🍔 Food data:", foodData);
-      
-      // Converti in JSON per passare i parametri
-      const foodParam = JSON.stringify(foodData);
-      console.log("🍔 Food param (encoded):", foodParam);
-      
-      // Aggiungi il timestamp nei parametri per evitare problemi di cache
-      router.replace({
-        pathname: '/session',
-        params: { 
-          newFood: foodParam,
-          timestamp: timestamp.toString()
-        }
-      });
-      
-      console.log("🍔 Navigating back to session with food data");
-    } catch (error) {
-      console.error("❌ Error saving food:", error);
-      Alert.alert(
-        "Errore", 
-        `Si è verificato un errore nel salvataggio dell'alimento: ${error.message}`
-      );
+  // Funzioni per la navigazione tra gli step
+  const goToNextStep = () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
     }
   };
   
-  // Stili animati
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: contentOpacity.value,
-      transform: [{ translateY: contentTranslateY.value }],
-    };
-  });
+  const goToPreviousStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
   
-  const buttonAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: buttonScale.value }],
-    };
-  });
+  // Handler per la selezione del cibo
+  const handleSelectFood = (food: FoodPreset) => {
+    setSelectedFood(food);
+    goToNextStep(); // Passa automaticamente allo step successivo
+  };
   
-  // Formatta il fattore di assorbimento come percentuale
-  const formatAbsorptionFactor = (factor) => {
-    return `${Math.round((1 - factor) * 100)}%`;
+  // Handler per la selezione del timing
+  const handleSelectTiming = (timing: typeof timingOptions[number]) => {
+    setSelectedTiming(timing);
+  };
+  
+  // Handler per la selezione dell'orario
+  const handleTimeChange = (newTime: Date) => {
+    setConsumptionTime(newTime);
+  };
+  
+  // Renderizza solo lo step corrente
+  const renderCurrentStep = () => {
+    switch(currentStep) {
+      case 0:
+        // Step 0: Selezione del tipo di alimento
+        return (
+          <View style={styles.stepContent}>
+            <View style={styles.sectionContainer}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t('Orario di consumo')}
+              </Text>
+              
+              <TimeSelector
+                value={consumptionTime}
+                onChange={handleTimeChange}
+                label={t('Orario di consumo')}
+                nowLabel={t('now', { defaultValue: 'Adesso' })}
+              />
+            </View>
+            
+            <View style={styles.sectionContainer}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t('Tipo di alimento')}
+              </Text>
+              <View style={styles.foodGrid}>
+                {foodPresets.map((food) => (
+                  <TouchableOpacity
+                    key={food.id}
+                    style={[
+                      styles.foodItem,
+                      selectedFood?.id === food.id && [
+                        styles.selectedFoodItem,
+                        { borderColor: food.iconColor }
+                      ],
+                      { backgroundColor: colors.cardBackground }
+                    ]}
+                    onPress={() => handleSelectFood(food)}
+                  >
+                    <FontAwesome5
+                      name={food.icon}
+                      size={32}
+                      color={food.iconColor}
+                      style={styles.foodIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.foodName,
+                        { color: colors.text },
+                        selectedFood?.id === food.id && { fontWeight: 'bold' }
+                      ]}
+                    >
+                      {t(food.name)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        );
+      
+      case 1:
+      default:
+        // Step 1: Selezione del timing
+        return (
+          <View style={styles.stepContent}>
+            <View style={styles.sectionContainer}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t('Quando hai mangiato')}
+              </Text>
+              <View style={styles.timingContainer}>
+                {timingOptions.map((timing) => (
+                  <TouchableOpacity
+                    key={timing.id}
+                    style={[
+                      styles.timingItem,
+                      selectedTiming.id === timing.id && [
+                        styles.selectedTimingItem,
+                        { borderColor: colors.primary }
+                      ],
+                      { backgroundColor: colors.cardBackground }
+                    ]}
+                    onPress={() => handleSelectTiming(timing)}
+                  >
+                    <Text
+                      style={[
+                        styles.timingName,
+                        { color: colors.text },
+                        selectedTiming.id === timing.id && { fontWeight: 'bold' }
+                      ]}
+                    >
+                      {timing.name}
+                    </Text>
+                    <Text style={[styles.timingDescription, { color: colors.textSecondary }]}>
+                      {timing.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <View style={styles.absorptionInfoContainer}>
+                <Text style={[styles.absorptionTitle, { color: colors.text }]}>
+                  {t('effectOnBAC', { defaultValue: 'Effetto sul tasso alcolemico' })}
+                </Text>
+                <Text style={[styles.absorptionValue, { color: colors.primary }]}>
+                  {Math.round(finalAbsorptionFactor * 100)}%
+                </Text>
+                <Text style={[styles.absorptionDescription, { color: colors.textSecondary }]}>
+                  {t('absorptionDescription', { defaultValue: 'Riduzione del tasso di assorbimento dell\'alcol' })}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+    }
+  };
+  
+  const handleSaveFood = async () => {
+    if (!selectedFood) {
+      toast?.showToast({
+        message: t('selectFoodMessage', { ns: 'common', defaultValue: 'Seleziona un alimento dalla lista' }),
+        type: 'error'
+      });
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const foodData: FoodRecord = {
+        ...selectedFood,
+        id: `food_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        time: consumptionTime.toISOString(),
+        timeConsumed: consumptionTime,
+        absorptionFactor: finalAbsorptionFactor
+      };
+
+      // Animazioni di conferma
+      setShowConfetti(true);
+      
+      // Attendi un po' per far vedere l'animazione
+      setTimeout(() => {
+        // Converti l'oggetto in una stringa JSON per passarlo come parametro
+        const foodParam = JSON.stringify(foodData);
+        const timestamp = Date.now().toString(); // Timestamp univoco per il parametro
+        
+        // Passa alla pagina della sessione con il parametro del cibo
+        router.push({
+          pathname: '/session',
+          params: { newFood: foodParam, timestamp }
+        });
+      }, 800);
+    } catch (error) {
+      console.error('Errore nel salvataggio del cibo:', error);
+      toast?.showToast({
+        message: t('errorSavingFood', { ns: 'common', defaultValue: 'Si è verificato un errore durante il salvataggio dell\'alimento' }),
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       
-      <Header 
+      <AppHeader
         title={t('addFood')}
-        showBack={true}
+        translationNamespace="session"
       />
       
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View style={[styles.section, contentAnimatedStyle]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t('selectFoodType')}
-          </Text>
-          
-          <View style={styles.foodPresets}>
-            {foodPresets.map((food) => (
-              <TouchableOpacity
-                key={food.id}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressTrack}>
+          <View style={[
+            styles.progressLine, 
+            {
+              width: `${(currentStep / (totalSteps - 1)) * 100}%`,
+              backgroundColor: colors.primary 
+            }
+          ]} />
+          {[...Array(totalSteps)].map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => index <= currentStep && setCurrentStep(index)}
+              style={styles.progressDotContainer}
+            >
+              <View
                 style={[
-                  styles.foodPreset,
-                  selectedFood.id === food.id && {
+                  styles.progressDot,
+                  {
+                    backgroundColor: index <= currentStep ? colors.primary : colors.border,
                     borderColor: colors.primary,
-                    backgroundColor: `${colors.primary}20`,
-                  },
-                  { backgroundColor: colors.cardBackground }
+                    borderWidth: index <= currentStep ? 0 : 1,
+                  }
                 ]}
-                onPress={() => handleSelectFood(food)}
-              >
-                <FontAwesome5 
-                  name={food.icon} 
-                  size={28} 
-                  color={selectedFood.id === food.id ? colors.primary : food.iconColor} 
-                />
-                <Text style={[styles.foodPresetName, { color: colors.text }]}>
-                  {t(food.name)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t('selectFoodTiming')}
-          </Text>
-          
-          <View style={styles.timingOptions}>
-            {timingOptions.map((timing) => (
-              <TouchableOpacity
-                key={timing.id}
-                style={[
-                  styles.timingOption,
-                  selectedTiming.id === timing.id && {
-                    borderColor: colors.primary,
-                    backgroundColor: `${colors.primary}20`,
-                  },
-                  { backgroundColor: colors.cardBackground }
-                ]}
-                onPress={() => handleSelectTiming(timing)}
-              >
-                <Text style={[styles.timingOptionName, { color: colors.text }]}>
-                  {t(timing.name)}
-                </Text>
-                <Text style={[styles.timingOptionDescription, { color: colors.textSecondary }]}>
-                  {t(timing.description)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <View style={styles.resultContainer}>
-            <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>
-              {t('alcoholReductionEffect')}
-            </Text>
-            <Text style={[styles.resultValue, { color: colors.primary }]}>
-              {formatAbsorptionFactor(finalAbsorptionFactor)}
-            </Text>
-            <Text style={[styles.resultExplanation, { color: colors.textSecondary }]}>
-              {t('foodAbsorptionExplanation')}
-            </Text>
-          </View>
-        </Animated.View>
-        
-        <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
-          <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: '#4CAF50' }]}
-            onPress={handleSaveFood}
-          >
-            <Text style={styles.addButtonText}>
-              {t('addFood')}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </ScrollView>
-    </View>
-  );
-}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={[styles.progressText, {color: colors.textSecondary}]}>
+          {currentStep === 0 && t('selectFoodType', { defaultValue: 'Seleziona il tipo di alimento' })}
+          {currentStep === 1 && t('selectTiming', { defaultValue: 'Quando hai mangiato' })}
+        </Text>
+            </View>
 
-export default AddFoodScreen;
+      <View style={{ flex: 1 }}>
+        <View style={styles.contentWrapper}>
+          {renderCurrentStep()}
+              </View>
+            </View>
+
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom || 16 }]}>
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>
+              {t('saving', { ns: 'common', defaultValue: 'Salvataggio in corso...' })}
+            </Text>
+          </View>
+        )}
+        
+        {currentStep > 0 ? (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.backButton, 
+                { 
+                  borderColor: colors.border, 
+                  backgroundColor: 'transparent' 
+                }
+              ]} 
+              onPress={goToPreviousStep}
+            >
+              <Text style={[styles.backButtonText, {color: colors.primary}]}>
+                {t('back', { defaultValue: 'Indietro' })}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+                    style={[
+                styles.dashboardButton, 
+                {
+                  backgroundColor: colors.primary
+                }
+                    ]}
+              onPress={handleSaveFood}
+              disabled={!selectedFood}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{marginRight: 8}} />
+              <Text style={[styles.dashboardButtonText, { color: '#FFFFFF' }]}>
+                {t('confirmFood', { defaultValue: 'Conferma Alimento' })}
+                    </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // Solo pulsante "Avanti" - posizionato a destra
+          <View style={styles.singleButtonContainer}>
+          <TouchableOpacity
+            style={[
+                styles.nextButton, 
+                {
+                  backgroundColor: colors.primary,
+                  opacity: selectedFood ? 1 : 0.5
+                }
+            ]}
+              onPress={goToNextStep}
+              disabled={!selectedFood}
+          >
+              <Text style={styles.nextButtonText}>
+                {t('next', { defaultValue: 'Avanti' })}
+              </Text>
+              <Ionicons 
+                name="arrow-forward" 
+                size={18} 
+                color="white" 
+                style={styles.nextButtonIcon} 
+              />
+          </TouchableOpacity>
+        </View>
+        )}
+    </View>
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: SIZES.padding,
+  scrollView: {
+    flex: 1,
   },
-  section: {
-    marginBottom: SIZES.marginLarge,
+  scrollViewContent: {
+    paddingTop: 16,
+    paddingBottom: 120,
+  },
+  mainContent: {
+    paddingHorizontal: 16,
+  },
+  cardContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: 'rgba(0,0,0,0.2)',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   sectionTitle: {
-    fontSize: SIZES.subtitle,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginTop: SIZES.margin,
-    marginBottom: SIZES.marginSmall,
+    marginBottom: 16,
   },
-  foodPresets: {
+  foodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: SIZES.margin,
   },
-  foodPreset: {
+  foodItem: {
     width: '48%',
-    padding: SIZES.padding,
-    marginBottom: SIZES.marginSmall,
-    borderRadius: SIZES.radius,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
@@ -334,82 +499,208 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  foodPresetName: {
+  selectedFoodItem: {
+    borderWidth: 2,
+  },
+  foodIcon: {
+    marginBottom: 8,
+  },
+  foodName: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
     marginTop: 8,
-    fontSize: SIZES.body,
   },
-  timingOptions: {
-    marginBottom: SIZES.margin,
+  timingContainer: {
+    marginBottom: 8,
   },
-  timingOption: {
-    padding: SIZES.padding,
-    marginBottom: SIZES.marginSmall,
-    borderRadius: SIZES.radius,
+  timingItem: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: 'transparent',
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
+        shadowRadius: 4,
       },
       android: {
-        elevation: 1,
+        elevation: 2,
       },
     }),
   },
-  timingOptionName: {
-    fontSize: SIZES.body,
-    fontWeight: 'bold',
+  selectedTimingItem: {
+    borderWidth: 2,
+  },
+  timingName: {
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 4,
   },
-  timingOptionDescription: {
-    fontSize: SIZES.small,
+  timingDescription: {
+    fontSize: 14,
   },
-  resultContainer: {
-    marginTop: SIZES.marginLarge,
+  progressContainer: {
+    padding: SIZES.paddingSmall,
+    marginBottom: 0,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    marginBottom: SIZES.marginSmall,
+    marginHorizontal: 20,
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginHorizontal: 2,
+    zIndex: 1,
+  },
+  progressLine: {
+    height: 4,
+    borderRadius: 2,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    zIndex: 0,
+  },
+  progressText: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  progressDotContainer: {
+    padding: 5, // Area di tocco più ampia
+    zIndex: 2,
+  },
+  contentWrapper: {
+    flex: 1, 
     padding: SIZES.padding,
+  },
+  stepContent: {
+    flex: 1,
+    padding: 0,
+  },
+  sectionContainer: {
+    marginBottom: SIZES.marginSmall,
+  },
+  actionBar: {
+    padding: SIZES.paddingSmall,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: SIZES.padding,
+    paddingVertical: SIZES.paddingSmall,
+  },
+  singleButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: SIZES.padding,
+    paddingVertical: SIZES.paddingSmall,
+  },
+  backButton: {
+    width: 150,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  nextButton: {
+    width: 150,
+    height: 50,
+    borderRadius: 25,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  nextButtonIcon: {
+    marginLeft: 2,
+    marginTop: 1,
+  },
+  dashboardButton: {
+    flexDirection: 'row',
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    alignSelf: 'center',
+    minWidth: 200,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: {
+          width: 0,
+          height: 3,
+        },
+        shadowOpacity: 0.27,
+        shadowRadius: 4.65,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  dashboardButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 15,
+  },
+  absorptionInfoContainer: {
+    marginTop: SIZES.marginSmall,
+    padding: SIZES.paddingSmall,
     borderRadius: SIZES.radius,
     borderWidth: 1,
     borderColor: COLORS.primary,
     borderStyle: 'dashed',
   },
-  resultLabel: {
+  absorptionTitle: {
     fontSize: SIZES.body,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  resultValue: {
+  absorptionValue: {
     fontSize: SIZES.title,
     fontWeight: 'bold',
-    marginBottom: 8,
   },
-  resultExplanation: {
+  absorptionDescription: {
     fontSize: SIZES.small,
-    fontStyle: 'italic',
-  },
-  buttonContainer: {
-    marginBottom: SIZES.marginLarge,
-  },
-  addButton: {
-    padding: SIZES.padding,
-    borderRadius: SIZES.radiusLarge,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  addButtonText: {
-    fontSize: SIZES.subtitle,
-    fontWeight: 'bold',
-    color: 'white',
+    marginTop: 4,
+    color: COLORS.textSecondary,
   },
 }); 

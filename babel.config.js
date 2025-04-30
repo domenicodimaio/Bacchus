@@ -10,6 +10,9 @@ module.exports = function(api) {
       '@babel/plugin-transform-arrow-functions',
       '@babel/plugin-transform-shorthand-properties',
       '@babel/plugin-transform-template-literals',
+      ['@babel/plugin-transform-class-properties', { loose: true }],
+      ['@babel/plugin-transform-private-methods', { loose: true }],
+      ['@babel/plugin-transform-private-property-in-object', { loose: true }],
     ],
   };
 }; 

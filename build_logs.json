@@ -1,0 +1,44 @@
+{
+  "id": "2ea815dd-6957-4b01-949a-cca7147cfae0",
+  "status": "ERRORED",
+  "platform": "IOS",
+  "error": {
+    "errorCode": "UNKNOWN_ERROR",
+    "message": "Unknown error. See logs of the Bundle JavaScript build phase for more information."
+  },
+  "artifacts": {
+    "xcodeBuildLogsUrl": "https://job-logs.eascdn.net/production-xcode-logs/2ea815dd-6957-4b01-949a-cca7147cfae0?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20250428%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250428T141133Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=0434fadb9a9cb268ff7a718d71e44380207ccf4016d7664d4d46262e55705c896dcd740ca52b779e5eae06f270561aaf4c754602136b71a432b79d2faab8554ab720e0c8143de54e50f751627005215e5e94c749a640552a96c095e5be504dffd4fffa14687fa7daa55ff397f523eacf40161c6a4c7b87a358c6cce1cd28afa07e9180b3394d64d2ac30c766fe612618a2eceda7b1f725c810affea92a72a3969133840f791f03fa37b7a8b737ab08f909b48c1a1a52f0b77a2a99d08e13bb96da572bfb8e0794cb498fcf53874be2ff7d8d863a5f8a5078ce27506682a04179a557cd34030c0800326fa6d4b13b52bd34eb9674ee3724fa4d3e235a6240a838"
+  },
+  "initiatingActor": {
+    "id": "50a5bd11-1712-47f8-aba7-10089cb703fb",
+    "displayName": "domenicodimaio"
+  },
+  "project": {
+    "id": "79113c04-6258-4834-ad53-26a58931f8f7",
+    "name": "AlcolTest",
+    "slug": "AlcolTest",
+    "ownerAccount": {
+      "id": "36411bf7-ea19-437b-851a-2ed2d44f7810",
+      "name": "domenicodimaio"
+    }
+  },
+  "distribution": "STORE",
+  "buildProfile": "production",
+  "sdkVersion": "52.0.0",
+  "appVersion": "1.0.0",
+  "appBuildVersion": "22",
+  "runtimeVersion": "1.0.0",
+  "gitCommitHash": "cbd566c5c6814e8bb5f84965459dd8bfe4cb98da",
+  "gitCommitMessage": "alcogauge",
+  "priority": "NORMAL",
+  "createdAt": "2025-04-28T14:05:11.704Z",
+  "updatedAt": "2025-04-28T14:07:26.037Z",
+  "completedAt": "2025-04-28T14:07:18.324Z",
+  "expirationDate": "2025-05-28T14:05:11.851Z",
+  "isForIosSimulator": false,
+  "metrics": {
+    "buildWaitTime": 344,
+    "buildQueueTime": 49410,
+    "buildDuration": 72745
+  }
+}

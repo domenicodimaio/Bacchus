@@ -3,10 +3,12 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useSession } from '../contexts/SessionContext';
 
 export default function TabLayout() {
   const { currentTheme } = useTheme();
-  const { t } = useTranslation(['common', 'dashboard', 'session']);
+  const { t, i18n } = useTranslation(['common', 'dashboard', 'session', 'profile']);
+  const { currentSession } = useSession();
   const colors = currentTheme.COLORS;
 
   // Memoize the tab options to prevent re-renders
@@ -41,7 +43,7 @@ export default function TabLayout() {
         ),
       }
     };
-  }, [t]); // Only re-compute when the translation function changes
+  }, [t, i18n.language]); // Re-compute when the translation function or language changes
 
   // Memoize the screen options to prevent re-renders
   const screenOptions = useMemo(() => {

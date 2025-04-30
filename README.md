@@ -1,6 +1,6 @@
-# AlcolTest - Blood Alcohol Concentration Calculator
+# Bacchus - Blood Alcohol Concentration Calculator
 
-AlcolTest is a mobile application designed to estimate and track your blood alcohol concentration (BAC) in real-time. It enables users to log their food and alcohol consumption in detail, providing calculations based on scientific formulas while offering a modern and intuitive user interface.
+Bacchus is a mobile application designed to estimate and track your blood alcohol concentration (BAC) in real-time. It enables users to log their food and alcohol consumption in detail, providing calculations based on scientific formulas while offering a modern and intuitive user interface.
 
 ## Features
 
@@ -26,7 +26,7 @@ AlcolTest is a mobile application designed to estimate and track your blood alco
 
 ## Technology
 
-AlcolTest is built with modern technologies:
+Bacchus is built with modern technologies:
 
 - **React Native & Expo**: Cross-platform compatibility for iOS and Android
 - **TypeScript**: Type-safe code for reliability
@@ -54,8 +54,8 @@ The app uses an enhanced version of the Widmark formula, adjusted for factors su
 
 ```sh
 # Clone the repository
-git clone https://github.com/yourusername/alcoltest.git
-cd alcoltest
+git clone https://github.com/yourusername/bacchus.git
+cd bacchus
 
 # Install dependencies
 npm install

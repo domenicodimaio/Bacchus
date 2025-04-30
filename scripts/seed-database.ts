@@ -2,7 +2,7 @@
  * Script per inizializzare il database con dati di esempio
  * 
  * Questo script crea le tabelle necessarie e inserisce dati di esempio
- * per l'applicazione AlcolTest.
+ * per l'applicazione Bacchus.
  * 
  * Esecuzione: npx ts-node scripts/seed-database.ts
  */

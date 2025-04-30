@@ -7,9 +7,27 @@
  * - Session status updates
  */
 import * as Notifications from 'expo-notifications';
+// Rimuoviamo l'import dell'enum che potrebbe causare problemi
+// import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { getBACDangerLevel } from '../bac/calculator';
+import { getBACDangerLevel, BACDangerLevel } from '../bac/calculator';
+
+// Mappa i livelli di BAC ai tipi usati per le notifiche
+type NotificationDangerLevel = 'safe' | 'caution' | 'danger';
+
+const mapBACLevelToNotificationType = (level: BACDangerLevel): NotificationDangerLevel => {
+  switch(level) {
+    case BACDangerLevel.DANGER:
+    case BACDangerLevel.EXTREME:
+      return 'danger';
+    case BACDangerLevel.CAUTION:
+      return 'caution';
+    case BACDangerLevel.SAFE:
+    default:
+      return 'safe';
+  }
+};
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -27,15 +45,20 @@ export const registerForPushNotificationsAsync = async () => {
   let token;
   
   if (Platform.OS === 'android') {
+    try {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
     });
+    } catch (error) {
+      console.error('Error setting up notification channel:', error);
+    }
   }
   
   if (Device.isDevice) {
+    try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
@@ -50,6 +73,9 @@ export const registerForPushNotificationsAsync = async () => {
     }
     
     token = (await Notifications.getExpoPushTokenAsync()).data;
+    } catch (error) {
+      console.error('Error getting push token:', error);
+    }
   } else {
     console.log('Must use physical device for Push Notifications');
   }
@@ -66,6 +92,7 @@ export const scheduleNotification = async (
   data?: any,
   trigger?: Notifications.NotificationTriggerInput
 ) => {
+  try {
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -74,6 +101,9 @@ export const scheduleNotification = async (
     },
     trigger: trigger || null, // null means send immediately
   });
+  } catch (error) {
+    console.error('Error scheduling notification:', error);
+  }
 };
 
 /**
@@ -81,8 +111,9 @@ export const scheduleNotification = async (
  */
 export const scheduleBACAlert = async (
   bac: number,
-  dangerLevel: 'safe' | 'caution' | 'danger'
+  dangerLevel: NotificationDangerLevel
 ) => {
+  try {
   let title = '';
   let body = '';
   
@@ -101,24 +132,39 @@ export const scheduleBACAlert = async (
   }
   
   await scheduleNotification(title, body, { type: 'bac_alert', bac, dangerLevel });
+  } catch (error) {
+    console.error('Error scheduling BAC alert:', error);
+  }
 };
 
 /**
  * Schedule a reminder to log a drink
  */
 export const scheduleLoggingReminder = async (minutes = 60) => {
+  try {
+    // Assicuriamoci che minutes sia almeno 1 minuto
+    const safeMinutes = Math.max(1, minutes);
+    
   await scheduleNotification(
     'Reminder: Update Your Drinks',
     'Have you had any drinks recently? Log them to keep your BAC tracking accurate.',
     { type: 'logging_reminder' },
-    { seconds: minutes * 60 } // trigger after specified minutes
-  );
+      { 
+        type: 'timeInterval', 
+        seconds: safeMinutes * 60,
+        repeats: false
+      }
+    );
+  } catch (error) {
+    console.error('Error scheduling logging reminder:', error);
+  }
 };
 
 /**
  * Schedule a notification for when user will be sober
  */
 export const scheduleSoberTimeNotification = async (soberTime: Date) => {
+  try {
   const now = new Date();
   const diffMs = soberTime.getTime() - now.getTime();
   
@@ -136,20 +182,34 @@ export const scheduleSoberTimeNotification = async (soberTime: Date) => {
     'Sobriety Projection',
     `Based on your current consumption, your BAC should return to 0.00 by approximately ${soberTimeString}.`,
     { type: 'sober_time_notification' },
-    { date: soberTime }
+      { 
+        type: 'date', 
+        date: soberTime
+      }
   );
+  } catch (error) {
+    console.error('Error scheduling sober time notification:', error);
+  }
 };
 
 /**
  * Schedule a notification when BAC thresholds are crossed
  */
 export const monitorBACThresholds = async (currentBAC: number, previousBAC: number) => {
-  const currentLevel = getBACDangerLevel(currentBAC);
-  const previousLevel = getBACDangerLevel(previousBAC);
+  try {
+    const currentBACLevel = getBACDangerLevel(currentBAC);
+    const previousBACLevel = getBACDangerLevel(previousBAC);
+    
+    // Mappa il livello BAC al tipo di notifica
+    const currentLevel = mapBACLevelToNotificationType(currentBACLevel);
+    const previousLevel = mapBACLevelToNotificationType(previousBACLevel);
   
   // Only notify when crossing thresholds
   if (currentLevel !== previousLevel) {
     await scheduleBACAlert(currentBAC, currentLevel);
+    }
+  } catch (error) {
+    console.error('Error monitoring BAC thresholds:', error);
   }
 };
 
@@ -157,7 +217,11 @@ export const monitorBACThresholds = async (currentBAC: number, previousBAC: numb
  * Dismiss all scheduled notifications
  */
 export const dismissAllNotifications = async () => {
+  try {
   await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (error) {
+    console.error('Error dismissing notifications:', error);
+  }
 };
 
 /**
@@ -166,12 +230,24 @@ export const dismissAllNotifications = async () => {
 export const addNotificationResponseListener = (
   callback: (response: Notifications.NotificationResponse) => void
 ) => {
+  try {
   return Notifications.addNotificationResponseReceivedListener(callback);
+  } catch (error) {
+    console.error('Error adding notification response listener:', error);
+    return {
+      remove: () => {}
+    };
+  }
 };
 
 /**
  * Get all pending notifications
  */
 export const getPendingNotifications = async () => {
+  try {
   return await Notifications.getAllScheduledNotificationsAsync();
+  } catch (error) {
+    console.error('Error getting pending notifications:', error);
+    return [];
+  }
 }; 

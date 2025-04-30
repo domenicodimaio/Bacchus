@@ -4,20 +4,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DARK_THEME, LIGHT_THEME } from '../constants/theme';
 
 export type ThemeType = 'dark' | 'light' | 'system';
-export const THEME_STORAGE_KEY = '@alcoltest_theme';
+export const THEME_STORAGE_KEY = '@bacchus_theme';
 
 type ThemeContextType = {
   theme: ThemeType;
   currentTheme: typeof DARK_THEME | typeof LIGHT_THEME;
   setTheme: (theme: ThemeType) => Promise<void>;
   isDarkMode: boolean;
+  toggleDarkMode: () => Promise<void>;
 };
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: 'dark',
+  currentTheme: DARK_THEME,
+  setTheme: async () => {},
+  isDarkMode: true,
+  toggleDarkMode: async () => {},
+});
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const colorScheme = useColorScheme();
-  const [theme, setThemeState] = useState<ThemeType>('system');
+  const [theme, setThemeState] = useState<ThemeType>('dark');
   
   // Determina se è attiva la dark mode basandosi sulle impostazioni
   const isDarkMode = theme === 'system' 
@@ -52,9 +59,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Errore nel salvare il tema:', error);
     }
   };
+  
+  // Funzione per alternare tra tema chiaro e scuro
+  const toggleDarkMode = async () => {
+    try {
+      const newTheme = isDarkMode ? 'light' : 'dark';
+      await setTheme(newTheme);
+    } catch (error) {
+      console.error('Errore nel cambiare il tema:', error);
+    }
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme, currentTheme, setTheme, isDarkMode }}>
+    <ThemeContext.Provider value={{ theme, currentTheme, setTheme, isDarkMode, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   );

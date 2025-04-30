@@ -107,7 +107,8 @@ export const setupAuthStateListener = () => {
       await storeAuthState(session);
     } else if (event === 'SIGNED_OUT') {
       await clearAuthState();
-      router.replace('/login' as any);
+      console.log('User not authenticated, redirecting to login');
+      router.replace('/auth/login' as any);
     }
   });
 };

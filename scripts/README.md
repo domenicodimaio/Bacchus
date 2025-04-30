@@ -1,6 +1,6 @@
-# Script di Inizializzazione Database AlcolTest
+# Script di Inizializzazione Database Bacchus
 
-Questa directory contiene gli script necessari per inizializzare il database dell'applicazione AlcolTest.
+Questa directory contiene gli script necessari per inizializzare il database dell'applicazione Bacchus.
 
 ## Prerequisiti
 

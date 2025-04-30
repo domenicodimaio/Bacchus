@@ -4,7 +4,7 @@
 
 // Tasso di metabolismo dell'alcol (g/L per ora) - valore aggiornato basato su studi scientifici
 // Referenza: NHTSA (National Highway Traffic Safety Administration)
-const METABOLISM_RATE = 0.015; // La maggior parte degli studi indica 0.015-0.018 g/L/h
+const METABOLISM_RATE = 0.15; // Corretto per assicurare tempi più realistici
 
 /**
  * Calcola il tasso alcolemico (BAC) in base ai parametri forniti

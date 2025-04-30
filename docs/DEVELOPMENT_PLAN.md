@@ -213,7 +213,7 @@ This document outlines the step-by-step development process for building the Blo
 
 ## 📋 Implementation Completion Status
 
-The AlcolTest project is partially implemented, with several key features already in production:
+The Bacchus project is partially implemented, with several key features already in production:
 
 1. **Core Functionality**: BAC calculation, user profiles, and consumption tracking
 2. **Advanced Features**: Detailed BAC analysis, food effects, and multi-user profiles

@@ -1,28 +1,25 @@
-import React, { useEffect, useRef } from 'react';
-import { Redirect, router } from 'expo-router';
+import React, { useEffect } from 'react';
+import { useRouter, Slot } from 'expo-router';
 import sessionService from '../lib/services/session.service';
 
-export default function SessionTab() {
-  // Use a ref to track if we've already redirected
-  const hasRedirectedRef = useRef(false);
+/**
+ * Questo componente è un layout che gestisce la navigazione alla sessione.
+ * Se esiste una sessione attiva, renderizza il contenuto della sessione.
+ * Altrimenti reindirizza alla dashboard.
+ */
+export default function SessionLayout() {
+  const router = useRouter();
 
   useEffect(() => {
-    // Skip if we've already redirected
-    if (hasRedirectedRef.current) return;
-
-    // Check if there's an active session
+    // Verifica se esiste una sessione attiva
     const activeSession = sessionService.getActiveSession();
     
     if (!activeSession) {
-      // If there's no active session, redirect to the dashboard to create a new session
-      hasRedirectedRef.current = true;
-      router.push('/dashboard');
-    } else {
-      // Mark that we've handled the redirect logic
-      hasRedirectedRef.current = true;
+      // Redirige alla dashboard se non c'è sessione attiva
+      router.replace('/dashboard');
     }
-  }, []);
-
-  // This tab redirects to the active session if available
-  return <Redirect href="/session" />;
+  }, [router]);
+    
+  // Renderizza direttamente il contenuto della tab senza reindirizzamenti visibili
+  return <Slot />;
 } 

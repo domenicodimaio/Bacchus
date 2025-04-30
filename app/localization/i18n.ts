@@ -144,7 +144,7 @@ const resources = {
         dashboard: 'Home',
         session: 'Sessione',
         history: 'Storico',
-        profiles: 'Profili'
+        profiles: 'Profilo'
       },
       
       // BAC Status
@@ -159,7 +159,7 @@ const resources = {
         dashboard: 'Home',
         session: 'Sessione',
         history: 'Storico',
-        profiles: 'Profili'
+        profiles: 'Profilo'
       }
     },
     session: {

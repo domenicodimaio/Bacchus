@@ -11,7 +11,7 @@ type LanguageContextType = {
   changeLanguage: (lang: Language) => Promise<void>;
 };
 
-const LANGUAGE_STORAGE_KEY = 'alcoltest_language';
+const LANGUAGE_STORAGE_KEY = 'bacchus_language';
 
 export const LanguageContext = createContext<LanguageContextType>({
   language: 'en',

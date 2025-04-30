@@ -1,28 +1,52 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform, ActivityIndicator, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform, ActivityIndicator, TouchableOpacity, useColorScheme, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LineChart } from 'react-native-chart-kit';
 import { BAC_LIMITS } from '../constants/bac';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, SIZES } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { COLORS, SIZES, DARK_THEME } from '../constants/theme';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { BACRecord, DrinkRecord, FoodRecord } from '../types/session';
+import { hexToRGBA } from '../lib/utils/colors';
+import { getTimeString } from '../utils/timeUtils';
+import Svg, { Circle } from 'react-native-svg';
 
 const screenWidth = Dimensions.get('window').width;
+const theme = DARK_THEME; // Usiamo direttamente DARK_THEME invece di importare theme da styles/theme
 
 type BACPoint = {
   time: string;
   bac: number;
 };
 
-type BACChartProps = {
-  timePoints?: { time: Date; bac: number }[];
-  data?: BACPoint[];
-  currentBAC?: number;
-  soberTime?: string;
-  hours?: number;
+// Definizione del tipo per i dati elaborati nel grafico
+type ProcessedChartData = {
+  labels: string[];
+  values: number[];
+  dataPoints: {
+    x: number;
+    y: number;
+    label: string;
+    originalTime: Date;
+    originalBac: number;
+  }[];
+  drinkDataPoints: (number | null)[];
+  foodDataPoints: (number | null)[];
 };
 
-export default function BACChart({ timePoints, data, currentBAC = 0, soberTime = '', hours = 6 }: BACChartProps) {
+type BACChartProps = {
+  bacData: BACRecord[];
+  drinks: DrinkRecord[];
+  foods?: FoodRecord[];
+  limit: number;
+  showDetails?: boolean;
+  onShowDetails?: () => void;
+  height?: number;
+};
+
+export default function BACChart({ bacData, drinks, foods, limit, showDetails = false, onShowDetails, height = 220 }: BACChartProps) {
   const { t } = useTranslation('session');
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
@@ -30,6 +54,7 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(true);
+  const [activePoint, setActivePoint] = useState<number | null>(null);
   
   // Definisco i colori per le linee che non sono definiti nel tema
   const chartColors = {
@@ -42,10 +67,17 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
   // Funzione per formattare le etichette di tempo
   const formatTimeLabel = (date: Date) => {
     try {
-      if (!date || isNaN(date.getTime())) {
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        console.warn('Data non valida nel formatTimeLabel:', date);
         return '--:--';
       }
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Assicurati di usare un oggetto Date valido e formatta in modo consistente
+      return date.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false // Assicurati che l'ora sia in formato 24h per consistenza
+      });
     } catch (e) {
       console.error('Errore nella formattazione data:', e);
       return '--:--';
@@ -77,89 +109,33 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
     return Math.max(0, Math.min(numValue, 0.8));
   };
   
-  const processedData = useMemo(() => {
+  const processedData = useMemo<ProcessedChartData>(() => {
     setIsLoading(true);
     setError(null);
     
     // Generate default data if none provided
-    const defaultData = {
+    const defaultData: ProcessedChartData = {
       labels: Array(6).fill('').map((_, i) => `${i}h`),
       values: Array(6).fill(0),
       dataPoints: Array(6).fill(0).map((_, i) => ({
         x: i,
         y: 0,
-        label: `${i}h`
-      }))
+        label: `${i}h`,
+        originalTime: new Date(),
+        originalBac: 0
+      })),
+      drinkDataPoints: Array(6).fill(null),
+      foodDataPoints: Array(6).fill(null)
     };
     
     try {
       console.log('BACChart: Elaborazione dati per il grafico');
       
-      if (timePoints && timePoints.length > 0) {
-        console.log(`BACChart: Usando timePoints con ${timePoints.length} punti`);
+      if (bacData && bacData.length > 0) {
+        console.log(`BACChart: Usando bacData con ${bacData.length} punti`);
         
         // Validare ogni punto per assicurarsi che sia strutturato correttamente
-        const validTimePoints = timePoints.filter(point => 
-          point && point.time && !isNaN(new Date(point.time).getTime()) && 
-          point.bac !== undefined
-        );
-        
-        if (validTimePoints.length === 0) {
-          console.warn('BACChart: Tutti i timePoints sono invalidi, uso dati predefiniti');
-          setIsLoading(false);
-          return defaultData;
-        }
-        
-        // Filtra per avere al massimo 6-8 punti per una visualizzazione più pulita
-        let filteredPoints = validTimePoints;
-        if (validTimePoints.length > 8) {
-          const step = Math.floor(validTimePoints.length / 6);
-          filteredPoints = validTimePoints.filter((_, index) => index % step === 0 || index === validTimePoints.length - 1);
-          // Assicurati di avere sempre almeno il primo e l'ultimo punto
-          if (!filteredPoints.includes(validTimePoints[0])) {
-            filteredPoints.unshift(validTimePoints[0]);
-          }
-          if (!filteredPoints.includes(validTimePoints[validTimePoints.length - 1])) {
-            filteredPoints.push(validTimePoints[validTimePoints.length - 1]);
-          }
-        }
-        
-        // Assicurarsi che la serie inizi da 0
-        if (filteredPoints.length > 0 && sanitizeValue(filteredPoints[0].bac) > 0.05) {
-          // Aggiungi un punto iniziale con BAC a 0
-          const firstPointTime = new Date(filteredPoints[0].time);
-          // Mettiamo il punto iniziale un'ora prima
-          firstPointTime.setHours(firstPointTime.getHours() - 1);
-          filteredPoints.unshift({
-            time: firstPointTime,
-            bac: 0
-          });
-        }
-        
-        const formattedData = filteredPoints.map((point, index) => {
-          const date = point.time instanceof Date ? point.time : new Date(point.time);
-          return {
-            x: index,
-            y: sanitizeValue(point.bac),
-            label: formatTimeLabel(date)
-          };
-        });
-        
-        const result = {
-          labels: formattedData.map(d => d.label),
-          values: formattedData.map(d => d.y),
-          dataPoints: formattedData
-        };
-        
-        setIsLoading(false);
-        return result;
-      }
-      
-      if (data && data.length > 0) {
-        console.log(`BACChart: Usando data con ${data.length} punti`);
-        
-        // Validare ogni punto per assicurarsi che sia strutturato correttamente
-        const validData = data.filter(point => 
+        const validData = bacData.filter(point => 
           point && point.time && point.bac !== undefined
         );
         
@@ -210,15 +186,53 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
           return {
             x: index,
             y: sanitizeValue(point.bac),
-            label: formatTimeLabel(date)
+            label: formatTimeLabel(date),
+            originalTime: date,
+            originalBac: point.bac
           };
+        });
+        
+        // Trova i punti nel tempo in cui sono stati consumati drink
+        const drinkDataPoints = formattedData.map(bacPoint => {
+          // Verifica se c'è un drink consumato nello stesso momento
+          const hasDrink = drinks.some(drink => {
+            // Usa timeConsumed che è un oggetto Date sulla DrinkRecord
+            const drinkTime = drink.timeConsumed ? new Date(drink.timeConsumed).getTime() : 0;
+            const bacTime = bacPoint.originalTime.getTime();
+            // Considera un buffer di pochi secondi per il match
+            return Math.abs(drinkTime - bacTime) < 60000; // 1 minuto di differenza
+          });
+          
+          return hasDrink ? bacPoint.y : null;
+        });
+        
+        // Trova i punti nel tempo in cui è stato consumato cibo
+        const foodDataPoints = formattedData.map(bacPoint => {
+          if (!foods) return null;
+          
+          // Verifica se c'è cibo consumato nello stesso momento
+          const hasFood = foods.some(food => {
+            // Usa timeConsumed che è un oggetto Date sulla FoodRecord
+            const foodTime = food.timeConsumed ? new Date(food.timeConsumed).getTime() : 0;
+            const bacTime = bacPoint.originalTime.getTime();
+            // Considera un buffer di pochi secondi per il match
+            return Math.abs(foodTime - bacTime) < 60000; // 1 minuto di differenza
+          });
+          
+          return hasFood ? bacPoint.y : null;
         });
         
         const result = {
           labels: formattedData.map(d => d.label),
           values: formattedData.map(d => d.y),
-          dataPoints: formattedData
+          dataPoints: formattedData,
+          drinkDataPoints,
+          foodDataPoints
         };
+        
+        console.log('Dati grafico BAC finali:', 
+          result.labels.map((label, i) => `${label}: ${result.values[i].toFixed(3)}`).join(', ')
+        );
         
         setIsLoading(false);
         return result;
@@ -227,13 +241,13 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
       console.log('BACChart: Nessun dato valido, usando dati predefiniti');
       
       // Se non ci sono dati ma abbiamo un BAC corrente, creiamo un grafico semplice
-      if (currentBAC > 0) {
-        console.log('BACChart: Creando grafico semplice con BAC corrente:', currentBAC);
+      if (bacData.length > 0) {
+        console.log('BACChart: Creando grafico semplice con BAC corrente');
         
         // Crea un grafico semplice che mostra il BAC attuale e la discesa a zero
         const now = new Date();
         const metabolismRate = 0.017; // g/L per ora (aggiornato)
-        const hours = Math.ceil(currentBAC / metabolismRate); // Ore per tornare a zero
+        const hours = Math.ceil(bacData[0].bac / metabolismRate); // Ore per tornare a zero
         
         const dataPoints = [];
         
@@ -249,7 +263,7 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
         // Punto attuale
         dataPoints.push({
           x: 1,
-          y: sanitizeValue(currentBAC),
+          y: sanitizeValue(bacData[0].bac),
           label: formatTimeLabel(now)
         });
         
@@ -261,7 +275,7 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
           const time = new Date(now);
           time.setHours(time.getHours() + i * timeStep);
           
-          const remainingBAC = Math.max(0, currentBAC - (metabolismRate * i * timeStep));
+          const remainingBAC = Math.max(0, bacData[0].bac - (metabolismRate * i * timeStep));
           
           dataPoints.push({
             x: i + 1,
@@ -273,7 +287,9 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
         const result = {
           labels: dataPoints.map(d => d.label),
           values: dataPoints.map(d => d.y),
-          dataPoints: dataPoints
+          dataPoints: dataPoints,
+          drinkDataPoints: Array(dataPoints.length).fill(null),
+          foodDataPoints: Array(dataPoints.length).fill(null)
         };
         
         setIsLoading(false);
@@ -288,7 +304,7 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
       setIsLoading(false);
       return defaultData;
     }
-  }, [timePoints, data, currentBAC]);
+  }, [bacData, drinks, foods]);
   
   if (isLoading) {
     return (
@@ -335,7 +351,7 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
   const maxBACValue = Math.max(
     BAC_LIMITS.penalHighThreshold * 1.1, // Leggermente sopra la soglia penale alta (1.5 g/L)
     ...processedData.values, 
-    currentBAC || 0
+    processedData.values[processedData.values.length - 1] || 0
   );
   
   // Traccia linee orizzontali per i limiti legali
@@ -362,8 +378,26 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
   
   // Mostra legenda con spiegazione linee
   const renderLegend = () => {
-    // Non renderizzare questa legenda, manteniamo solo quella sotto
-    return null;
+    return (
+      <View style={styles.legendContainer}>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.primary }]} />
+          <Text style={styles.legendText}>Livello di alcol (BAC)</Text>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.error }]} />
+          <Text style={styles.legendText}>Limite legale</Text>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.primary }]} />
+          <Text style={styles.legendText}>Bevanda</Text>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.success }]} />
+          <Text style={styles.legendText}>Cibo</Text>
+        </View>
+      </View>
+    );
   };
   
   // Mostra pulsante per attivare legenda se nascosta
@@ -372,6 +406,136 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
     return null;
   };
 
+  // Mostra informazioni dettagliate per il punto selezionato
+  const handleDataPointClick = (data: any) => {
+    if (data.index !== undefined) {
+      setActivePoint(activePoint === data.index ? null : data.index);
+    }
+  };
+
+  // Renderizza decoratori per indicare i punti di drink
+  const renderDecorator = () => {
+    if (!processedData.drinkDataPoints || !processedData.foodDataPoints) return null;
+    
+    return processedData.dataPoints.map((point, index) => {
+      const x = (index / (processedData.dataPoints.length - 1)) * screenWidth;
+      const y = height - (point.y / Math.max(...processedData.values)) * (height - 40) - 20;
+      
+      // Verifica se questo punto è un drink
+      const isDrink = index < processedData.drinkDataPoints.length && 
+        processedData.drinkDataPoints[index] !== null;
+      
+      // Verifica se questo punto è cibo
+      const isFood = index < processedData.foodDataPoints.length && 
+        processedData.foodDataPoints[index] !== null;
+      
+      if (!isDrink && !isFood) return null;
+      
+      return (
+        <View
+          key={`decorator-${index}`}
+          style={[
+            styles.decorator,
+            {
+              left: x, 
+              top: y,
+              backgroundColor: isDrink ? colors.primary : '#4CAF50'
+            }
+          ]}
+        />
+      );
+    });
+  };
+  
+  // Mostra il valore del punto selezionato
+  const renderSelectedPointInfo = () => {
+    if (activePoint === null) return null;
+    
+    const point = processedData.dataPoints[activePoint];
+    if (!point) return null;
+    
+    const pointDate = new Date(point.originalTime);
+    
+    return (
+      <View style={[styles.pointInfo, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.pointInfoTime, { color: colors.text }]}>
+          {format(pointDate, 'HH:mm', { locale: it })}
+        </Text>
+        <Text style={[styles.pointInfoValue, { color: colors.primary }]}>
+          BAC: {point.y.toFixed(2)}
+        </Text>
+      </View>
+    );
+  };
+
+  // Renderizza la linea del limite legale
+  const renderLimitLine = () => {
+    if (!limit) return null;
+    
+    const maxValue = Math.max(...processedData.values, limit * 1.2);
+    const limitY = height - (limit / maxValue) * (height - 40) - 20;
+    
+    return (
+      <View 
+        style={[
+          styles.limitLine, 
+          { 
+            top: limitY, 
+            borderColor: colors.caution 
+          }
+        ]}
+      >
+        <View style={[styles.limitMarker, { backgroundColor: colors.caution }]}>
+          <Text style={styles.limitText}>{limit.toFixed(2)}</Text>
+        </View>
+      </View>
+    );
+  };
+  
+  // Se non ci sono dati, mostra un messaggio
+  if (processedData.dataPoints.length < 2) {
+    return (
+      <View style={[styles.noDataContainer, { backgroundColor: colors.cardBackground }]}>
+        <MaterialCommunityIcons name="chart-line" size={48} color={hexToRGBA(colors.textSecondary, 0.5)} />
+        <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          {t('Dati insufficienti per il grafico')}
+        </Text>
+        <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
+          {t('Attendi qualche minuto per vedere l\'andamento')}
+        </Text>
+      </View>
+    );
+  }
+  
+  const renderTooltip = (point: any) => {
+    if (!point) return null;
+    
+    const pointDate = point.originalTime;
+    
+    // Verifica se questo punto corrisponde a una bevanda
+    const isDrink = drinks && drinks.some ?
+      drinks.some(
+        (drink) => Math.abs(drink.timeConsumed ? 
+          new Date(drink.timeConsumed).getTime() - pointDate.getTime() : 0) < 60000
+      ) : false;
+    
+    // Verifica se questo punto corrisponde a un cibo
+    const isFood = foods && foods.some ?
+      foods.some(
+        (food) => Math.abs(food.timeConsumed ?
+          new Date(food.timeConsumed).getTime() - pointDate.getTime() : 0) < 60000
+      ) : false;
+
+    return (
+      <View style={styles.tooltip}>
+        <Text style={styles.tooltipTime}>{getTimeString(pointDate)}</Text>
+        <Text style={styles.tooltipBAC}>{point.originalBac.toFixed(3)} g/l</Text>
+        {isDrink && <Text style={styles.tooltipDrink}>Hai bevuto</Text>}
+        {isFood && <Text style={styles.tooltipFood}>Hai mangiato</Text>}
+      </View>
+    );
+  };
+  
   return (
     <View style={[styles.container, { backgroundColor: 'transparent', padding: 0 }]}>
       <Text style={[styles.title, { 
@@ -382,47 +546,87 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
         textShadowOffset: {width: 1, height: 1},
         textShadowRadius: 3
       }]}>
-        {t('bacOverTime', 'Andamento del tasso alcolico')}
+        {t('Andamento tasso alcolico')}
       </Text>
       
       {/* Non renderizziamo le legende in alto */}
       
       <View style={[styles.chartContainer, { backgroundColor: 'transparent', position: 'relative', zIndex: 1 }]}>
+        {/* Definiamo un SVG che coprirà tutto il grafico per posizionare i punti personalizzati */}
+        <Svg 
+          width={screenWidth - 32} 
+          height={height}
+          style={{position: 'absolute', zIndex: 10}}
+        >
+          {/* Punti per le linee del limite legale */}
+          {refLines.map((refLine, refIndex) => 
+            processedData.labels.map((_, index) => {
+              // Calcola la posizione X in base all'indice
+              const x = ((index) / (processedData.labels.length - 1)) * (screenWidth - 32);
+              
+              // Calcola la posizione Y in base al valore della linea di riferimento rispetto alla scala del grafico
+              const maxValue = Math.max(...processedData.values, refLine.value * 1.2);
+              const y = height - ((refLine.value / maxValue) * (height - 40)) + 20;
+              
+              return (
+                <Circle
+                  key={`ref-dot-${refIndex}-${index}`}
+                  cx={x}
+                  cy={y}
+                  r={5}
+                  fill={refLine.color}
+                  stroke={isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)'}
+                  strokeWidth={2}
+                />
+              );
+            })
+          )}
+        </Svg>
+        
         <LineChart
           data={{
             labels: processedData.labels,
             datasets: [
               {
-                data: processedData.values.length > 0 ? processedData.values : [0, 0],
+                data: processedData.values,
                 color: (opacity = 1) => getLineColor(opacity),
-                strokeWidth: 3
-              }
+                strokeWidth: 3,
+                withDots: true,
+              },
+              ...refLines.map(refLine => ({
+                data: Array(processedData.values.length).fill(refLine.value),
+                color: (opacity = 1) => refLine.color,
+                strokeWidth: 2,
+                strokeDashArray: [4, 4],
+                withDots: false, // Disattiviamo i punti nativi per le linee di riferimento
+              })),
+              ...(processedData.drinkDataPoints ? [{
+                data: processedData.drinkDataPoints,
+                color: (opacity = 1) => hexToRGBA(colors.primary, opacity),
+                strokeWidth: 0
+              }] : []),
+              ...(processedData.foodDataPoints ? [{
+                data: processedData.foodDataPoints,
+                color: (opacity = 1) => hexToRGBA('#4CAF50', opacity),
+                strokeWidth: 0
+              }] : [])
             ],
             // Impostiamo la legend a null per non mostrare la legenda automatica in alto
             legend: []
           }}
           width={screenWidth - 32}
-          height={220}
+          height={height}
           chartConfig={{
             backgroundColor: 'transparent',
             backgroundGradientFrom: 'transparent',
             backgroundGradientTo: 'transparent',
-            fillShadowGradientFrom: 'transparent',
-            fillShadowGradientTo: 'transparent',
-            backgroundGradientFromOpacity: 0,
-            backgroundGradientToOpacity: 0,
-            useShadowColorFromDataset: false,
             decimalPlaces: 2,
-            color: (opacity = 1) => isDarkMode ? `rgba(0, 247, 255, ${opacity})` : `rgba(0, 129, 180, ${opacity})`,
-            labelColor: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+            labelColor: (opacity = 1) => colors.textSecondary,
             propsForDots: {
               r: "5",
               strokeWidth: "2",
-              stroke: colors.primary
-            },
-            propsForBackgroundLines: {
-              stroke: chartColors.chartGrid,
-              strokeDasharray: ''
+              stroke: colors.background
             },
             propsForLabels: {
               fontSize: 10,
@@ -457,11 +661,14 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
           withDots={true}
           hidePointsAtIndex={[]}
           decorator={() => <Decorator />}
-          renderDotContent={({x, y, index}) => {
-            if (index >= 0 && index < processedData.values.length) {
+          renderDotContent={({x, y, index, indexData}) => {
+            // Rendiamo solo le etichette per i punti BAC principali e non per i punti di limite legale
+            if (index >= 0 && index < processedData.values.length && 
+                (!indexData || typeof indexData !== 'number' || 
+                !refLines.some(line => Math.abs(indexData - line.value) < 0.001))) {
               return (
                 <View 
-                  key={index} 
+                  key={`bac-${index}`} 
                   style={{
                     position: 'absolute',
                     top: y - 20,
@@ -482,8 +689,13 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
             }
             return null;
           }}
+          onDataPointClick={handleDataPointClick}
         />
       </View>
+      
+      {renderDecorator()}
+      {renderLimitLine()}
+      {renderSelectedPointInfo()}
       
       {/* Legenda sotto il grafico */}
       <View style={styles.legendContainer}>
@@ -510,21 +722,51 @@ export default function BACChart({ timePoints, data, currentBAC = 0, soberTime =
             {t('currentBAC', 'Tasso attuale')}
           </Text>
           <Text style={[styles.infoValue, { color: colors.text }]}>
-            {sanitizeValue(currentBAC).toFixed(2)} g/L
+            {sanitizeValue(processedData.values[processedData.values.length - 1]).toFixed(2)} g/L
           </Text>
         </View>
-        
-        {soberTime && (
-          <View style={[styles.infoCard, { backgroundColor: isDarkMode ? 'rgba(30, 46, 69, 0.7)' : 'rgba(245, 245, 247, 0.7)' }]}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
-              {t('estimatedSoberTime', 'Tempo alla sobrietà')}
-            </Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>
-              {soberTime}
-            </Text>
-          </View>
-        )}
       </View>
+      
+      {showDetails ? (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.detailsContainer}
+        >
+          {processedData.dataPoints.map((point, index) => (
+            <TouchableOpacity
+              key={`detail-${index}`}
+              style={[
+                styles.detailItem, 
+                { 
+                  backgroundColor: colors.cardBackground,
+                  borderColor: activePoint === index ? colors.primary : colors.border,
+                }
+              ]}
+              onPress={() => setActivePoint(activePoint === index ? null : index)}
+            >
+              <Text style={[styles.detailTime, { color: colors.textSecondary }]}>
+                {processedData.labels[index]}
+              </Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>
+                {processedData.values[index].toFixed(2)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        onShowDetails && (
+          <TouchableOpacity
+            style={[styles.showDetailsButton, { backgroundColor: colors.cardBackground }]}
+            onPress={onShowDetails}
+          >
+            <MaterialIcons name="expand-more" size={24} color={colors.textSecondary} />
+            <Text style={[styles.showDetailsText, { color: colors.textSecondary }]}>
+              {t('showDetails')}
+            </Text>
+          </TouchableOpacity>
+        )
+      )}
     </View>
   );
 }
@@ -610,33 +852,20 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   legendContainer: {
-    marginTop: 5,
-    marginBottom: 10,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    alignSelf: 'center',
-  },
-  legendRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginVertical: 10,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
-  },
-  legendDashedLine: {
-    width: 20,
-    height: 0,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    marginRight: 8,
+  legendItem: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 5,
   },
   legendText: {
     fontSize: 12,
+    color: theme.COLORS.text,
   },
   dotLabel: {
     fontSize: 10,
@@ -645,5 +874,143 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
-  }
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 10,
+    marginVertical: 5,
+  },
+  legendDashedLine: {
+    width: 20,
+    height: 0,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    marginRight: 8,
+  },
+  decorator: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginLeft: -5,
+    marginTop: -5,
+  },
+  pointInfo: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+  },
+  pointInfoTime: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  pointInfoValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  limitLine: {
+    position: 'absolute',
+    left: 40,
+    right: 0,
+    height: 1,
+    zIndex: 10,
+  },
+  limitMarker: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  limitText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 16,
+  },
+  noDataSubtext: {
+    fontSize: 12,
+    marginTop: 8,
+  },
+  detailsContainer: {
+    padding: 16,
+  },
+  detailItem: {
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 8,
+  },
+  detailTime: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  detailValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  showDetailsButton: {
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  showDetailsText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  tooltip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 10,
+  },
+  tooltipTime: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  tooltipBAC: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  tooltipDrink: {
+    color: theme.COLORS.primary,
+    fontWeight: 'bold',
+  },
+  tooltipFood: {
+    color: theme.COLORS.success,
+    fontWeight: 'bold',
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 5,
+  },
 }); 

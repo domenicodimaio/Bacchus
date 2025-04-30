@@ -1,32 +1,82 @@
 import React from 'react';
-import { View, Text, StyleSheet, StatusBar, Platform } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, Platform, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { SIZES } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import ProfileIcon from './ProfileIcon';
+import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 
 interface AppHeaderProps {
   title: string;
   rightComponent?: React.ReactNode;
   translationNamespace?: string;
   isMainScreen?: boolean;
+  onBackPress?: () => void;
+  showProfileIcon?: boolean;
 }
 
 export default function AppHeader({
   title,
   rightComponent,
   translationNamespace = 'common',
-  isMainScreen = true
+  isMainScreen = true,
+  onBackPress,
+  showProfileIcon = true
 }: AppHeaderProps) {
-  const { t } = useTranslation(translationNamespace);
+  const { t } = useTranslation([translationNamespace, 'purchases']);
   const { currentTheme, isDarkMode } = useTheme();
   const colors = currentTheme.COLORS;
   const insets = useSafeAreaInsets();
+  const { features, isPremium } = usePremiumFeatures();
 
   // Calculate proper header height with safe area
   const headerHeight = 60 + (Platform.OS === 'ios' ? insets.top : 0);
   const paddingTop = Platform.OS === 'ios' ? insets.top : StatusBar.currentHeight || 0;
+
+  // Handler for back button
+  const handleBackPress = () => {
+    if (onBackPress) {
+      onBackPress();
+    } else {
+      router.back();
+    }
+  };
+
+  // Mostra i dettagli del premium quando viene cliccato il badge
+  const showPremiumBenefits = () => {
+    Alert.alert(
+      t('premiumActive', { ns: 'purchases', defaultValue: 'Premium Attivo' }),
+      t('enjoyPremiumFeatures', { ns: 'purchases', defaultValue: 'Stai godendo dei seguenti vantaggi premium:' }) + 
+      '\n\n' + 
+      t('premiumFeaturesList', { 
+        ns: 'purchases', 
+        defaultValue: '• Sessioni illimitate\n• Statistiche dettagliate\n• Esportazione dati\n• Nessuna pubblicità' 
+      }),
+      [
+        { 
+          text: 'OK' 
+        },
+        {
+          text: t('viewDetails', { ns: 'purchases', defaultValue: 'Vedi dettagli' }),
+          onPress: () => router.push('/settings')
+        }
+      ]
+    );
+  };
+
+  // Stili dinamici per premiumIndicator
+  const premiumIndicatorStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginRight: 8,
+  } as const;
 
   return (
     <View style={[
@@ -43,7 +93,24 @@ export default function AppHeader({
       />
       
       <View style={styles.contentContainer}>
-        <View style={styles.titleContainer}>
+        {!isMainScreen && (
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={handleBackPress}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons 
+              name="chevron-back" 
+              size={28} 
+              color={colors.headerText || colors.text} 
+            />
+          </TouchableOpacity>
+        )}
+        
+        <View style={[
+          styles.titleContainer,
+          !isMainScreen && { marginLeft: 8 }
+        ]}>
           <Text 
             style={[
               styles.title, 
@@ -58,6 +125,25 @@ export default function AppHeader({
         {rightComponent && (
           <View style={styles.rightContainer}>
             {rightComponent}
+          </View>
+        )}
+        
+        {showProfileIcon && !rightComponent && (
+          <View style={styles.rightContainer}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {features?.canCreateUnlimitedSessions && (
+                <TouchableOpacity 
+                  style={premiumIndicatorStyle}
+                  onPress={showPremiumBenefits}
+                >
+                  <Ionicons name="star" size={12} color="#ffffff" style={{ marginRight: 2 }} />
+                  <Text style={styles.premiumIndicatorText}>
+                    {t('premium', { ns: 'purchases' })}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            <ProfileIcon size={34} />
+            </View>
           </View>
         )}
       </View>
@@ -94,6 +180,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
   },
+  backButton: {
+    padding: 4,
+  },
   titleContainer: {
     flex: 1,
     alignItems: 'flex-start',
@@ -110,5 +199,10 @@ const styles = StyleSheet.create({
     height: 1,
     width: '100%',
     opacity: 0.1,
+  },
+  premiumIndicatorText: {
+    color: '#ffffff',
+    fontSize: SIZES.small - 2,
+    fontWeight: '600',
   }
 }); 

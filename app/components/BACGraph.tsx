@@ -1,245 +1,245 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { Card } from 'react-native-paper';
-import { useTheme } from '../contexts/ThemeContext';
-import { COLORS } from '../constants/colors';
-import { BAC_LIMITS, LEGAL_DRIVING_LIMIT } from '../constants/bac';
+import { DARK_THEME } from '../constants/theme';
+import { getTimeString } from '../utils/timeUtils';
 
-interface BACGraphProps {
-  bacSeries: Array<{ time: string; bac: number }>;
-  isDarkTheme?: boolean;
+const theme = DARK_THEME;
+const screenWidth = Dimensions.get('window').width;
+
+// Definizioni tipi
+interface DrinkRecord {
+  time: Date;
+  alcoholGrams: number;
+  timeConsumed?: Date;
 }
 
-const BACGraph: React.FC<BACGraphProps> = ({ bacSeries, isDarkTheme: forceDarkTheme }) => {
-  const { isDarkMode } = useTheme();
-  const systemColorScheme = { dark: 'dark', light: 'light' }[isDarkMode ? 'dark' : 'light'];
+interface FoodRecord {
+  timestamp: Date;
+  name: string;
+  id: string;
+}
+
+interface BACPoint {
+  time: Date;
+  bac: number;
+}
+
+interface BACGraphProps {
+  bacData: BACPoint[];
+  drinks: DrinkRecord[];
+  foods?: FoodRecord[];
+  limit: number;
+}
+
+const BACGraph: React.FC<BACGraphProps> = ({
+  bacData,
+  drinks,
+  foods = [],
+  limit,
+}) => {
+  // Preparazione dati per il grafico
+  const labels = bacData.map(point => getTimeString(point.time));
+  const data = bacData.map(point => point.bac);
   
-  // Usa il tema fornito dalla prop o dal context
-  const isDarkTheme = forceDarkTheme !== undefined 
-    ? forceDarkTheme 
-    : isDarkMode !== undefined 
-      ? isDarkMode 
-      : systemColorScheme === 'dark';
+  // Preparazione dati per i punti di bevande e cibo
+  const drinkTimes = drinks.map(d => d.time);
+  const foodTimes = foods.map(f => f.timestamp);
   
-  // Verifica che ci siano dati sufficienti per il grafico
-  if (!bacSeries || bacSeries.length < 2) {
+  // Configurazione grafico
+  const chartConfig = {
+    backgroundGradientFrom: theme.COLORS.background,
+    backgroundGradientTo: theme.COLORS.background,
+    decimalPlaces: 2,
+    color: (opacity = 1) => theme.COLORS.primary,
+    labelColor: (opacity = 1) => theme.COLORS.text,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: "6",
+      strokeWidth: "2",
+      stroke: theme.COLORS.background
+    },
+    propsForLabels: {
+      fontSize: 10,
+    },
+  };
+  
+  // Configurazione dati
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        data,
+        color: (opacity = 1) => theme.COLORS.primary,
+        strokeWidth: 2,
+      },
+      {
+        data: Array(data.length).fill(limit),
+        color: (opacity = 1) => theme.COLORS.danger,
+        strokeWidth: 1,
+        withDots: false,
+      },
+    ],
+    legend: ['BAC', 'Limite legale'],
+  };
+  
+  // Renderizza punti di bevute su grafico
+  const renderDrinkPoints = () => {
+    return bacData.map((point, index) => {
+      const isDrink = drinkTimes.some(
+        drinkTime => Math.abs(new Date(drinkTime).getTime() - new Date(point.time).getTime()) < 60000
+      );
+      
+      if (isDrink) {
+        return (
+          <View 
+            key={`drink-${index}`}
+            style={[
+              styles.drinkPoint,
+              {
+                left: (index / (bacData.length - 1)) * (screenWidth - 64) + 32,
+                bottom: (point.bac / Math.max(...data, limit * 1.2)) * 180,
+              }
+            ]}
+          />
+        );
+      }
+      
+      return null;
+    });
+  };
+  
+  // Renderizza punti di cibo su grafico
+  const renderFoodPoints = () => {
+    return bacData.map((point, index) => {
+      const isFood = foodTimes.some(
+        foodTime => Math.abs(new Date(foodTime).getTime() - new Date(point.time).getTime()) < 60000
+      );
+      
+      if (isFood) {
+        return (
+          <View 
+            key={`food-${index}`}
+            style={[
+              styles.foodPoint,
+              {
+                left: (index / (bacData.length - 1)) * (screenWidth - 64) + 32,
+                bottom: (point.bac / Math.max(...data, limit * 1.2)) * 180,
+              }
+            ]}
+          />
+        );
+      }
+      
+      return null;
+    });
+  };
+  
+  // Renderizza legenda
+  const renderLegend = () => {
     return (
-      <Card style={[styles.container, { backgroundColor: '#14233B' }]}>
-        <View style={styles.noDataContainer}>
-          <Text style={[styles.noDataText, { color: '#FFFFFF', fontWeight: '600' }]}>
-            Dati insufficienti per visualizzare il grafico.
-          </Text>
-          <Text style={[styles.noDataSubtext, { color: 'rgba(255, 255, 255, 0.8)' }]}>
-            Aggiungi bevande per vedere l'andamento del tasso alcolemico.
-          </Text>
+      <View style={styles.legendContainer}>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.primary }]} />
+          <Text style={styles.legendText}>Livello BAC</Text>
         </View>
-      </Card>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.danger }]} />
+          <Text style={styles.legendText}>Limite legale</Text>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.secondary }]} />
+          <Text style={styles.legendText}>Bevanda</Text>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={[styles.legendItem, { backgroundColor: theme.COLORS.success }]} />
+          <Text style={styles.legendText}>Cibo</Text>
+        </View>
+      </View>
     );
-  }
-
-  // Filtriamo i dati per ridurre l'affollamento (1 punto ogni 2 se ci sono più di 8 punti)
-  const filterData = (data: Array<{ time: string; bac: number }>) => {
-    if (data.length <= 5) return data;
-    
-    // Mantiene sempre il primo e l'ultimo punto
-    const filtered = [data[0]];
-    const step = Math.max(1, Math.floor(data.length / 5));
-    
-    for (let i = step; i < data.length - step; i += step) {
-      filtered.push(data[i]);
-    }
-    
-    filtered.push(data[data.length - 1]);
-    return filtered;
   };
-  
-  const filteredBacSeries = filterData(bacSeries);
-
-  // Formatta le etichette del tempo in modo più semplice
-  const formatTime = (timeStr: string) => {
-    try {
-      const date = new Date(timeStr);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      console.error('Error formatting time:', e);
-      return '';
-    }
-  };
-
-  // Mostriamo solo alcune etichette per evitare l'affollamento
-  const createLabelIndices = (totalPoints: number) => {
-    if (totalPoints <= 3) return Array.from({ length: totalPoints }, (_, i) => i);
-    // Per più punti, mostra solo il primo, uno centrale e l'ultimo
-    return [0, Math.floor(totalPoints / 2), totalPoints - 1];
-  };
-  
-  const labelIndices = createLabelIndices(filteredBacSeries.length);
-  
-  // Estrai i dati per il grafico
-  const labels = filteredBacSeries.map((point, index) => 
-    labelIndices.includes(index) ? formatTime(point.time) : ""
-  );
-  const data = filteredBacSeries.map(point => point.bac);
-
-  // Colori e stile
-  const backgroundColor = isDarkTheme ? '#14233B' : '#14233B'; // Stesso sfondo per entrambi i temi
-  const textColor = '#FFFFFF'; // Testo sempre bianco
-  const gridColor = 'rgba(255, 255, 255, 0.2)'; // Griglia leggermente più visibile
-  
-  // Colore linea BAC - più vivace e visibile
-  const bacLineColor = '#60A5FA'; // Blu moderno
-  // Colore linea limite - arancione/ambra
-  const limitLineColor = 'rgba(245, 158, 11, 0.9)';
   
   return (
-    <Card style={[styles.container, { 
-      backgroundColor,
-      borderWidth: 0,
-      elevation: 0,
-      shadowOpacity: 0
-    }]}>
+    <View style={styles.container}>
       <View style={styles.graphContainer}>
         <LineChart
-          data={{
-            labels,
-            datasets: [
-              {
-                data,
-                color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
-                strokeWidth: 3
-              },
-              {
-                // Linea limite legale - più sottile e discreta
-                data: Array(labels.length).fill(LEGAL_DRIVING_LIMIT),
-                color: () => limitLineColor,
-                strokeWidth: 2,
-                strokeDashArray: [4, 4]
-              }
-            ],
-          }}
-          width={Dimensions.get('window').width - 32}
-          height={200} // Ridotto per un aspetto più compatto
-          chartConfig={{
-            backgroundColor,
-            backgroundGradientFrom: backgroundColor,
-            backgroundGradientTo: backgroundColor,
-            decimalPlaces: 2,
-            color: (opacity = 1) => '#FFFFFF', // Colore bianco per tutti gli elementi
-            labelColor: () => 'rgba(255, 255, 255, 0.95)', // Etichette sempre bianche con alta opacità
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: "5",
-              strokeWidth: "0",
-              stroke: '#60A5FA',
-              fill: '#60A5FA'
-            },
-            propsForBackgroundLines: {
-              stroke: gridColor,
-              strokeWidth: 1,
-              strokeDasharray: ''
-            },
-            propsForLabels: {
-              fontSize: 12,
-              fontWeight: '700', // Testo più in grassetto
-              fill: '#FFFFFF' // Testo sempre bianco
-            },
-            propsForVerticalLabels: {
-              fill: '#FFFFFF',
-              fontSize: 12,
-              fontWeight: '700'
-            },
-            propsForHorizontalLabels: {
-              fill: '#FFFFFF',
-              fontSize: 12,
-              fontWeight: '700'
-            }
-          }}
+          data={chartData}
+          width={screenWidth - 32}
+          height={220}
+          chartConfig={chartConfig}
           bezier
-          style={{
-            marginVertical: 8,
-            borderRadius: 16
-          }}
-          withInnerLines={isDarkTheme} // Solo in dark mode, per un aspetto più pulito
-          withOuterLines={false}
-          withHorizontalLabels={true}
-          withVerticalLabels={true}
-          yAxisSuffix=" g/L"
-          yAxisInterval={0.4} // Intervalli più spaziati
-          fromZero={true}
-          segments={3} // Meno segmenti per un aspetto più pulito
+          style={styles.chart}
         />
+        <View style={styles.pointsContainer}>
+          {renderDrinkPoints()}
+          {renderFoodPoints()}
+        </View>
       </View>
       
-      <View style={styles.legendContainer}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: bacLineColor }]} />
-          <Text style={[styles.legendText, { color: '#FFFFFF', fontWeight: '600' }]}>Tasso alcolemico</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: limitLineColor.replace(/[^,]+\)/, '1)') }]} />
-          <Text style={[styles.legendText, { color: '#FFFFFF', fontWeight: '600' }]}>Limite legale</Text>
-        </View>
-      </View>
-    </Card>
+      {renderLegend()}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
+    backgroundColor: theme.COLORS.background,
     borderRadius: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderWidth: 0,
+    padding: 16,
+    marginVertical: 10,
   },
   graphContainer: {
-    alignItems: 'center',
-    marginVertical: 4
+    position: 'relative',
   },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 4,
-    flexWrap: 'wrap'
+  chart: {
+    borderRadius: 16,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 12,
-    marginVertical: 4
+  pointsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
   },
-  legendColor: {
+  drinkPoint: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginRight: 6
+    backgroundColor: theme.COLORS.secondary,
+    position: 'absolute',
+  },
+  foodPoint: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.COLORS.success,
+    position: 'absolute',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+    marginVertical: 4,
+  },
+  legendItem: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 5,
   },
   legendText: {
-    fontSize: 13,
-    fontWeight: '500'
+    fontSize: 12,
+    color: theme.COLORS.text,
   },
-  noDataContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 30
-  },
-  noDataText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8
-  },
-  noDataSubtext: {
-    fontSize: 14,
-    textAlign: 'center'
-  }
 });
 
 export default BACGraph; 

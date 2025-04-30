@@ -9,9 +9,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
 // Chiavi per lo storage
-const OFFLINE_QUEUE_KEY = 'alcoltest_offline_queue';
-const LAST_SYNC_KEY = 'alcoltest_last_sync';
-const OFFLINE_MODE_KEY = 'alcoltest_offline_mode';
+const OFFLINE_QUEUE_KEY = 'bacchus_offline_queue';
+const LAST_SYNC_KEY = 'bacchus_last_sync';
+const OFFLINE_MODE_KEY = 'bacchus_offline_mode';
 
 // Tipi di operazioni
 export enum OperationType {

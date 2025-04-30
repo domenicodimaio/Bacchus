@@ -12,7 +12,9 @@ import {
 import { DrinkRecord, FoodRecord } from '../bac/visualization';
 import { 
   BAC_LIMITS, 
-  getBACLevel 
+  BAC_COLORS,
+  METABOLISM_RATE,
+  getBACLevel
 } from '../../constants/bac';
 import { 
   calculateTimeToSober, 
@@ -117,10 +119,23 @@ export function calculateBAC(session: BACSession): number {
  * @returns Stringa formattata (es. "2h 30m") o oggetto Date
  */
 export function calculateSoberTime(bac: number, returnDate: boolean = false): string | Date {
+  // Se il BAC è già praticamente zero, restituisci un valore immediato
   if (bac <= 0.01) return returnDate ? new Date() : '0h 00m';
   
-  // Calcola il tempo in minuti
-  const soberTimeMinutes = calculateTimeToSober(bac);
+  // Calcola il tempo in ore per tornare a BAC 0.0
+  // Formula: Ore = BAC attuale / tasso metabolismo
+  const hoursToSober = bac / METABOLISM_RATE;
+  
+  // Converti in minuti per calcoli più precisi
+  const soberTimeMinutes = Math.ceil(hoursToSober * 60);
+  
+  // Log dettagliato per debug
+  console.log('BAC Service - calculateSoberTime:', {
+    bac,
+    metabolismRate: METABOLISM_RATE,
+    hoursToSober,
+    soberTimeMinutes
+  });
   
   if (returnDate) {
     try {
@@ -161,8 +176,10 @@ export function calculateSoberTime(bac: number, returnDate: boolean = false): st
     }
   }
   
-  // Formatta il tempo come stringa
-  return formatTimeToSober(soberTimeMinutes);
+  // Formatta il tempo come stringa direttamente invece di usare formatTimeToSober
+  const hours = Math.floor(soberTimeMinutes / 60);
+  const minutes = Math.floor(soberTimeMinutes % 60);
+  return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
 }
 
 /**
@@ -170,10 +187,24 @@ export function calculateSoberTime(bac: number, returnDate: boolean = false): st
  * @returns Stringa formattata (es. "1h 15m") o oggetto Date
  */
 export function calculateLegalTime(bac: number, returnDate: boolean = false): string | Date {
+  // Se il BAC è già sotto il limite legale, restituisci un valore immediato
   if (bac <= BAC_LIMITS.legalLimit) return returnDate ? new Date() : '0h 00m';
   
-  // Calcola il tempo in minuti
-  const legalTimeMinutes = calculateTimeToLegalLimit(bac);
+  // Calcola il tempo in ore per ritornare al limite legale
+  // Formula: Ore = (BAC attuale - Limite legale) / tasso metabolismo
+  const hoursToLegal = (bac - BAC_LIMITS.legalLimit) / METABOLISM_RATE;
+  
+  // Converti in minuti per calcoli più precisi
+  const legalTimeMinutes = Math.ceil(hoursToLegal * 60);
+  
+  // Log dettagliato per debug
+  console.log('BAC Service - calculateLegalTime:', {
+    bac,
+    limit: BAC_LIMITS.legalLimit,
+    metabolismRate: METABOLISM_RATE,
+    hoursToLegal,
+    legalTimeMinutes
+  });
   
   if (returnDate) {
     try {
@@ -215,7 +246,9 @@ export function calculateLegalTime(bac: number, returnDate: boolean = false): st
   }
   
   // Formatta il tempo come stringa
-  return formatTimeToSober(legalTimeMinutes);
+  const hours = Math.floor(legalTimeMinutes / 60);
+  const minutes = Math.floor(legalTimeMinutes % 60);
+  return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
 }
 
 /**

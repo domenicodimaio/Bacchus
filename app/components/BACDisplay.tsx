@@ -1,23 +1,19 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, useColorScheme, TouchableOpacity, Modal } from 'react-native';
-import { Svg, Circle, Path, G, Text as SvgText, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  withTiming,
-  Easing,
-  interpolate,
-  useAnimatedProps,
-  useDerivedValue,
-} from 'react-native-reanimated';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, useColorScheme, TouchableOpacity, Modal, AppState, Platform } from 'react-native';
+import { Svg, Circle, Path, G, Text as SvgText, Defs, LinearGradient, Stop, Line, Filter, FeGaussianBlur, FeOffset, FeComposite, FeMerge, FeMergeNode } from 'react-native-svg';
 import { Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 
 // Importo il contesto del tema
 import { useTheme } from '../contexts/ThemeContext';
 // Importo le costanti BAC
-import { BAC_LIMITS, getBACLevel, getBACInfo, LEGAL_DRIVING_LIMIT } from '../constants/bac';
+import { BAC_LIMITS, getBACLevel, getBACInfo, LEGAL_DRIVING_LIMIT, METABOLISM_RATE } from '../constants/bac';
 // Importo i colori
 import { COLORS } from '../constants/colors';
+// Import del hook widget
+import { useBACWidget } from '../hooks/useBACWidget';
+// Import delle funzioni di calcolo tempo
+import { calculateTimeToLegalLimit, calculateTimeToSober } from '../lib/bac/calculator';
 
 // Define legal limits for displaying BAC levels
 const LEGAL_LIMITS = {
@@ -28,11 +24,10 @@ const LEGAL_LIMITS = {
 
 // Constants for the circular display
 const { width } = Dimensions.get('window');
-// Riduciamo leggermente il cerchio per lasciare più spazio ai marker
-const CIRCLE_SIZE = width * 0.72; 
-const STROKE_WIDTH = 16; // Spessore della traccia di base - più spessa
-const FILL_STROKE_WIDTH = 10; // Spessore dell'indicatore di riempimento più sottile
-const CIRCLE_RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
+const CIRCLE_SIZE = width * 0.65; 
+const STROKE_WIDTH = 16; // Spessore della traccia di base
+const FILL_STROKE_WIDTH = 12; // Più sottile rispetto alla traccia principale
+const CIRCLE_RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 1.75; 
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
 
 // Costanti per i valori specifici di BAC
@@ -42,6 +37,9 @@ const BAC_WARNING = 0.8; // valore di allerta (corrisponde a 192 gradi)
 
 // Colore neutro per le stanghette e label (più visibile)
 const MARKER_COLOR = '#607D8B'; // Grigio blu neutro
+
+// Margine extra per i marker ed etichette (rende visibili i label)
+const MARKER_PADDING = 75; // Aumentato per assicurare che le etichette siano visibili
 
 // Testi statici (non dipendono da traduzioni)
 const STATIC_TEXT = {
@@ -101,10 +99,9 @@ export interface BACDisplayProps {
   showTimeToSober?: boolean;
   isDarkTheme?: boolean; // Optional prop per override del tema
   timeToZero?: Date | null | string;
+  enableWidgets?: boolean; // Abilita l'integrazione con i widget
+  enableLiveActivity?: boolean; // Abilita l'integrazione con le Live Activities
 }
-
-// Create animated Circle component
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const BACDisplay: React.FC<BACDisplayProps> = ({
   bac,
@@ -113,6 +110,8 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   showTimeToSober = true,
   isDarkTheme: forceDarkTheme,
   timeToZero,
+  enableWidgets = true,
+  enableLiveActivity = true,
 }) => {
   // Stato per modal informativo
   const [infoModalVisible, setInfoModalVisible] = useState(false);
@@ -132,11 +131,59 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
       ? isDarkMode 
       : systemColorScheme === 'dark';
   
-  // Animated values
-  const progressValue = useSharedValue(0);
-  
   // Ottieni il valore BAC valido (non negativo)
   const validBac = Math.max(0, bac);
+  
+  // Calcolo valori di tempo in ore
+  const timeToZeroHours = 
+    typeof timeToZero === 'string' 
+      ? parseFloat(timeToZero) 
+      : calculateTimeToSober(validBac);
+      
+  const timeToLegalHours = 
+    typeof timeToLegal === 'string'
+      ? parseFloat(timeToLegal.toString())
+      : calculateTimeToLegalLimit(validBac);
+  
+  // Integrazione con i widget e le Live Activities
+  const { updateWidget, startLiveActivity, endLiveActivity } = useBACWidget(
+    validBac,
+    timeToZeroHours,
+    timeToLegalHours,
+    {
+      enabled: Platform.OS === 'ios' && enableWidgets,
+      autoStartLiveActivity: Platform.OS === 'ios' && enableLiveActivity && validBac > 0
+    }
+  );
+  
+  // Gestisci l'avvio e l'arresto delle Live Activities
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !enableLiveActivity) return;
+    
+    if (validBac > 0) {
+      // Avvia o aggiorna la Live Activity
+      startLiveActivity();
+    } else {
+      // Termina la Live Activity se il BAC è tornato a zero
+      endLiveActivity();
+    }
+  }, [validBac, enableLiveActivity, startLiveActivity, endLiveActivity]);
+  
+  // Monitora lo stato dell'app per aggiornare i widget quando l'app va in background
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !enableWidgets) return;
+    
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // Aggiorna i widget quando l'app va in background
+        updateWidget();
+      }
+    });
+    
+    return () => {
+      subscription.remove();
+    };
+  }, [updateWidget, enableWidgets]);
   
   // Debug
   console.log('BACDisplay - Props:', { 
@@ -150,48 +197,17 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   const bacLevel = getBACLevel(validBac);
   
   // Calcola la percentuale di progresso per l'animazione
-  const progress = Math.min(1, validBac / MAX_BAC_VALUE);
+  const progressValue = Math.min(1, validBac / MAX_BAC_VALUE);
   
   // Assicurati che ci sia sempre un minimo di progresso visibile
-  const visualProgress = validBac > 0 ? Math.max(MIN_PROGRESS, progress) : 0;
+  const visualProgress = validBac > 0 ? Math.max(MIN_PROGRESS, progressValue) : 0;
   
-  // Normalize BAC for circular display (0 to 1.0)
-  // Correzione: usiamo BAC_MAX (1.5) per normalizzare
+  // Normalize BAC for circular display
   const normalizedBac = Math.min(validBac / BAC_MAX, 1);
   
   // Apply minimum visible progress value for UI feedback when BAC is very low
   // Se BAC è 0, deve mostrare 0. Altrimenti minimo un valore piccolo per visualizzare qualcosa
   const displayProgress = validBac <= 0.001 ? 0 : Math.max(normalizedBac, 0.01);
-  
-  // Creare un valore derivato che verrà aggiornato quando cambia il BAC
-  const derivedProgress = useDerivedValue(() => {
-    // Inizia l'animazione dal valore corrente verso il nuovo valore target
-    return withTiming(displayProgress, {
-      duration: 750,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-    });
-  }, [displayProgress]);
-  
-  // Force update to initial value on first render - garantisce partenza da zero
-  useEffect(() => {
-    // Inizializza sempre da 0 per garantire l'animazione
-    progressValue.value = 0;
-    
-    // Poi esegui l'animazione al valore corretto
-    setTimeout(() => {
-      progressValue.value = displayProgress;
-    }, 100);
-  }, []); // Solo al mount iniziale
-  
-  // Update value when BAC changes
-  useEffect(() => {
-    // Aggiornamento diretto del valore condivido che innesca l'animazione tramite derivedProgress
-    progressValue.value = displayProgress;
-    
-    // Aggiorna i riferimenti
-    lastBacRef.current = validBac;
-    lastUpdateRef.current = Date.now();
-  }, [validBac, displayProgress]);
   
   // Determina lo stato BAC usando le funzioni da constants/bac.ts
   const bacInfo = getBACInfo(validBac);
@@ -235,28 +251,6 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
     }
   }, [validBac, normalizedBac]);
 
-  // Props animati per il cerchio - usiamo derivedProgress per animare fluidamente
-  const animatedProps = useAnimatedProps(() => {
-    // Il valore derivato controlla l'animazione
-    const progress = derivedProgress.value;
-    
-    // Calcola lo strokeDashoffset per visualizzare la porzione corretta del cerchio
-    // 0 = cerchio completo, CIRCLE_CIRCUMFERENCE = cerchio vuoto
-    const offsetValue = CIRCLE_CIRCUMFERENCE * (1 - progress);
-    
-    // Debug per identificare eventuali problemi di animazione
-    if (isNaN(offsetValue)) {
-      console.warn('ERRORE BAC CIRCLE: offset value is NaN', {
-        derivedValue: progress,
-        normalizedBac,
-        circumference: CIRCLE_CIRCUMFERENCE
-      });
-      return { strokeDashoffset: CIRCLE_CIRCUMFERENCE };
-    }
-    
-    return { strokeDashoffset: offsetValue };
-  });
-
   // Get color based on BAC level
   const getColor = () => {
     switch (bacLevel) {
@@ -264,7 +258,6 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
       case 'danger': return theme.dangerColor;
       case 'warning': return theme.warningColor;
       case 'caution': return theme.cautionColor;
-      case 'safe': return theme.safeColor;
       default: return theme.safeColor;
     }
   };
@@ -299,6 +292,16 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
 
   // Converte una stringa o un Date in un formato leggibile (ora:minuti)
   const formatTime = (dateValue: Date | null | undefined | string) => {
+    // Se il BAC è già sotto il limite legale (e stiamo formattando il tempo legale), mostra "Adesso"
+    if (validBac <= 0.5 && validBac > 0.01 && dateValue === timeToLegal) {
+      return STATIC_TEXT.now;
+    }
+    
+    // Se il BAC è 0, mostriamo "Adesso" per il tempo di ritorno a 0.00
+    if (validBac === 0 && dateValue === timeToZero) {
+      return STATIC_TEXT.now;
+    }
+    
     if (!dateValue) {
       console.log('BACDisplay: formatTime ricevuto valore nullo o undefined');
       return STATIC_TEXT.notAvailable;
@@ -317,9 +320,14 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
       let date: Date | null = null;
       
       if (typeof dateValue === 'string') {
-        // Se è una stringa formattata come HH:MM, la mostriamo direttamente
+        // Se è una stringa formattata come HH:MM o Xh YYm, la mostriamo direttamente
         if (/^\d{1,2}h \d{2}m$/.test(dateValue) || /^\d{1,2}:\d{2}$/.test(dateValue)) {
           return dateValue; 
+        }
+        
+        // Se è '0h 00m', mostriamo "Adesso"
+        if (dateValue === '0h 00m') {
+          return STATIC_TEXT.now;
         }
         
         // Altrimenti proviamo a convertirla in Date
@@ -352,7 +360,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
           now: now.toISOString(),
           diff: (now.getTime() - date.getTime()) / 1000 / 60,  // differenza in minuti
         });
-        return STATIC_TEXT.notAvailable;
+        return STATIC_TEXT.now; // Mostriamo "Adesso" invece di "Non disponibile" se la data è nel passato
       }
       
       // Formatta la data come ora:minuti
@@ -370,66 +378,77 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
     <Card style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <View style={styles.circleContainer}>
-          <Svg width={CIRCLE_SIZE + 40} height={CIRCLE_SIZE + 40} style={styles.svgContainer}>
-            {/* Defs for gradients */}
+          <Svg width={CIRCLE_SIZE + MARKER_PADDING * 2} height={CIRCLE_SIZE + MARKER_PADDING * 2} style={styles.svgContainer}>
+            {/* Defs for gradients and filters */}
             <Defs>
               <LinearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <Stop offset="0%" stopColor={activeColor} stopOpacity="0.8" />
+                <Stop offset="0%" stopColor={activeColor} stopOpacity="1" />
                 <Stop offset="100%" stopColor={activeColor} />
               </LinearGradient>
+              
+              {/* Filtro per il glow effect */}
+              <Filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <FeGaussianBlur 
+                  stdDeviation="3"
+                  result="blur" 
+                />
+                <FeOffset dx="0" dy="0" result="offsetBlur" />
+                <FeMerge>
+                  <FeMergeNode in="offsetBlur" />
+                  <FeMergeNode in="SourceGraphic" />
+                </FeMerge>
+              </Filter>
             </Defs>
             
-            {/* Circle background track - SPESSO */}
+            {/* Circle background track */}
             <Circle
-              cx={(CIRCLE_SIZE + 40) / 2}
-              cy={(CIRCLE_SIZE + 40) / 2}
+              cx={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              cy={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
               r={CIRCLE_RADIUS}
               stroke={theme.backgroundTrack}
               strokeWidth={STROKE_WIDTH}
               fill="transparent"
             />
             
-            {/* Marker lines - migliorati per visibilità */}
+            {/* Marker lines - devono stare SOTTO l'indicatore */}
             {MARKER_ANGLES.map((angle, index) => {
               // Converti angoli in radianti (partendo da 90° in alto)
               const angleInRadians = (angle - 90) * (Math.PI / 180);
               
               // Calcola le coordinate x,y delle stanghette - circonferenza esterna
-              const outerX = (CIRCLE_SIZE + 40) / 2 + (CIRCLE_RADIUS + STROKE_WIDTH/2 + 3) * Math.cos(angleInRadians);
-              const outerY = (CIRCLE_SIZE + 40) / 2 + (CIRCLE_RADIUS + STROKE_WIDTH/2 + 3) * Math.sin(angleInRadians);
+              const outerX = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + STROKE_WIDTH/2 + 3) * Math.cos(angleInRadians);
+              const outerY = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + STROKE_WIDTH/2 + 3) * Math.sin(angleInRadians);
               
               // Calcola le coordinate x,y delle stanghette - circonferenza interna
-              const innerX = (CIRCLE_SIZE + 40) / 2 + (CIRCLE_RADIUS - STROKE_WIDTH/2 - 3) * Math.cos(angleInRadians);
-              const innerY = (CIRCLE_SIZE + 40) / 2 + (CIRCLE_RADIUS - STROKE_WIDTH/2 - 3) * Math.sin(angleInRadians);
+              const innerX = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS - STROKE_WIDTH/2 - 3) * Math.cos(angleInRadians);
+              const innerY = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS - STROKE_WIDTH/2 - 3) * Math.sin(angleInRadians);
               
               // Posizione del testo - più distante dal cerchio per evitare taglio
-              let textRadiusOffset = STROKE_WIDTH * 2.5;
+              let textRadiusOffset = STROKE_WIDTH * 1.8;
               // Aggiungiamo offset specifici per ogni marker per evitare che le etichette vengano tagliate
               if (index === 1) { // 0.5
-                textRadiusOffset = STROKE_WIDTH * 2.6;
+                textRadiusOffset = STROKE_WIDTH * 2.3;
               } else if (index === 2) { // 0.8
-                textRadiusOffset = STROKE_WIDTH * 2.8;
+                textRadiusOffset = STROKE_WIDTH * 1.8;
               } else if (index === 3) { // 1.5
-                textRadiusOffset = STROKE_WIDTH * 2.7;
+                textRadiusOffset = STROKE_WIDTH * 1.8;
               }
               
-              const textX = (CIRCLE_SIZE + 40) / 2 + (CIRCLE_RADIUS + textRadiusOffset) * Math.cos(angleInRadians);
-              const textY = (CIRCLE_SIZE + 40) / 2 + (CIRCLE_RADIUS + textRadiusOffset) * Math.sin(angleInRadians);
+              const textX = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + textRadiusOffset) * Math.cos(angleInRadians);
+              const textY = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + textRadiusOffset) * Math.sin(angleInRadians);
               
               // Calcoliamo la dimensione del testo in base alle dimensioni del cerchio
-              const fontSize = Math.max(12, CIRCLE_SIZE / 26);
+              const fontSize = Math.max(11, CIRCLE_SIZE / 30);
               
               let labelValue = '';
               
               // Assegna i valori ai marker
-              if (index === 0) {
-                labelValue = '0.0';
-              } else if (index === 1) {
-                labelValue = '0.5';
+              if (index === 1) {
+                labelValue = '0.5 g/L';
               } else if (index === 2) {
-                labelValue = '0.8';
+                labelValue = '0.8 g/L';
               } else if (index === 3) {
-                labelValue = '1.5';
+                labelValue = '1.5 g/L';
               }
               
               return (
@@ -453,8 +472,8 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                     alignmentBaseline="central"
                     // Migliore visibilità
                     opacity={1}
-                    stroke={isDarkTheme ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)'}
-                    strokeWidth={1}
+                    stroke={isDarkTheme ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.7)'}
+                    strokeWidth={0.5}
                   >
                     {labelValue}
                   </SvgText>
@@ -462,19 +481,33 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               );
             })}
             
-            {/* Circle fill indicator - con strokeDashoffset corretto */}
-            <AnimatedCircle
-              cx={(CIRCLE_SIZE + 40) / 2}
-              cy={(CIRCLE_SIZE + 40) / 2}
+            {/* Indicatore BAC - versione statica senza animazione, sopra i marker e con glow */}
+            <Circle
+              cx={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              cy={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
               r={CIRCLE_RADIUS}
-              stroke="url(#progressGradient)"
+              stroke={activeColor}
               strokeWidth={FILL_STROKE_WIDTH}
               fill="transparent"
               strokeLinecap="round"
-              strokeDasharray={`${CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`}
-              animatedProps={animatedProps}
-              // IMPORTANTE: Assicuriamo che parta da angolo 0 (in alto)
-              transform={`rotate(-90, ${(CIRCLE_SIZE + 40)/2}, ${(CIRCLE_SIZE + 40)/2})`}
+              strokeDasharray={`${normalizedBac * CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`}
+              transform={`rotate(-90, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2}, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2})`}
+              filter="url(#glow)"
+              strokeOpacity={1}
+            />
+            
+            {/* Layer aggiuntivo per migliorare la visibilità */}
+            <Circle
+              cx={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              cy={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              r={CIRCLE_RADIUS}
+              stroke={activeColor}
+              strokeWidth={FILL_STROKE_WIDTH - 4}
+              fill="transparent"
+              strokeLinecap="round"
+              strokeDasharray={`${normalizedBac * CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`}
+              transform={`rotate(-90, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2}, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2})`}
+              strokeOpacity={0.7}
             />
           </Svg>
           
@@ -513,29 +546,66 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
             
             {/* Time estimation info */}
             <View style={styles.timeInfoContainer}>
-              <Text style={[styles.timeInfoLabel, { color: theme.textSecondary }]}>
-                {validBac > 0.5 ? STATIC_TEXT.timeToLegalDriving : STATIC_TEXT.completelyClean}
-              </Text>
-              <View style={styles.timeValueRow}>
-                <Text style={[styles.timeValue, { color: theme.textPrimary }]}>
-                  {validBac > 0.5 
-                    ? formatTime(timeToLegal)
-                    : formatTime(timeToZero)}
-                </Text>
-                
-                {/* Info button for legal consequences */}
-                {validBac > 0.5 && (
-                  <TouchableOpacity 
-                    style={styles.infoButton}
-                    onPress={() => {
-                      console.log('BACDisplay - Opening info modal');
-                      setInfoModalVisible(true);
-                    }}
-                  >
-                    <Ionicons name="information-circle-outline" size={20} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                )}
-              </View>
+              {validBac > 0.01 && (
+                <>
+                  <Text style={[styles.timeInfoLabel, { color: theme.textSecondary }]}>
+                    {validBac > 0.5 ? STATIC_TEXT.timeToLegalDriving : STATIC_TEXT.completelyClean}
+                  </Text>
+                  
+                  <View style={styles.timeValueWithInfoRow}>
+                    <Text style={[styles.timeValue, { color: theme.textPrimary }]}>
+                      {validBac <= 0.5 ? 
+                        // Per il ritorno a 0.00, calcoliamo il tempo corretto (non "Adesso")
+                        (() => {
+                          const hoursToZero = validBac / METABOLISM_RATE;
+                          const hours = Math.floor(hoursToZero);
+                          const minutes = Math.floor((hoursToZero % 1) * 60);
+                          return hoursToZero < 0.01 ? STATIC_TEXT.now : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+                        })() : 
+                        // Per il ritorno sotto al limite legale
+                        (() => {
+                          const hoursToLegal = (validBac - 0.5) / METABOLISM_RATE;
+                          const hours = Math.floor(hoursToLegal);
+                          const minutes = Math.floor((hoursToLegal % 1) * 60);
+                          return hoursToLegal < 0.01 ? STATIC_TEXT.now : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+                        })()
+                      }
+                    </Text>
+                    
+                    {/* Info button - sempre presente, ma con opacità 0 quando BAC < 0.5 */}
+                    <TouchableOpacity 
+                      style={styles.infoButton}
+                      onPress={() => {
+                        if (validBac > 0.5) {
+                          console.log('BACDisplay - Opening info modal');
+                          setInfoModalVisible(true);
+                        }
+                      }}
+                    >
+                      <Ionicons 
+                        name="information-circle-outline" 
+                        size={16} 
+                        color={validBac > 0.5 ? theme.textSecondary : 'transparent'} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {/* Aggiungi la visualizzazione anche quando il BAC è 0 */}
+              {validBac === 0 && (
+                <>
+                  <Text style={[styles.timeInfoLabel, { color: theme.textSecondary }]}>
+                    {STATIC_TEXT.completelyClean}
+                  </Text>
+                  
+                  <View style={[styles.timeValueWithInfoRow, { paddingLeft: 0 }]}>
+                    <Text style={[styles.timeValue, { color: theme.textPrimary }]}>
+                      {STATIC_TEXT.now}
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -605,7 +675,8 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
 const styles = StyleSheet.create({
   container: {
     margin: 16,
-    marginBottom: 20,
+    marginTop: -45,
+    marginBottom: -80,
     borderRadius: 16,
     elevation: 2,
     shadowColor: '#000',
@@ -615,18 +686,21 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    padding: 16
+    padding: 16,
+    paddingTop: 8
   },
   circleContainer: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 8,
-    // Assicura che ci sia spazio sufficiente per tutti i marker
-    paddingHorizontal: 20
+    // Assicura che ci sia spazio sufficiente per tutti i marker e padding aggiuntivo
+    padding: 10,
+    overflow: 'visible'
   },
   svgContainer: {
-    transform: [{ rotate: '0deg' }]
+    transform: [{ rotate: '0deg' }],
+    overflow: 'visible'
   },
   valueContainer: {
     position: 'absolute',
@@ -658,22 +732,32 @@ const styles = StyleSheet.create({
   timeInfoContainer: {
     marginTop: 16,
     alignItems: 'center',
+    width: '100%',
+    justifyContent: 'center'
   },
   timeInfoLabel: {
     fontSize: 14,
     marginBottom: 4,
+    textAlign: 'center',
+    width: '100%'
   },
-  timeValueRow: {
+  timeValueWithInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingLeft: 23
   },
   timeValue: {
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',  // Cambiato da right a center
+    marginTop: 2,
+    marginBottom: 2
   },
   infoButton: {
-    marginLeft: 6,
-    padding: 4,
+    marginLeft: 1,
+    padding: 2
   },
   modalOverlay: {
     flex: 1,

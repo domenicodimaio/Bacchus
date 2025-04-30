@@ -38,13 +38,12 @@ import Animated, {
   interpolateColor
 } from 'react-native-reanimated';
 import { LineChart } from 'react-native-chart-kit';
-import sessionService, { Session } from '../lib/services/session.service';
+import * as sessionService from '../lib/services/session.service';
 import { DrinkRecord, FoodRecord } from '../lib/bac/visualization';
+import { Session } from '../types/session';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BACChart from '../components/BACChart';
-import BACGraph from '../components/BACGraph';
+import BACChartSimple from '../components/BACChartSimple';
 import CustomTabBar from '../components/CustomTabBar';
-import UserProfileComponent from '../components/UserProfile';
 import { Svg, Circle, Path, Defs, LinearGradient, Stop, Line, Text as SvgText, G, Filter } from 'react-native-svg';
 import { formatTimeFromMinutes, formatElapsedTime } from '../utils/timeUtils';
 import { calculateBAC, calculateTimeToSober } from '../utils/bacCalculator';
@@ -53,6 +52,7 @@ import { Link } from 'expo-router';
 import Toast from '../components/Toast';
 import AppHeader from '../components/AppHeader';
 import { Card as PaperCard } from 'react-native-paper';
+import { usePurchase } from '../contexts/PurchaseContext';
 // Importazioni rimosse perché non utilizzate
 // import LottieView from 'lottie-react-native';
 // import { BlurView } from 'expo-blur';
@@ -69,6 +69,66 @@ const INNER_DOT_SIZE = 10;
 
 // Rimuovo la definizione di CircleProgress poiché useremo direttamente BACDisplay
 
+/**
+ * Funzione per navigare alla sessione attiva
+ * Questa funzione è usata da più parti dell'app per assicurare una navigazione coerente
+ */
+export const navigateToSession = async () => {
+  try {
+    console.log('navigateToSession: verificando sessione attiva');
+    
+    // Aggiorna il BAC della sessione corrente prima della navigazione
+    await sessionService.updateSessionBAC();
+    
+    // Verifica se c'è una sessione attiva
+    const activeSession = sessionService.getActiveSession();
+    
+    if (activeSession) {
+      console.log('navigateToSession: sessione attiva trovata, navigando alla schermata sessione');
+      
+      // Usa un piccolo delay per permettere alla UI di aggiornarsi
+      setTimeout(() => {
+        // Usa navigate per evitare sostituzioni nel navigation stack
+        router.navigate('/session');
+      }, 100);
+      
+      return true;
+    } else {
+      console.log('navigateToSession: nessuna sessione attiva, navigando alla dashboard');
+      
+      // Ritorna alla dashboard se non c'è una sessione attiva
+      setTimeout(() => {
+        router.replace('/dashboard');
+      }, 100);
+      
+      return false;
+    }
+  } catch (error) {
+    console.error('Error in navigateToSession:', error);
+    
+    // In caso di errore, torna alla dashboard
+    setTimeout(() => {
+      router.replace('/dashboard');
+    }, 100);
+    
+    return false;
+  }
+};
+
+/**
+ * Funzione per navigare alla dashboard.
+ * Usa questa quando termina una sessione o non ci sono sessioni attive.
+ */
+export function navigateToDashboard() {
+  router.replace('/dashboard');
+}
+
+export function goToActiveSession() {
+  // Questa funzione può essere rimossa, ora usiamo navigateToSession
+  navigateToSession();
+  return true;
+}
+
 function SessionScreen() {
   const { t } = useTranslation(['session', 'common']);
   const { currentTheme } = useTheme();
@@ -79,6 +139,7 @@ function SessionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { showToast } = useToast();
+  const { incrementSessionCounter } = usePurchase();
 
   // Base session state
   const [session, setSession] = useState<Session | null>(null);
@@ -89,7 +150,7 @@ function SessionScreen() {
   // Stato che tiene traccia se l'app è in focus
   const [isFocused, setIsFocused] = useState(true);
 
-  // Animated values utilizzando useSharedValue
+  // Animated values
   const buttonsOpacity = useSharedValue(1);
   const bacCircleScale = useSharedValue(1);
   
@@ -98,6 +159,8 @@ function SessionScreen() {
   
   // Stato per il toggle del grafico
   const [showChart, setShowChart] = useState(false);
+  
+  const scrollViewRef = React.useRef(null);
   
   // Calcola la percentuale di sobrietà basata sul tempo trascorso e il tempo stimato
   const calculateSoberPercentage = useCallback(() => {
@@ -157,6 +220,9 @@ function SessionScreen() {
       }, 5000); // Update every 5 seconds when in focus
       
       setUpdateTimer(timer);
+      
+      // Avvia le animazioni
+      startLoadingAnimations();
       
       return () => {
         if (timer) clearInterval(timer);
@@ -368,39 +434,20 @@ function SessionScreen() {
   // Handle data refresh
   const handleRefreshData = async () => {
     try {
-      console.log('[SessionScreen] Aggiornamento dati della sessione');
+      setLoading(true);
       
-      // Force BAC update by using the session service
-      const sessionService = require('../lib/services/session.service');
+      // Ottieni la sessione attiva
+      const activeSession = await sessionService.getActiveSession();
       
-      // Aggiorna il BAC e ottieni la sessione aggiornata
-      const updatedSession = sessionService.updateSessionBAC();
-      
-      if (updatedSession) {
-        console.log(`[SessionScreen] BAC aggiornato: ${updatedSession.currentBAC.toFixed(3)}`);
-        console.log(`[SessionScreen] timeToSober: ${updatedSession.timeToSober}, tipo: ${typeof updatedSession.timeToSober}`);
-        console.log(`[SessionScreen] timeToLegal: ${updatedSession.timeToLegal}, tipo: ${typeof updatedSession.timeToLegal}`);
-        
-        // Forza un nuovo oggetto di sessione per assicurarsi che React rilevi il cambiamento
-        setSession(prevSession => {
-          if (!prevSession || 
-              prevSession.currentBAC !== updatedSession.currentBAC || 
-              prevSession.status !== updatedSession.status) {
-            console.log('[SessionScreen] Sessione cambiata, aggiornando lo stato');
-            return {...updatedSession, _updateTimestamp: Date.now()};
-          }
-          return prevSession;
-        });
-        
-        // Update the percentage
-        const percentage = calculateSoberPercentage();
-        setSoberPercentage(percentage);
+      if (activeSession) {
+        // Aggiorna lo stato con la sessione attiva
+        setSession(activeSession);
       } else {
-        console.log('[SessionScreen] Nessuna sessione attiva trovata');
+        // Invece di reindirizzare alla dashboard, imposta session a null
         setSession(null);
         
-        // Reindirizza alla dashboard se non c'è una sessione attiva
-        router.replace('/dashboard');
+        // Rimuoviamo il reindirizzamento alla dashboard
+        // router.replace('/dashboard');
       }
       
       // Imposta loading a false in ogni caso
@@ -417,6 +464,17 @@ function SessionScreen() {
     }
   };
 
+  // Funzione per avviare le animazioni
+  const startLoadingAnimations = () => {
+    // Sequenza di animazioni dall'alto verso il basso
+    buttonsOpacity.value = withTiming(1, { duration: 500 });
+    
+    bacCircleScale.value = withSequence(
+      withDelay(200, withTiming(1.05, { duration: 500, easing: Easing.out(Easing.back()) })),
+      withTiming(1, { duration: 300 })
+    );
+  };
+  
   // Animated styles
   const buttonsAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -434,28 +492,27 @@ function SessionScreen() {
   const handleToggleChart = () => {
     // Se stiamo per mostrare il grafico, aggiorniamo i dati
     if (!showChart) {
-      handleRefreshData();
+      // Prima mostriamo il grafico - nessuna generazione di dati di esempio qui
+      // poiché la vera generazione avverrà in renderBACChart
+      setShowChart(true);
       
-      // Ensure we have bacSeries data for the chart
-      if (session && (!session.bacSeries || session.bacSeries.length < 2)) {
-        console.log('Creating sample bacSeries data for display');
-        
-        const now = new Date();
-        const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-        const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-        
-        // Use the session's current BAC value for display
-        const currentBacValue = session.currentBAC || 0;
-        
-        // Create minimal dataset with the current BAC value
-        session.bacSeries = [
-          { time: twoHoursAgo.toISOString(), bac: Math.max(0, currentBacValue - 0.15) },
-          { time: oneHourAgo.toISOString(), bac: Math.max(0, currentBacValue - 0.08) },
-          { time: now.toISOString(), bac: currentBacValue }
-        ];
+      // Poi scorriamo automaticamente alla posizione del grafico dopo che è stato renderizzato
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: 350, animated: true });
+        }
+      }, 100);
+    } else {
+      // Quando nascondiamo il grafico, prima scorriamo verso l'alto
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ y: 0, animated: true });
       }
+      
+      // Dopo l'animazione, nascondiamo il grafico
+      setTimeout(() => {
+        setShowChart(false);
+      }, 300);
     }
-    setShowChart(prev => !prev);
   };
 
   // Navigate to add drink screen
@@ -491,42 +548,53 @@ function SessionScreen() {
   };
 
   // Handle end session with confirmation
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     Alert.alert(
-      t('endSession', { ns: 'session' }),
-      t('endSessionConfirm', { ns: 'session' }),
+      t('endSessionTitle', { ns: 'session', defaultValue: 'Termina sessione' }),
+      t('endSessionConfirmation', { ns: 'session', defaultValue: 'Sei sicuro di voler terminare questa sessione?' }),
       [
         {
-          text: t('cancel', { ns: 'common' }),
-          style: 'cancel'
+          text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }),
+          style: 'cancel',
         },
         {
-          text: t('confirm', { ns: 'common' }),
-          onPress: () => {
+          text: t('endSession', { ns: 'session', defaultValue: 'Termina' }),
+          style: 'destructive',
+          onPress: async () => {
             try {
-              // Salva la sessione nella cronologia usando il servizio
-              const sessionService = require('../lib/services/session.service');
-              const endedSession = sessionService.endSession();
+              setLoading(true);
+              const success = await sessionService.endSession();
               
-              if (endedSession) {
-                console.log('Sessione terminata e salvata nella cronologia:', endedSession.id);
+              if (success) {
+                console.log('Sessione terminata e salvata nella cronologia: success');
                 
                 // Mostra toast di conferma
                 showToast({
-                  message: t('sessionSavedToHistory', { ns: 'session' }),
-                  type: 'success'
+                  type: 'success',
+                  message: t('sessionSaved', { ns: 'session', defaultValue: 'Sessione salvata' }),
+                });
+                
+                // Incrementa il contatore delle sessioni settimanali
+                await incrementSessionCounter();
+                
+                // Torna alla dashboard
+                router.push('/dashboard');
+              } else {
+                // Mostra toast di errore
+                showToast({
+                  type: 'error',
+                  message: t('errorSavingSession', { ns: 'session', defaultValue: 'Errore durante il salvataggio della sessione' }),
                 });
               }
-              
-              // Torna alla dashboard
-              router.push('/dashboard');
             } catch (error) {
-              console.error('Errore nel terminare la sessione:', error);
-              Alert.alert(
-                t('error', { ns: 'common' }),
-                t('errorEndingSession', { ns: 'session' }),
-                [{ text: t('ok', { ns: 'common' }) }]
-              );
+              console.error('Errore durante la terminazione della sessione:', error);
+              
+              showToast({
+                type: 'error',
+                message: t('errorSavingSession', { ns: 'session', defaultValue: 'Errore durante il salvataggio della sessione' }),
+              });
+            } finally {
+              setLoading(false);
             }
           }
         }
@@ -535,121 +603,89 @@ function SessionScreen() {
   };
 
   // Handle item deletion with BAC recalculation
-  const handleDeleteItem = (id, type) => {
-    if (!session) return; // Guard clause per evitare operazioni su session null
-    
+  const handleDeleteItem = async (id: string, type: 'drink' | 'food') => {
     try {
-    if (type === 'drink') {
-      // Trova la bevanda da eliminare
-        const drinkToDelete = session.drinks.find(drink => drink.id === id);
-      
-      if (drinkToDelete) {
-          // Combiniamo tutte le operazioni di aggiornamento in una sola chiamata di setSession
+      if (type === 'drink') {
+        // Elimina una bevanda, ma non c'è una funzione removeDrink
+        // Implemento manualmente la rimozione come modifica dello stato
+        if (session) {
+          // Aggiorna lo stato locale per riflettere la rimozione immediata
           setSession(prevSession => {
             if (!prevSession) return null;
-        
-        // Calcola l'effetto stimato che questa bevanda aveva sul BAC e rimuovilo
-        const alcoholEffect = drinkToDelete.alcoholGrams ? (drinkToDelete.alcoholGrams * 0.002) : 0.02;
+            
+            // Trova l'indice della bevanda da eliminare
+            const drinkIndex = prevSession.drinks.findIndex(drink => drink.id === id);
+            if (drinkIndex === -1) return prevSession;
+            
+            // Crea una copia delle bevande e rimuovi quella selezionata
+            const updatedDrinks = [...prevSession.drinks];
+            const drinkToDelete = updatedDrinks[drinkIndex];
+            updatedDrinks.splice(drinkIndex, 1);
+            
+            // Calcola l'effetto stimato che questa bevanda aveva sul BAC e rimuovilo
+            const alcoholGrams = typeof drinkToDelete.alcoholGrams === 'string' ? 
+              parseFloat(drinkToDelete.alcoholGrams) : 
+              (drinkToDelete.alcoholGrams || 0);
+            
+            const alcoholEffect = alcoholGrams * 0.002;
             const newBAC = Math.max(prevSession.currentBAC - alcoholEffect, 0);
             
             // Determina il nuovo stato
-            let newStatus = prevSession.status;
-            if (newBAC < 0.03) {
-              newStatus = 'safe';
-            } else if (newBAC < 0.08) {
-              newStatus = 'caution';
-            } else {
-              newStatus = 'danger';
-            }
-        
-        // Aggiorna i punti del grafico
-            const newTimePoints = [...prevSession.bacTimePoints.slice(1), newBAC];
+            const newStatus = 
+              newBAC < 0.03 
+                ? 'safe' as 'safe'
+                : newBAC < 0.08 
+                  ? 'caution' as 'caution'
+                  : 'danger' as 'danger';
             
-            // Calcola il tempo per tornare sobri
-            const hoursToSober = Math.ceil(newBAC / 0.015);
-            const soberTime = `${hoursToSober}h ${Math.floor((hoursToSober % 1) * 60)}m`;
-            
-            // Aggiungi timeToSober in minuti per il componente BACDisplay
-            const timeToSober = Math.ceil(hoursToSober * 60);
-            
-            // Ritorna l'oggetto session aggiornato con tutte le modifiche
-            return {
+            // Crea una sessione aggiornata
+            const updatedSession = {
               ...prevSession,
-              drinks: prevSession.drinks.filter(drink => drink.id !== id),
+              drinks: updatedDrinks,
               currentBAC: newBAC,
-              status: newStatus,
-              bacTimePoints: newTimePoints,
-              soberTime: soberTime,
-              timeToSober: timeToSober
+              status: newStatus
             };
+            
+            // Aggiorna la sessione con sessionService manualmente
+            sessionService.updateSessionBAC();
+            sessionService.saveSessionLocally(updatedSession);
+            
+            return updatedSession;
           });
+          
+          return true;
+        }
+      } else if (type === 'food') {
+        // Elimina un cibo
+        const success = await sessionService.removeFood(id);
         
-        // Feedback all'utente
-        Alert.alert(
-          t('drinkRemoved', { ns: 'session' }),
-            t('bacUpdated', { ns: 'session', bac: (session.currentBAC * 10).toFixed(2) })
-        );
-      }
-    } else {
-      // Trova il cibo da eliminare
-        const foodToDelete = session.foods.find(food => food.id === id);
-      
-      if (foodToDelete) {
-          // Combiniamo tutte le operazioni di aggiornamento in una sola chiamata di setSession
+        if (success && session) {
+          // Aggiorna lo stato locale per riflettere la rimozione immediata
           setSession(prevSession => {
             if (!prevSession) return null;
-        
-            // Il cibo riduce il BAC, quindi eliminarlo dovrebbe aumentare il BAC
-        // Effetto stimato che questo cibo aveva sul BAC
-        const foodEffect = foodToDelete.absorptionFactor ? (foodToDelete.absorptionFactor * 0.01) : 0.01;
-            const newBAC = Math.min(prevSession.currentBAC + foodEffect, 0.5); // Considera un limite massimo di 0.5%
             
-            // Determina il nuovo stato
-            let newStatus = prevSession.status;
-            if (newBAC < 0.03) {
-              newStatus = 'safe';
-            } else if (newBAC < 0.08) {
-              newStatus = 'caution';
-            } else {
-              newStatus = 'danger';
-            }
-        
-        // Aggiorna i punti del grafico
-            const newTimePoints = [...prevSession.bacTimePoints.slice(1), newBAC];
+            // Trova l'indice del cibo da eliminare
+            const foodIndex = prevSession.foods.findIndex(food => food.id === id);
+            if (foodIndex === -1) return prevSession;
             
-            // Calcola il tempo per tornare sobri
-            const hoursToSober = Math.ceil(newBAC / 0.015);
-            const soberTime = `${hoursToSober}h ${Math.floor((hoursToSober % 1) * 60)}m`;
+            // Crea una copia dei cibi e rimuovi quello selezionato
+            const updatedFoods = [...prevSession.foods];
+            updatedFoods.splice(foodIndex, 1);
             
-            // Aggiungi timeToSober in minuti per il componente BACDisplay
-            const timeToSober = Math.ceil(hoursToSober * 60);
-            
-            // Ritorna l'oggetto session aggiornato con tutte le modifiche
             return {
               ...prevSession,
-              foods: prevSession.foods.filter(food => food.id !== id),
-              currentBAC: newBAC,
-              status: newStatus,
-              bacTimePoints: newTimePoints,
-              soberTime: soberTime,
-              timeToSober: timeToSober
+              foods: updatedFoods
             };
           });
-        
-        // Feedback all'utente
-        Alert.alert(
-          t('foodRemoved', { ns: 'session' }),
-            t('bacUpdated', { ns: 'session', bac: (session.currentBAC * 10).toFixed(2) })
-          );
         }
       }
     } catch (error) {
-      console.error("Error deleting item:", error);
-      Alert.alert(
-        t('error', { ns: 'common' }),
-        t('errorDeleting', { ns: 'session' }),
-        [{ text: t('ok', { ns: 'common' }) }]
-      );
+      console.error(`Errore durante l'eliminazione di ${type}:`, error);
+      
+      showToast({
+        type: 'error',
+        message: t('errorRemovingItem', { ns: 'session', defaultValue: 'Errore durante la rimozione dell\'elemento' }),
+      });
     }
   };
 
@@ -715,7 +751,7 @@ function SessionScreen() {
                           {drink.name}
             </Text>
                         <Text style={[styles.consumptionItemDetails, { color: colors.textSecondary }]}>
-                          {drink.volume} - {drink.alcoholGrams}g {t('alcohol')}
+                          {drink.volume} ml - {drink.alcoholGrams}g {t('alcohol')}
             </Text>
           </View>
           </View>
@@ -840,6 +876,265 @@ function SessionScreen() {
     );
   };
 
+  // Aggiungiamo un componente per mostrare quando non c'è una sessione attiva
+  const NoActiveSessionView = () => (
+    <View style={styles.noSessionContainer}>
+      <View style={styles.noSessionContent}>
+        <Ionicons 
+          name="beer-outline" 
+          size={80} 
+          color={colors.textSecondary} 
+        />
+        <Text style={[styles.noSessionTitle, { color: colors.text }]}>
+          {t('noActiveSession', { ns: 'session', defaultValue: 'No Active Session' })}
+        </Text>
+        <Text style={[styles.noSessionDescription, { color: colors.textSecondary }]}>
+          {t('startSessionDescription', { ns: 'session', defaultValue: 'Start a new drinking session from the dashboard to track your BAC levels.' })}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Nel componente SessionScreen, aggiungiamo la visualizzazione del cibo nel grafico
+  const renderBACChart = () => {
+    if (!session) return null;
+    
+    // Calcola il limite legale in base al paese
+    const legalLimit = 0.5; // g/L (valore default per l'Italia)
+    
+    // Prepariamo i dati per il grafico
+    const bacSeries = [];
+    
+    // Otteniamo tutti gli eventi di consumo (bevande e cibi) e li ordiniamo per tempo
+    const consumptionEvents = [];
+    
+    // Aggiungi tutti i drink come eventi
+    session.drinks.forEach(drink => {
+      // Assicurati che il formato della data sia corretto
+      let eventTime;
+      try {
+        eventTime = new Date(drink.timeConsumed || drink.time);
+        // Verifica se la data è valida
+        if (isNaN(eventTime.getTime())) {
+          eventTime = new Date(); // usa la data corrente come fallback
+        }
+      } catch (e) {
+        console.error('Errore nel parsing della data del drink:', e);
+        eventTime = new Date();
+      }
+      
+      // Calcola i grammi di alcol
+      let alcoholGrams = 0;
+      if (drink.alcoholGrams) {
+        alcoholGrams = typeof drink.alcoholGrams === 'string' 
+          ? parseFloat(drink.alcoholGrams) 
+          : (drink.alcoholGrams as number);
+      } else if (drink.volume && drink.alcoholPercentage) {
+        const volume = typeof drink.volume === 'string' ? parseFloat(drink.volume) : (drink.volume as number);
+        const alcoholPercentage = typeof drink.alcoholPercentage === 'string' 
+          ? parseFloat(drink.alcoholPercentage) 
+          : (drink.alcoholPercentage as number);
+        
+        alcoholGrams = (volume * alcoholPercentage * 0.789) / 100;
+      } else {
+        alcoholGrams = 10; // Default fallback
+      }
+      
+      consumptionEvents.push({
+        type: 'drink',
+        time: eventTime,
+        item: drink,
+        alcoholGrams: alcoholGrams
+      });
+    });
+    
+    // Aggiungi i cibi come eventi
+    session.foods.forEach(food => {
+      // Assicurati che il formato della data sia corretto
+      let eventTime;
+      try {
+        eventTime = new Date(food.timeConsumed || food.time);
+        // Verifica se la data è valida
+        if (isNaN(eventTime.getTime())) {
+          eventTime = new Date(); // usa la data corrente come fallback
+        }
+      } catch (e) {
+        console.error('Errore nel parsing della data del cibo:', e);
+        eventTime = new Date();
+      }
+      
+      consumptionEvents.push({
+        type: 'food',
+        time: eventTime,
+        item: food,
+        absorptionFactor: typeof food.absorptionFactor === 'string' 
+          ? parseFloat(food.absorptionFactor) 
+          : food.absorptionFactor
+      });
+    });
+    
+    // Ordina gli eventi per tempo
+    consumptionEvents.sort((a, b) => a.time.getTime() - b.time.getTime());
+    
+    // Se non ci sono eventi, mostra un grafico piatto
+    if (consumptionEvents.length === 0) {
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      
+      return (
+        <BACChartSimple 
+          bacSeries={[
+            { time: oneHourAgo.toISOString(), bac: 0 },
+            { time: now.toISOString(), bac: 0 }
+          ]}
+          drinks={[]}
+          foods={[]}
+          legalLimit={legalLimit}
+        />
+      );
+    }
+    
+    // Configurazione per calcoli BAC
+    const profile = session.profile;
+    const r = profile.gender === 'male' ? 0.68 : 0.55; // Fattore di distribuzione basato sul genere
+    const weight = profile.weightKg || 70; // Peso in kg, default 70 se mancante
+    const metabolismRate = 0.015; // Tasso di metabolismo in g/L per ora (valore medio standard)
+    
+    // Punto di partenza: 15 minuti prima del primo evento, con BAC = 0
+    const firstEventTime = consumptionEvents[0].time;
+    const startTime = new Date(firstEventTime.getTime() - 15 * 60 * 1000);
+    
+    // Aggiungi il primo punto con BAC = 0
+    bacSeries.push({
+      time: startTime.toISOString(),
+      bac: 0
+    });
+    
+    // Calcola il BAC per ogni evento e crea i punti del grafico
+    let currentBac = 0;
+    let previousEventTime = startTime;
+    
+    consumptionEvents.forEach(event => {
+      // Calcola il metabolismo dall'evento precedente
+      const hoursSincePrevEvent = (event.time.getTime() - previousEventTime.getTime()) / (1000 * 60 * 60);
+      const metabolizedAmount = metabolismRate * hoursSincePrevEvent;
+      
+      // Aggiorna il BAC considerando il metabolismo
+      currentBac = Math.max(0, currentBac - metabolizedAmount);
+      
+      // Applica l'effetto dell'evento attuale
+      if (event.type === 'drink') {
+        // L'alcol aumenta il BAC usando la formula di Widmark
+        const bacIncrease = event.alcoholGrams / (r * weight);
+        currentBac += bacIncrease;
+      } else if (event.type === 'food') {
+        // Il cibo riduce l'assorbimento/effetto dell'alcol
+        const absorptionFactor = event.absorptionFactor || 0.95; // default 5% di riduzione
+        // Riduciamo il BAC di una piccola percentuale - modello più conservativo
+        const reductionFactor = (1 - ((1 - absorptionFactor) * 0.2)); 
+        currentBac = currentBac * reductionFactor;
+      }
+      
+      // Aggiungi punto al grafico
+      bacSeries.push({
+        time: event.time.toISOString(),
+        bac: parseFloat(currentBac.toFixed(3)), // Limita a 3 decimali per maggiore precisione
+        isEvent: true,
+        eventType: event.type
+      });
+      
+      // Aggiorna l'orario dell'evento precedente
+      previousEventTime = event.time;
+    });
+    
+    // Aggiungi un punto per il momento attuale
+    const now = new Date();
+    
+    // Se c'è almeno un evento passato
+    if (consumptionEvents.length > 0) {
+      // Calcola il metabolismo dal momento dell'ultimo evento ad ora
+      const hoursSinceLastEvent = Math.max(0, (now.getTime() - previousEventTime.getTime()) / (1000 * 60 * 60));
+      const metabolizedAmount = metabolismRate * hoursSinceLastEvent;
+      
+      // Aggiorna il BAC con il metabolismo
+      const calculatedBac = Math.max(0, currentBac - metabolizedAmount);
+      
+      // Se il valore della sessione è disponibile e recente, usalo per maggiore precisione
+      if (session.currentBAC !== undefined) {
+        currentBac = session.currentBAC;
+      } else {
+        currentBac = parseFloat(calculatedBac.toFixed(3));
+      }
+      
+      // Aggiungi il punto per il momento attuale
+      bacSeries.push({
+        time: now.toISOString(),
+        bac: currentBac
+      });
+    }
+    
+    // Se il BAC attuale è > 0, aggiungi un punto di sobrietà futuro
+    if (currentBac > 0) {
+      const hoursToZero = currentBac / metabolismRate;
+      const soberTime = new Date(now.getTime() + (hoursToZero * 60 * 60 * 1000));
+      
+      bacSeries.push({
+        time: soberTime.toISOString(),
+        bac: 0
+      });
+    }
+    
+    // Prepara i dati delle bevande nel formato richiesto
+    const drinkData = session.drinks.map(drink => {
+      try {
+        return {
+          time: typeof drink.timeConsumed === 'string' ? drink.timeConsumed : 
+                typeof drink.time === 'string' ? drink.time : 
+                new Date(drink.timeConsumed || drink.time).toISOString(),
+          alcoholGrams: typeof drink.alcoholGrams === 'string' ? 
+                        parseFloat(drink.alcoholGrams) : 
+                        (drink.alcoholGrams as number)
+        };
+      } catch (e) {
+        console.error('Errore nella formattazione dei dati delle bevande:', e);
+        return {
+          time: new Date().toISOString(),
+          alcoholGrams: 0
+        };
+      }
+    });
+    
+    // Prepara i dati del cibo nel formato richiesto
+    const foodData = session.foods.map(food => {
+      try {
+        return {
+          time: typeof food.timeConsumed === 'string' ? food.timeConsumed : 
+                typeof food.time === 'string' ? food.time : 
+                new Date(food.timeConsumed || food.time).toISOString(),
+          absorptionFactor: typeof food.absorptionFactor === 'string' ? 
+                           parseFloat(food.absorptionFactor) : 
+                           food.absorptionFactor
+        };
+      } catch (e) {
+        console.error('Errore nella formattazione dei dati del cibo:', e);
+        return {
+          time: new Date().toISOString(),
+          absorptionFactor: 0.95
+        };
+      }
+    });
+    
+    // Usa il componente BACChartSimple con i dati calcolati
+    return (
+      <BACChartSimple 
+        bacSeries={bacSeries}
+        drinks={drinkData}
+        foods={foodData}
+        legalLimit={legalLimit}
+      />
+    );
+  };
+
   // Definiamo uno StyleSheet completamente nuovo senza duplicazioni
 const styles = StyleSheet.create({
   container: {
@@ -879,8 +1174,10 @@ const styles = StyleSheet.create({
       padding: 8,
     },
     mainContent: {
+      flex: 1,
       alignItems: 'center',
-      paddingVertical: 10,
+      justifyContent: 'center',
+      paddingHorizontal: 16,
     },
     circleContainer: {
       alignItems: 'center',
@@ -959,75 +1256,87 @@ const styles = StyleSheet.create({
     },
     endSessionButton: {
       backgroundColor: '#FF4040',
-      paddingVertical: 12,
-      paddingHorizontal: 24,
-      marginVertical: 16,
-      borderRadius: 30,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      marginVertical: 12,
+      borderRadius: 25,
       alignSelf: 'center',
       ...Platform.select({
         ios: {
           shadowColor: 'rgba(255, 64, 64, 0.5)',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.25,
+          shadowRadius: 5,
         },
         android: {
-          elevation: 6,
+          elevation: 4,
         },
       }),
     },
     endSessionButtonText: {
       color: 'white',
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: 'bold',
       textAlign: 'center',
     },
     actionButtonsContainer: {
     flexDirection: 'row',
-      justifyContent: 'space-evenly',
+      justifyContent: 'center',
+      alignItems: 'center',
       marginVertical: 20,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+      width: '100%',
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center', 
+      justifyContent: 'center',
       paddingHorizontal: 20,
-    paddingVertical: 12,
+      paddingVertical: 12,
       borderRadius: 25,
+      width: 175,
+      height: 52,
+      marginHorizontal: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 3,
     },
     actionButtonText: {
-      fontSize: 16,
-      fontWeight: '500',
-    color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#FFFFFF',
       marginLeft: 8,
-  },
-  consumptionSection: {
+      textAlign: 'center',
+    },
+    consumptionSection: {
       padding: 16,
       marginVertical: 5,
-  },
+    },
     sectionTitleText: {
       fontSize: 18,
-    fontWeight: '600',
+      fontWeight: '600',
       color: '#FFFFFF',
       marginBottom: 10,
     },
     consumptionItems: {
       marginTop: 10,
-  },
-  consumptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    },
+    consumptionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
       padding: 12,
       backgroundColor: 'rgba(40, 40, 50, 0.7)',
       borderRadius: 10,
       marginBottom: 8,
-  },
+    },
     consumptionItemIcon: {
       marginRight: 10,
     },
     consumptionItemDetails: {
-    flex: 1,
-  },
-  consumptionItemName: {
+      flex: 1,
+    },
+    consumptionItemName: {
       fontSize: 16,
       fontWeight: '500',
       color: '#FFFFFF',
@@ -1057,7 +1366,7 @@ const styles = StyleSheet.create({
     consumptionContainer: {
       padding: 30,
       alignItems: 'center',
-    justifyContent: 'center',
+      justifyContent: 'center',
       backgroundColor: 'rgba(40, 40, 50, 0.3)',
       borderRadius: 15,
       borderWidth: 1,
@@ -1073,12 +1382,12 @@ const styles = StyleSheet.create({
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.05)',
       marginHorizontal: 5,
-  },
-  emptyText: {
+    },
+    emptyText: {
       fontSize: 16,
       color: colors.textSecondary,
       marginTop: 10,
-    textAlign: 'center',
+      textAlign: 'center',
     },
     consumptionList: {
       flex: 1,
@@ -1151,7 +1460,73 @@ const styles = StyleSheet.create({
       textAlign: 'center',
       paddingHorizontal: 20
     },
+    noSessionContainer: {
+      flex: 1,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 50,
+    },
+    noSessionContent: {
+      alignItems: 'center',
+      marginTop: 50,
+    },
+    noSessionTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginTop: 20,
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    noSessionDescription: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginHorizontal: 20,
+    },
+    startSessionButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    startSessionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
+
+  // Renderizza lo stato di caricamento
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <AppHeader title={t('sessionTitle', { ns: 'session' })} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  // Se non c'è una sessione attiva, mostriamo il componente NoActiveSessionView
+  if (!session) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        
+        <AppHeader title={t('sessionTitle', { ns: 'session' })} />
+        <View style={styles.mainContent}>
+          <NoActiveSessionView />
+        </View>
+        
+        <CustomTabBar />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -1169,94 +1544,105 @@ const styles = StyleSheet.create({
           </TouchableOpacity>
         }
       />
-      
+
       {/* Offline Indicator */}
       <OfflineIndicator />
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
-            {t('loading')}
-          </Text>
-        </View>
-      ) : !session ? (
-        <View style={styles.loadingContainer}>
-          <FontAwesome5 name="glass-cheers" size={60} color={colors.textSecondary} style={{ opacity: 0.5 }} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
-            {t('noActiveSession')}
-          </Text>
-          <TouchableOpacity 
-            style={[styles.endSessionButton, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/session/new')}
-          >
-            <Text style={styles.endSessionButtonText}>
-              {t('startNewSession')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView 
-          style={styles.scrollContainer}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Contenuto principale */}
-          <View style={styles.mainContent}>
-            {/* Indicatore circolare del progresso */}
-            <View style={styles.circleContainer}>
-              <BACDisplay 
-                bac={session?.currentBAC !== undefined ? session.currentBAC : 0}
-                timeToZero={session?.timeToSober && typeof session.timeToSober === 'number' && session.timeToSober > 0
-                  ? new Date(Date.now() + (session.timeToSober * 60 * 1000)) 
-                  : null}
-                timeToLegal={session?.timeToLegal && typeof session.timeToLegal === 'number' && session.timeToLegal > 0
-                  ? new Date(Date.now() + (session.timeToLegal * 60 * 1000)) 
-                  : null}
-                showTimeToSober={true}
-              />
-            </View>
-            
-            {/* Informazioni su inizio e fine sessione */}
-            <View style={styles.sessionTimeInfo}>
-              <View style={styles.timeInfo}>
-                <Text style={styles.timeInfoLabel}>{t('start')}</Text>
-                <Text style={styles.timeInfoValue}>
-                  {new Date(session?.startTime || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
+      <ScrollView 
+        style={styles.scrollContainer}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        ref={scrollViewRef}
+      >
+        {/* Contenuto principale */}
+        <View style={styles.mainContent}>
+          {/* Indicatore circolare del progresso */}
+          <View style={styles.circleContainer}>
+            <BACDisplay 
+              bac={session?.currentBAC !== undefined ? session.currentBAC : 0}
+              timeToZero={session?.soberTime || null}
+              timeToLegal={session?.legalTime || null}
+              showTimeToSober={true}
+            />
+          </View>
+          
+          {/* Informazioni su inizio e fine sessione */}
+          <View style={styles.sessionTimeInfo}>
+            <View style={styles.timeInfo}>
+              <Text style={styles.timeInfoLabel}>{t('start')}</Text>
+              <Text style={styles.timeInfoValue}>
+                {new Date(session?.startTime || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
             </View>
           </View>
+        </View>
 
-          {/* Pulsanti per aggiungere bevande e cibo */}
-          <Animated.View style={[styles.actionButtonsContainer, buttonsAnimatedStyle]}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary }]}
-              onPress={() => router.push('/session/add-drink')}
-            >
-              <MaterialCommunityIcons name="glass-cocktail" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>{t('addDrink')}</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.tertiary }]}
-              onPress={() => router.push('/session/add-food')}
-            >
-              <FontAwesome5 name="utensils" size={22} color="#fff" />
-              <Text style={styles.actionButtonText}>{t('addFood')}</Text>
-            </TouchableOpacity>
-          </Animated.View>
-          
-          {/* Pulsante per terminare la sessione spostato qui sotto */}
+        {/* Pulsanti per aggiungere bevande e cibo */}
+        <View style={[styles.actionButtonsContainer]}>
           <TouchableOpacity
-            style={[styles.endSessionButton, { backgroundColor: colors.danger }]}
-            onPress={handleEndSession}
+            style={[styles.actionButton, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/session/add-drink')}
           >
-            <Text style={styles.endSessionButtonText}>{t('endSession')}</Text>
+            <MaterialCommunityIcons name="glass-cocktail" size={24} color="#fff" />
+            <Text style={styles.actionButtonText}>{t('addDrink')}</Text>
           </TouchableOpacity>
           
-          {/* Pulsante per mostrare il grafico quando è nascosto */}
-          {!showChart && (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.tertiary }]}
+            onPress={() => router.push('/session/add-food')}
+          >
+            <FontAwesome5 name="utensils" size={22} color="#fff" />
+            <Text style={styles.actionButtonText}>{t('addFood')}</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Pulsante per terminare la sessione spostato qui sotto */}
+        <TouchableOpacity
+          style={[styles.endSessionButton, { backgroundColor: colors.danger }]}
+          onPress={handleEndSession}
+        >
+          <Text style={styles.endSessionButtonText}>{t('endSession')}</Text>
+        </TouchableOpacity>
+        
+        {/* Pulsante per mostrare il grafico quando è nascosto */}
+        {!showChart && (
+          <TouchableOpacity 
+            style={[
+              styles.toggleChartButton, 
+              { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.8)' }
+            ]} 
+            onPress={handleToggleChart}
+          >
+            <Text style={[styles.toggleChartText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
+              Mostra grafico
+            </Text>
+            <Feather name="chevron-down" size={16} color={isDarkMode ? '#CBD5E1' : '#475569'} />
+          </TouchableOpacity>
+        )}
+        
+        {/* Chart section */}
+        {showChart && (
+          <View style={styles.chartContainer}>
+            <Text style={[styles.chartTitle, { color: isDarkMode ? '#E2E8F0' : '#334155' }]}>
+              {t('Andamento tasso alcolico')}
+            </Text>
+            
+            {((session?.bacSeries && session.bacSeries.length >= 2) || (session?.drinks && session.drinks.length > 0)) ? (
+              renderBACChart()
+            ) : (
+              <PaperCard style={[styles.noDataCard, { backgroundColor: '#14233B' }]}>
+                <View style={styles.noDataContent}>
+                  <Text style={[styles.noDataText, { color: '#FFFFFF', fontWeight: '600' }]}>
+                    Dati insufficienti
+                  </Text>
+                  <Text style={[styles.noDataSubtext, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+                    Aggiungi bevande per visualizzare il grafico
+                  </Text>
+                </View>
+              </PaperCard>
+            )}
+            
+            {/* Toggle button per nascondere il grafico - stile più integrato */}
             <TouchableOpacity 
               style={[
                 styles.toggleChartButton, 
@@ -1265,149 +1651,96 @@ const styles = StyleSheet.create({
               onPress={handleToggleChart}
             >
               <Text style={[styles.toggleChartText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
-                Mostra grafico
+                Nascondi grafico
               </Text>
-              <Feather name="chevron-down" size={16} color={isDarkMode ? '#CBD5E1' : '#475569'} />
+              <Feather name="chevron-up" size={16} color={isDarkMode ? '#CBD5E1' : '#475569'} />
             </TouchableOpacity>
-          )}
+          </View>
+        )}
+        
+        {/* Sezioni per bevande e cibo consumati */}
+        <View style={styles.consumptionSection}>
+          <Text style={styles.sectionTitleText}>{t('consumedDrinks')}</Text>
           
-          {/* Chart section */}
-          {showChart && (
-            <View style={styles.chartContainer}>
-              {/* Titolo del grafico */}
-              <Text style={[styles.chartTitle, { 
-                color: '#FFFFFF',
-                fontWeight: '700',
-                fontSize: 18,
-                textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 3,
-                marginBottom: 12
-              }]}>
-                Andamento tasso alcolemico
-              </Text>
-              
-              {session?.bacSeries && session.bacSeries.length >= 2 ? (
-                <BACGraph
-                  bacSeries={session.bacSeries.map(point => ({
-                    time: typeof point.time === 'string' ? point.time : point.time.toISOString(),
-                    bac: point.bac
-                  }))}
-                  isDarkTheme={isDarkMode}
-                />
-              ) : (
-                <PaperCard style={[styles.noDataCard, { backgroundColor: '#14233B' }]}>
-                  <View style={styles.noDataContent}>
-                    <Text style={[styles.noDataText, { color: '#FFFFFF', fontWeight: '600' }]}>
-                      Dati insufficienti
-                    </Text>
-                    <Text style={[styles.noDataSubtext, { color: 'rgba(255, 255, 255, 0.8)' }]}>
-                      Aggiungi bevande per visualizzare il grafico
-                    </Text>
+          {session?.drinks && session.drinks.length > 0 ? (
+            <View style={styles.consumptionItems}>
+              {session.drinks.map((drink, index) => (
+                <View key={drink.id} style={styles.consumptionItem}>
+                  <MaterialCommunityIcons 
+                    name="glass-cocktail" 
+                    size={22} 
+                    color={colors.primary} 
+                    style={styles.consumptionItemIcon}
+                  />
+                  
+                  <View style={styles.consumptionItemDetails}>
+                    <Text style={styles.consumptionItemName}>{t(drink.name)}</Text>
+                    <Text style={styles.consumptionItemVolume}>{drink.volume} ml</Text>
                   </View>
-                </PaperCard>
-              )}
-              
-              {/* Toggle button per nascondere il grafico - stile più integrato */}
-              <TouchableOpacity 
-                style={[
-                  styles.toggleChartButton, 
-                  { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.8)' }
-                ]} 
-                onPress={handleToggleChart}
-              >
-                <Text style={[styles.toggleChartText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
-                  Nascondi grafico
-                </Text>
-                <Feather name="chevron-up" size={16} color={isDarkMode ? '#CBD5E1' : '#475569'} />
-              </TouchableOpacity>
+                  
+                  <Text style={styles.consumptionItemTime}>
+                    {new Date(drink.timeConsumed || drink.time).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
+                  
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => handleDeleteItem(drink.id, 'drink')}
+                  >
+                    <Feather name="x" size={16} color={colors.danger} />
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
+          ) : (
+            <Text style={styles.emptyListText}>{t('noDrinks')}</Text>
           )}
+        </View>
+        
+        <View style={styles.consumptionSection}>
+          <Text style={styles.sectionTitleText}>{t('consumedFood')}</Text>
           
-          {/* Sezioni per bevande e cibo consumati */}
-          <View style={styles.consumptionSection}>
-            <Text style={styles.sectionTitleText}>{t('consumedDrinks')}</Text>
-            
-            {session?.drinks && session.drinks.length > 0 ? (
-              <View style={styles.consumptionItems}>
-                {session.drinks.map((drink, index) => (
-                  <View key={drink.id} style={styles.consumptionItem}>
-                    <MaterialCommunityIcons 
-                      name="glass-cocktail" 
-                      size={22} 
-                      color={colors.primary} 
-                      style={styles.consumptionItemIcon}
-                    />
-                    
-                    <View style={styles.consumptionItemDetails}>
-                      <Text style={styles.consumptionItemName}>{t(drink.name)}</Text>
-                      <Text style={styles.consumptionItemVolume}>{drink.volume}</Text>
-                    </View>
-                    
-                    <Text style={styles.consumptionItemTime}>
-                      {new Date(drink.timeConsumed || drink.time).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+          {session?.foods && session.foods.length > 0 ? (
+            <View style={styles.consumptionItems}>
+              {session.foods.map((food, index) => (
+                <View key={food.id} style={styles.consumptionItem}>
+                  <FontAwesome5 
+                    name="utensils" 
+                    size={20} 
+                    color={colors.secondary} 
+                    style={styles.consumptionItemIcon}
+                  />
+                  
+                  <View style={styles.consumptionItemDetails}>
+                    <Text style={styles.consumptionItemName}>{t(food.name)}</Text>
+                    <Text style={styles.consumptionItemEffect}>
+                      {t('reductionEffect')}: {Math.round((1 - food.absorptionFactor) * 100)}%
                     </Text>
-                    
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleDeleteItem(drink.id, 'drink')}
-                    >
-                      <Feather name="x" size={16} color={colors.danger} />
-                    </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.emptyListText}>{t('noDrinks')}</Text>
-            )}
-          </View>
-          
-          <View style={styles.consumptionSection}>
-            <Text style={styles.sectionTitleText}>{t('consumedFood')}</Text>
-            
-            {session?.foods && session.foods.length > 0 ? (
-              <View style={styles.consumptionItems}>
-                {session.foods.map((food, index) => (
-                  <View key={food.id} style={styles.consumptionItem}>
-                    <FontAwesome5 
-                      name="utensils" 
-                      size={20} 
-                      color={colors.secondary} 
-                      style={styles.consumptionItemIcon}
-                    />
-                    
-                    <View style={styles.consumptionItemDetails}>
-                      <Text style={styles.consumptionItemName}>{t(food.name)}</Text>
-                      <Text style={styles.consumptionItemEffect}>
-                        {t('reductionEffect')}: {Math.round((1 - food.absorptionFactor) * 100)}%
-                      </Text>
-                    </View>
-                    
-                    <Text style={styles.consumptionItemTime}>
-                      {new Date(food.timeConsumed || food.time).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </Text>
-                    
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleDeleteItem(food.id, 'food')}
-                    >
-                      <Feather name="x" size={16} color={colors.danger} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.emptyListText}>{t('noFood')}</Text>
-            )}
-          </View>
-        </ScrollView>
-      )}
+                  
+                  <Text style={styles.consumptionItemTime}>
+                    {new Date(food.timeConsumed || food.time).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
+                  
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => handleDeleteItem(food.id, 'food')}
+                  >
+                    <Feather name="x" size={16} color={colors.danger} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyListText}>{t('noFood')}</Text>
+          )}
+        </View>
+      </ScrollView>
       
       <CustomTabBar />
     </View>

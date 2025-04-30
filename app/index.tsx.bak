@@ -1,0 +1,134 @@
+import { useEffect } from 'react';
+import { Text, View, ActivityIndicator, Platform } from 'react-native';
+import { Redirect, useRootNavigationState, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useTranslation } from 'react-i18next';
+import { useAuth } from './contexts/AuthContext';
+import { useUserProfile, useActiveProfiles } from './contexts/ProfileContext';
+import { COLORS } from './constants/colors';
+
+/**
+ * REGOLE INDEROGABILI DEL FLUSSO UTENTE:
+ * 1. L'app inizia SEMPRE dalla login screen se l'utente non è autenticato
+ * 2. Solo dopo aver effettuato il login, viene verificato se l'utente ha un profilo:
+ *    - Se HA un profilo -> dashboard
+ *    - Se NON HA un profilo -> wizard di creazione profilo
+ * 3. MAI saltare la login screen, è il punto di partenza obbligatorio
+ * 4. L'avvio dell'app deve sempre controllare lo stato di autenticazione prima di tutto
+ */
+
+export default function RootPage() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { user, isLoading: isAuthLoading, isAuthenticated } = useAuth();
+  const { profile } = useUserProfile();
+  const { activeProfiles, isActiveProfile } = useActiveProfiles();
+  const navigationState = useRootNavigationState();
+
+  // Funzione per fare un reset totale dell'app (per debug)
+  const resetAppState = async () => {
+    try {
+      console.log('🧹 [DEBUG] Pulizia della cache dell\'app...');
+      // Rimuove tutti i dati relativi al wizard e al profilo
+      await AsyncStorage.multiRemove([
+        'hasCompletedProfileWizard',
+        'tempProfileData',
+        'lastActiveProfile',
+        'isGuest',
+        'alcoltest_active_profiles',
+        'alcoltest_current_profile',
+        'alcoltest_user'
+      ]);
+      console.log('✅ [DEBUG] Pulizia cache completata');
+    } catch (error) {
+      console.error('❌ [ERROR] Errore durante il reset della cache:', error);
+    }
+  };
+
+  // Initialization ed esecuzione dei controlli all'avvio
+  const appBootstrap = async () => {
+    console.log('🚀 [APP] Avvio bootstrap dell\'app...');
+    
+    // RESET FORZATO DELLA CACHE PER EVITARE STATI INCONSISTENTI
+    await resetAppState();
+    
+    // Verifica se l'utente è autenticato
+    if (!isAuthenticated) {
+      console.log('🔒 [AUTH] Utente non autenticato, redirect a /auth/login');
+      return '/auth/login';
+    }
+    
+    // Utente autenticato, verifica se ha un profilo
+    console.log('✅ [AUTH] Utente autenticato');
+    
+    try {
+      // Verifica se l'utente ha almeno un profilo
+      if (!profile && (!activeProfiles || activeProfiles.length === 0)) {
+        console.log('👤 [PROFILE] Nessun profilo trovato, redirect a /onboarding/profile-wizard');
+        return '/onboarding/profile-wizard';
+      }
+      
+      // Ha almeno un profilo, manda alla dashboard
+      console.log('👤 [PROFILE] Profilo trovato, redirect a /dashboard');
+      return '/dashboard';
+      
+    } catch (error) {
+      console.error('❌ [ERROR] Errore durante il caricamento dei profili:', error);
+      return '/auth/login'; // In caso di errore, torna al login per sicurezza
+    }
+  };
+
+  useEffect(() => {
+    if (!navigationState?.key) return;
+
+    const init = async () => {
+      try {
+        const destination = await appBootstrap();
+        if (destination) {
+          console.log(`🧭 [NAVIGATE] Navigazione verso: ${destination}`);
+          router.replace(destination);
+        }
+      } catch (error) {
+        console.error('❌ [CRITICAL] Errore grave durante l\'avvio dell\'app:', error);
+        // In caso di errore critico, torna al login
+        router.replace('/auth/login');
+      }
+    };
+
+    init();
+  }, [navigationState?.key, isAuthenticated, activeProfiles, profile]);
+
+  // Display loading screen while checking
+  if (!navigationState?.key || isAuthLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: COLORS.background,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom
+        }}
+      >
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text
+          style={{
+            marginTop: 20,
+            fontSize: 16,
+            color: COLORS.textPrimary,
+            textAlign: 'center'
+          }}
+        >
+          {t('loading', { ns: 'common', defaultValue: 'Caricamento...' })}
+        </Text>
+      </View>
+    );
+  }
+
+  // Redirect to the determined destination
+  return null;
+} 

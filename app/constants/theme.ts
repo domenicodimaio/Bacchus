@@ -1,7 +1,7 @@
 /**
- * AlcolTest App Theme
+ * Bacchus App Theme
  * 
- * Sistema di temi per l'app AlcolTest con supporto per dark mode e light mode
+ * Sistema di temi per l'app Bacchus con supporto per dark mode e light mode
  * Include palette colori, dimensioni, effetti neon e stili comuni
  */
 
@@ -198,129 +198,130 @@ export const DARK_THEME = {
   ...BASE_THEME
 };
 
-// Tema chiaro - meno rilevante per ora visto che Quotidiano usa tema scuro
+// Tema chiaro - migliorato per avere maggiore contrasto e migliore leggibilità
 export const LIGHT_THEME = {
   COLORS: {
-    // Colori principali
-    primary: '#0091EA',
-    primaryLight: '#B3E5FC',
-    primaryDark: '#0277BD',
-    primaryNeon: 'rgba(0, 145, 234, 0.4)',
+    // Colori principali - più vivaci e con maggior contrasto
+    primary: '#0078D4', // Blu più scuro e vibrante (come Microsoft blue)
+    primaryLight: '#47A0E3', // Versione più chiara ma ancora visibile
+    primaryDark: '#005BA1', // Versione più scura per elementi di rilievo
+    primaryNeon: 'rgba(0, 120, 212, 0.7)', // Effetto neon più visibile
     
-    secondary: '#FF1744',
-    secondaryLight: '#FF8A80',
-    secondaryDark: '#D50000',
-    secondaryNeon: 'rgba(255, 23, 68, 0.4)',
+    secondary: '#E74856', // Rosso più vivace (stile Microsoft red)
+    secondaryLight: '#FF8086', // Rosa più intenso
+    secondaryDark: '#C4314B', // Rosso più scuro
+    secondaryNeon: 'rgba(231, 72, 86, 0.7)', // Effetto neon più visibile
     
-    tertiary: '#FF1744',
-    tertiaryLight: '#FF8A80',
-    tertiaryDark: '#D50000',
-    tertiaryNeon: 'rgba(255, 23, 68, 0.4)',
+    tertiary: '#FF4081', // Fucsia più moderno
+    tertiaryLight: '#FF80AB', // Rosa più intenso
+    tertiaryDark: '#C60055', // Fucsia più scuro
+    tertiaryNeon: 'rgba(255, 64, 129, 0.7)', // Effetto neon più visibile
     
-    warning: '#FF9100',
-    warningLight: '#FFD180',
-    warningDark: '#FF6D00',
-    warningNeon: 'rgba(255, 145, 0, 0.4)',
+    warning: '#FF8C00', // Arancione più vibrante
+    warningLight: '#FFB74D', // Arancione più chiaro
+    warningDark: '#E67700', // Arancione più scuro
+    warningNeon: 'rgba(255, 140, 0, 0.7)', // Effetto neon più visibile
     
-    // Sfondi
-    background: '#F5F5F7',
+    // Sfondi - più eleganti e moderni
+    background: '#F5F9FC', // Azzurrino chiaro più elegante
     surface: '#FFFFFF',
     card: '#FFFFFF',
     cardBackground: '#FFFFFF',
-    cardElevated: '#F8F9FA',
-    modalBackground: 'rgba(250, 250, 250, 0.95)',
+    cardElevated: '#F0F5FA', // Leggero blue tint per elementi elevati
+    modalBackground: 'rgba(245, 249, 252, 0.98)',
     
-    // Testo
-    text: '#1A202C',
-    textSecondary: '#4A5568',
-    textTertiary: '#718096',
-    textDisabled: 'rgba(0, 0, 0, 0.38)',
+    // Testo - contrasto maggiore e più leggibile
+    text: '#252A31', // Quasi nero con sfumatura blu
+    textSecondary: '#5B6B7C', // Grigio blu più leggibile
+    textTertiary: '#8096B0', // Grigio azzurro più chiaro
+    textDisabled: 'rgba(37, 42, 49, 0.4)',
     
-    // Status colors
-    safe: '#00C853',
-    caution: '#FFD600',
-    danger: '#FF1744',
-    error: '#FF1744',
-    info: '#0091EA',
-    success: '#00C853',
+    // Status colors - più vivaci e con migliore leggibilità
+    safe: '#107C10', // Verde Microsoft
+    caution: '#F7630C', // Arancione Microsoft
+    danger: '#E74856', // Rosso Microsoft
+    error: '#E74856', // Rosso Microsoft
+    info: '#0078D4', // Blu Microsoft
+    success: '#107C10', // Verde Microsoft
     
-    // Elementi UI
-    border: '#E2E8F0',
-    divider: '#EEEEEE',
-    shadow: 'rgba(0, 0, 0, 0.12)',
-    overlay: 'rgba(0, 0, 0, 0.25)',
-    backdrop: 'rgba(0, 0, 0, 0.2)',
-    ripple: 'rgba(0, 0, 0, 0.05)',
+    // Elementi UI - ombreggiature e bordi più evidenti
+    border: '#D1E0ED', // Bordo azzurrino molto chiaro
+    divider: '#E1EBF5', // Divisore ancora più chiaro
+    shadow: 'rgba(0, 0, 0, 0.12)', // Ombra più sottile
+    overlay: 'rgba(27, 44, 61, 0.25)', // Overlay più sottile
+    backdrop: 'rgba(27, 44, 61, 0.2)', // Backdrop più sottile
+    ripple: 'rgba(0, 120, 212, 0.08)', // Effetto ripple più sottile
     
-    // Grafici e visualizzazioni
-    chartLine: '#0091EA',
-    chartGrid: '#EEEEEE',
-    chartLabel: '#757575',
-    chartAxis: '#BDBDBD',
+    // Grafici e visualizzazioni - migliore leggibilità e stile visivo
+    chartLine: '#0078D4', // Blu Microsoft
+    chartGrid: '#E1EBF5', // Griglia molto chiara
+    chartLabel: '#5B6B7C', // Grigio blu più leggibile
+    chartAxis: '#8096B0', // Grigio azzurro più chiaro
     
     // Navigazione - specifiche per tab bar e header
     navBackground: '#FFFFFF',
-    navActive: '#0091EA',
-    navInactive: '#718096',
+    navActive: '#0078D4', // Blu Microsoft
+    navInactive: '#5B6B7C', // Grigio blu più leggibile
     tabBackground: '#FFFFFF',
-    tabActiveBackground: '#EBF8FF',
-    tabIcon: '#718096',
-    tabActiveIcon: '#0091EA',
-    tabText: '#718096',
-    tabActiveText: '#0091EA',
+    tabActiveBackground: '#E5F1FB', // Azzurrino molto chiaro
+    tabIcon: '#5B6B7C', // Grigio blu più leggibile
+    tabActiveIcon: '#0078D4', // Blu Microsoft
+    tabText: '#5B6B7C', // Grigio blu più leggibile
+    tabActiveText: '#0078D4', // Blu Microsoft
     headerBackground: '#FFFFFF',
-    headerText: '#1A202C',
-    headerIcon: '#1A202C',
+    headerText: '#252A31', // Quasi nero con sfumatura blu
+    headerIcon: '#252A31', // Quasi nero con sfumatura blu
   },
   
-  // Ombre per l'effetto elevazione
+  // Ombre per l'effetto elevazione - più delicate ma efficaci
   SHADOWS: {
-    neonBlue: {
-      shadowColor: 'rgba(0, 145, 234, 0.4)',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.8,
-      shadowRadius: 8,
-      elevation: 10,
-    },
-    neonGreen: {
-      shadowColor: 'rgba(0, 200, 83, 0.4)',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.8,
-      shadowRadius: 8,
-      elevation: 10,
-    },
-    neonRed: {
-      shadowColor: 'rgba(255, 23, 68, 0.4)',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.8,
-      shadowRadius: 8,
-      elevation: 10,
-    },
-    neonOrange: {
-      shadowColor: 'rgba(255, 145, 0, 0.4)',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.8,
-      shadowRadius: 8,
-      elevation: 10,
-    },
-    small: {
-      shadowColor: '#000',
+    sm: {
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
+      shadowOpacity: 0.25,
       shadowRadius: 3,
       elevation: 2,
     },
-    medium: {
-      shadowColor: '#000',
+    md: {
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
+      shadowOpacity: 0.3,
       shadowRadius: 5,
       elevation: 4,
     },
-    large: {
-      shadowColor: '#000',
+    lg: {
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
       shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.15,
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+  
+    neonBlue: {
+      shadowColor: 'rgba(0, 120, 212, 0.6)', // Blu Microsoft
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    neonGreen: {
+      shadowColor: 'rgba(16, 124, 16, 0.6)', // Verde Microsoft
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    neonRed: {
+      shadowColor: 'rgba(231, 72, 86, 0.6)', // Rosso Microsoft
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    neonOrange: {
+      shadowColor: 'rgba(247, 99, 12, 0.6)', // Arancione Microsoft
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.7,
       shadowRadius: 8,
       elevation: 8,
     },

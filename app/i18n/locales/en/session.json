@@ -1,5 +1,6 @@
 {
   "activeSession": "Active Session",
+  "sessionActiveTime": "Session active since",
   "startSession": "Start Session",
   "endSession": "End Session",
   "sessionDuration": "Session Duration",
@@ -8,6 +9,7 @@
   "currentBAC": "Current BAC",
   "expectedSoberTime": "Expected Sober Time",
   "legalLimit": "Legal Limit",
+  "sessionTitle": "Session",
   "drinkLog": "Drink Log",
   "foodLog": "Food Log",
   "noActiveDrinks": "No drinks recorded",
@@ -42,6 +44,7 @@
   "consumedFood": "Consumed Food",
   "now": "Now",
   "notAvailable": "Not Available",
+  "noSessionsFound": "No sessions found",
 
   "bacSafe": "Safe",
   "bacCaution": "Caution",
@@ -62,13 +65,75 @@
   "selectDrinkSize": "Select drink size",
   "selectFoodType": "Select food type",
   "selectFoodTiming": "Select consumption timing",
+  "selectSpecificDrink": "Select specific drink",
+  "confirmDrink": "Confirm Drink",
+  "manualValuesUsed": "Custom values will be used for this drink",
+  
+  "drinkCategories": {
+    "beer": "Beer",
+    "wine": "Wine",
+    "cocktail": "Cocktail",
+    "spirits": "Spirits"
+  },
   
   "drinkTypes": {
     "beer": "Beer",
     "wine": "Wine",
     "spirits": "Spirits",
     "cocktail": "Cocktail",
-    "other": "Other"
+    "other": "Other",
+    
+    "beerLager": "Lager Beer",
+    "beerAle": "Ale/IPA Beer",
+    "beerStout": "Stout/Porter Beer",
+    "beerWeiss": "Wheat Beer",
+    "beerStrong": "Strong Ale",
+    
+    "wineWhite": "White Wine",
+    "wineRed": "Red Wine",
+    "wineRose": "Rosé Wine",
+    "wineSparkling": "Sparkling Wine",
+    "wineDessert": "Dessert Wine",
+    
+    "cocktailAperitivo": "Aperitif",
+    "cocktailClassic": "Classic Cocktail",
+    "cocktailSour": "Sour Cocktail",
+    "cocktailTropical": "Tropical Cocktail",
+    "cocktailLong": "Long Drink",
+    
+    "spiritWhiskey": "Whiskey/Bourbon",
+    "spiritVodka": "Vodka",
+    "spiritRum": "Rum",
+    "spiritGin": "Gin",
+    "spiritTequila": "Tequila/Mezcal",
+    "spiritLiqueur": "Liqueur"
+  },
+  
+  "drinkDescriptions": {
+    "beerLager": "Bottom-fermented beer, light and refreshing",
+    "beerAle": "Top-fermented beer, more aromatic and hoppy",
+    "beerStout": "Dark beer with roasted notes of coffee or chocolate",
+    "beerWeiss": "Wheat beer, fruity and refreshing",
+    "beerStrong": "High alcohol content beer",
+    
+    "wineWhite": "Wine from white grapes, typically lighter and fresher",
+    "wineRed": "Wine from red grapes, generally full-bodied",
+    "wineRose": "Rosé wine, fresh and versatile",
+    "wineSparkling": "Wine with bubbles, sparkling or fizzy",
+    "wineDessert": "Sweet wine, served with dessert or for sipping",
+    
+    "cocktailAperitivo": "Light drinks for aperitif, often wine or bitter-based",
+    "cocktailClassic": "Traditional cocktails, strong with few ingredients",
+    "cocktailSour": "Drinks based on lemon juice and spirits",
+    "cocktailTropical": "Fruity cocktails mainly with rum or other spirits",
+    "cocktailLong": "Tall drinks, often prepared with mixers and ice",
+    
+    "spiritWhiskey": "Grain distillate aged in barrels",
+    "spiritVodka": "Neutral grain or potato distillate",
+    "spiritRum": "Distillate from sugar cane molasses",
+    "spiritGin": "Distillate flavored with juniper berries",
+    "spiritTequila": "Blue agave distillate",
+    "spiritLiqueur": "Sweetened and flavored distillate"
   },
   
   "drinkSizes": {
@@ -160,5 +225,16 @@
   "newSession": "New Session",
   "illegalToDrive": "It's illegal to drive at this alcohol level",
   "administrativeViolation": "Administrative violation - Driving prohibited",
-  "criminalOffense": "Criminal offense - Driving strictly prohibited"
+  "criminalOffense": "Criminal offense - Driving strictly prohibited",
+  "startSessionDescription": "Start a new drinking session from the dashboard to track your BAC levels.",
+  "goToDashboard": "Go to Dashboard",
+  "noMoreSessions": "No more sessions left",
+  "unlimitedSessions": "Unlimited sessions",
+  "exportSessions": "Export Sessions",
+  "chooseFormat": "Choose export format",
+  "selectCategory": "Choose category",
+  "selectBeverage": "Choose drink",
+  "adjustDetails": "Customize details",
+  "next": "Next",
+  "back": "Back"
 } 
