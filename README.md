@@ -71,3 +71,36 @@ This application provides BAC estimates for educational and informational purpos
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Incrementare il Numero di Build iOS
+
+Per risolvere il problema del numero di build per le submission ad App Store Connect, usa lo script automatico incluso nel progetto:
+
+```bash
+# Incrementa automaticamente il numero di build in tutti i file necessari
+./update-build-number.sh
+```
+
+Lo script aggiorna automaticamente:
+1. `app.config.js`
+2. `ios/Bacchus/Info.plist`
+3. `ios/Bacchus.xcodeproj/project.pbxproj`
+
+Esegui questo script PRIMA di lanciare `eas build` per assicurarti che tutti i file abbiano lo stesso numero di build incrementato.
+
+## Build e Submit con Numero Corretto
+
+```bash
+# 1. Incrementa il numero di build
+./update-build-number.sh
+
+# 2. Fai commit delle modifiche
+git add .
+git commit -m "Incremento build number"
+
+# 3. Esegui la build
+eas build --platform ios --profile production
+
+# 4. Invia all'App Store
+eas submit -p ios --latest
+```

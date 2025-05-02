@@ -426,14 +426,35 @@ export default function ProfileWizard() {
       }
       
       // Creazione profilo con gestione errori migliorata
-      const createdProfile = await profileService.createProfile(profileData);
-      console.log('WIZARD: Profilo creato con ID:', createdProfile.id);
+      let createdProfile = null;
+      try {
+        createdProfile = await profileService.createProfile(profileData);
+        if (!createdProfile) {
+          throw new Error('profileService.createProfile ha restituito null');
+        }
+        console.log('WIZARD: Profilo creato con ID:', createdProfile.id);
+      } catch (creationError) {
+        console.error('WIZARD: Errore durante la creazione del profilo:', creationError);
+        throw new Error(`Errore creazione profilo: ${creationError.message}`); // Rilancia l'errore per il catch esterno
+      }
       
       // Imposta il profilo come attivo
-      await profileService.setActiveProfile(createdProfile.id);
+      try {
+        await profileService.setActiveProfile(createdProfile.id);
+        console.log('WIZARD: Profilo impostato come attivo');
+      } catch (activationError) {
+        console.error('WIZARD: Errore durante l\'attivazione del profilo:', activationError);
+        // Non blocchiamo, ma registriamo l'errore
+      }
       
       // Imposta il profilo nel contesto
-      setProfile(createdProfile);
+      try {
+        setProfile(createdProfile);
+        console.log('WIZARD: Profilo impostato nel contesto');
+      } catch (contextError) {
+        console.error('WIZARD: Errore durante l\'impostazione del profilo nel contesto:', contextError);
+        // Non blocchiamo, ma registriamo l'errore
+      }
       
       console.log('WIZARD: Reindirizzamento alla destinazione finale...');
       

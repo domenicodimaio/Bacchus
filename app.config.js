@@ -20,7 +20,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '150',
+      buildNumber: '151',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
@@ -56,10 +56,13 @@ export default {
       typedRoutes: true
     },
     updates: {
+      url: "https://u.expo.dev/8b45518d-6d0c-4503-acb6-aed59b5675d9",
       enabled: true,
       fallbackToCacheTimeout: 0
     },
-    runtimeVersion: "1.0.0",
+    runtimeVersion: {
+      policy: "sdkVersion"
+    },
     extra: {
       supabaseUrl: process.env.SUPABASE_URL || 'https://example.supabase.co',
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'demo-key',

@@ -414,9 +414,16 @@ export default function LoginScreen() {
               style={[
                 styles.loginCard,
                 { 
-                  backgroundColor: '#0c2348',
+                  backgroundColor: '#162a4e',
                   opacity: cardOpacity,
-                  transform: [{ translateY: cardTranslateY }]
+                  transform: [{ translateY: cardTranslateY }],
+                  borderWidth: 1,
+                  borderColor: '#254175',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 10,
+                  elevation: 5
                 }
               ]}
             >
@@ -637,8 +644,8 @@ const styles = StyleSheet.create({
   loginCard: {
     width: '100%',
     borderRadius: 15,
-    padding: 16,
-    marginVertical: 10,
+    padding: 20,
+    marginVertical: 15,
   },
   cardTitle: {
     fontSize: 26,
