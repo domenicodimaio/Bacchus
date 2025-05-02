@@ -177,7 +177,6 @@ export default function SignupScreen() {
         global.__WIZARD_AFTER_REGISTRATION__ = false;
         global.__BLOCK_ALL_SCREENS__ = false;
         global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-        global.__PREVENT_ALL_REDIRECTS__ = false;
       }
       
       // Usa il loginWithProvider dall'AuthContext per inviare le credenziali a Supabase
@@ -274,9 +273,6 @@ export default function SignupScreen() {
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={[styles.appTitle, { color: '#FFFFFF' }]}>
-                BACCHUS
-              </Text>
               <Text style={[styles.appSubtitle, { color: '#8a9bb5' }]}>
                 {t('appTagline', { defaultValue: 'Monitora. Informati. Resta al sicuro.' })}
               </Text>
@@ -517,11 +513,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     marginBottom: 10,
-  },
-  appTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
   },
   appSubtitle: {
     fontSize: 16,
