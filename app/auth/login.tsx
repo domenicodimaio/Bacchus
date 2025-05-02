@@ -435,7 +435,16 @@ export default function LoginScreen() {
               </Text>
               <View style={styles.formContainer}>
                 {/* Email input */}
-                <View style={[styles.inputContainer, { backgroundColor: '#162a4e' }]}>
+                <View style={[styles.inputContainer, { 
+                  backgroundColor: '#1e355a',  // Sfondo più chiaro
+                  borderWidth: 1,
+                  borderColor: '#2e4a7a',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                  elevation: 2
+                }]}>
                   <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: '#ffffff' }]}
@@ -452,7 +461,16 @@ export default function LoginScreen() {
                 </View>
                 
                 {/* Password input */}
-                <View style={[styles.inputContainer, { backgroundColor: '#162a4e' }]}>
+                <View style={[styles.inputContainer, { 
+                  backgroundColor: '#1e355a',  // Sfondo più chiaro
+                  borderWidth: 1,
+                  borderColor: '#2e4a7a',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                  elevation: 2
+                }]}>
                   <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                   <TextInput
                     ref={passwordInputRef}

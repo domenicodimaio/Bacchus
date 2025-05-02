@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Text, List, Divider, RadioButton, Switch, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Switch as RNSwitch } from 'react-native';
+import { Text, List, Divider, RadioButton, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
@@ -305,10 +305,12 @@ export default function SettingsScreen() {
                 description={t('darkModeDesc', { ns: 'settings', defaultValue: 'Toggle dark or light appearance' })}
                 left={props => <List.Icon {...props} icon="theme-light-dark" color={theme.colors.primary} />}
                 right={() => (
-                  <Switch 
-                    value={isDarkMode} 
+                  <RNSwitch
+                    value={isDarkMode}
                     onValueChange={handleDarkModeToggle}
-                    color={theme.colors.primary}
+                    trackColor={{ false: '#767577', true: theme.colors.primary }}
+                    thumbColor={isDarkMode ? '#f5dd4b' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
                   />
                 )}
               />
@@ -321,10 +323,12 @@ export default function SettingsScreen() {
                 description={t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
                 left={props => <List.Icon {...props} icon="wifi-off" color={theme.colors.primary} />}
                 right={() => (
-                  <Switch 
-                    value={offlineMode} 
+                  <RNSwitch
+                    value={offlineMode}
                     onValueChange={handleOfflineModeToggle}
-                    color={theme.colors.primary}
+                    trackColor={{ false: '#767577', true: theme.colors.primary }}
+                    thumbColor={offlineMode ? '#f5dd4b' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
                   />
                 )}
               />
