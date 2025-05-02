@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -48,6 +48,18 @@ export default function SignupScreen() {
   // Riferimenti per i campi di input
   const passwordInputRef = useRef(null);
   const confirmPasswordInputRef = useRef(null);
+
+  // CRITICAL FIX: Reset all redirect flags when this screen mounts
+  useEffect(() => {
+    if (typeof global !== 'undefined') {
+      // Clear all navigation blocking flags
+      global.__BLOCK_ALL_SCREENS__ = false;
+      global.__WIZARD_AFTER_REGISTRATION__ = false;
+      global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+      global.__PREVENT_ALL_REDIRECTS__ = false;
+      console.log('Signup: Cleared all navigation blocking flags on mount');
+    }
+  }, []);
 
   // Funzione per gestire la registrazione
   const handleSignup = async () => {
@@ -247,7 +259,7 @@ export default function SignupScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#0f1c35' }]}>
         <StatusBar style="light" />
         
         <KeyboardAvoidingView 
@@ -265,39 +277,82 @@ export default function SignupScreen() {
               <Text style={[styles.appTitle, { color: '#FFFFFF' }]}>
                 BACCHUS
               </Text>
+              <Text style={[styles.appSubtitle, { color: '#8a9bb5' }]}>
+                {t('appTagline', { defaultValue: 'Monitora. Informati. Resta al sicuro.' })}
+              </Text>
             </View>
             
             {/* Form di registrazione */}
-            <View style={styles.formContainer}>
+            <View style={[styles.formContainer, { 
+              backgroundColor: '#162a4e',
+              borderWidth: 1,
+              borderColor: '#254175',
+              borderRadius: 15,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 10,
+              elevation: 5
+            }]}>
+              <Text style={[styles.cardTitle, { color: '#FFFFFF', fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }]}>
+                {t('createAccount', { ns: 'auth', defaultValue: 'Crea un account' })}
+              </Text>
+              <Text style={[styles.cardSubtitle, { color: '#8a9bb5', textAlign: 'center', marginBottom: 20 }]}>
+                {t('signupSubtitle', { ns: 'auth', defaultValue: 'Registrati per iniziare a monitorare' })}
+              </Text>
+              
               {/* Email input */}
               <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={22} color={colors.textTertiary} style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.cardElevated, color: colors.text }]}
+                  style={[styles.input, { 
+                    backgroundColor: '#1e355a',
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: '#2e4a7a',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 2
+                  }]}
                   placeholder={t('email', { ns: 'auth' })}
-                  placeholderTextColor={colors.textTertiary}
+                  placeholderTextColor="#8a9bb5"
                   autoCapitalize="none"
                   keyboardType="email-address"
                   returnKeyType="next"
                   value={email}
                   onChangeText={setEmail}
                   onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  cursorColor="#00bcd7"
                 />
               </View>
               
               {/* Password input */}
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={22} color={colors.textTertiary} style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                 <TextInput
                   ref={passwordInputRef}
-                  style={[styles.input, { backgroundColor: colors.cardElevated, color: colors.text }]}
+                  style={[styles.input, { 
+                    backgroundColor: '#1e355a',
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: '#2e4a7a',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 2
+                  }]}
                   placeholder={t('password', { ns: 'auth' })}
-                  placeholderTextColor={colors.textTertiary}
+                  placeholderTextColor="#8a9bb5"
                   secureTextEntry={!showPassword}
                   returnKeyType="next"
                   value={password}
                   onChangeText={setPassword}
                   onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+                  cursorColor="#00bcd7"
                 />
                 <TouchableOpacity 
                   style={styles.passwordVisibilityButton}
@@ -306,24 +361,35 @@ export default function SignupScreen() {
                   <Ionicons 
                     name={showPassword ? "eye-off-outline" : "eye-outline"} 
                     size={22} 
-                    color={colors.textTertiary} 
+                    color="#8a9bb5" 
                   />
                 </TouchableOpacity>
               </View>
               
               {/* Confirm Password input */}
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={22} color={colors.textTertiary} style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                 <TextInput
                   ref={confirmPasswordInputRef}
-                  style={[styles.input, { backgroundColor: colors.cardElevated, color: colors.text }]}
+                  style={[styles.input, { 
+                    backgroundColor: '#1e355a',
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: '#2e4a7a',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 2
+                  }]}
                   placeholder={t('confirmPassword', { ns: 'auth' })}
-                  placeholderTextColor={colors.textTertiary}
+                  placeholderTextColor="#8a9bb5"
                   secureTextEntry={!showConfirmPassword}
                   returnKeyType="go"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   onSubmitEditing={handleSignup}
+                  cursorColor="#00bcd7"
                 />
                 <TouchableOpacity 
                   style={styles.passwordVisibilityButton}
@@ -332,7 +398,7 @@ export default function SignupScreen() {
                   <Ionicons 
                     name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
                     size={22} 
-                    color={colors.textTertiary} 
+                    color="#8a9bb5" 
                   />
                 </TouchableOpacity>
               </View>
@@ -500,6 +566,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    marginBottom: 20,
   },
   alternativesContainer: {
     width: '100%',

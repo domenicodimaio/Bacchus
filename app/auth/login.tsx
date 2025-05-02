@@ -177,6 +177,18 @@ export default function LoginScreen() {
     );
   }, []);
 
+  // CRITICAL FIX: Reset all redirect flags when this screen mounts
+  useEffect(() => {
+    if (typeof global !== 'undefined') {
+      // Clear all navigation blocking flags
+      global.__BLOCK_ALL_SCREENS__ = false;
+      global.__WIZARD_AFTER_REGISTRATION__ = false;
+      global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+      global.__PREVENT_ALL_REDIRECTS__ = false;
+      console.log('Login: Cleared all navigation blocking flags on mount');
+    }
+  }, []);
+
   // Funzione di debug per resettare tutti i dati dell'app
   const handleDebugReset = async () => {
     setDebugTaps(debugTaps + 1);
