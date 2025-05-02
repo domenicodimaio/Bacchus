@@ -54,7 +54,7 @@ export default function SettingsScreen() {
       } catch (error) {
         console.error('Error in settings useEffect:', error);
         Alert.alert(
-          'Error',
+          t('error', { ns: 'common', defaultValue: 'Error' }),
           'Failed to load settings. ' + (error?.message || 'Unknown error')
         );
       }
@@ -107,8 +107,8 @@ export default function SettingsScreen() {
       } catch (error) {
         console.error('Error changing language:', error);
         Alert.alert(
-          t('error'),
-          t('errorGeneric', { defaultValue: 'An error occurred. Please try again.' })
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
         );
       }
     };
@@ -124,8 +124,8 @@ export default function SettingsScreen() {
         // Riporta lo stato al valore originale in caso di errore
         setOfflineMode(offlineMode);
         Alert.alert(
-          t('error'),
-          t('errorGeneric', { defaultValue: 'An error occurred. Please try again.' })
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
         );
       }
     };
@@ -137,8 +137,8 @@ export default function SettingsScreen() {
       } catch (error) {
         console.error('Error toggling dark mode:', error);
         Alert.alert(
-          t('error'),
-          t('errorGeneric', { defaultValue: 'An error occurred. Please try again.' })
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
         );
       }
     };
@@ -161,8 +161,8 @@ export default function SettingsScreen() {
         
         if (!result.success) {
           Alert.alert(
-            t('error'),
-            t('errorGeneric', { defaultValue: 'An error occurred.' })
+            t('error', { ns: 'common', defaultValue: 'Error' }),
+            t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred.' })
           );
         }
       } catch (error) {
@@ -171,8 +171,8 @@ export default function SettingsScreen() {
         }
         console.error('Logout error:', error);
         Alert.alert(
-          t('error'),
-          t('errorGeneric', { defaultValue: 'An error occurred. Please try again.' })
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
         );
       }
     };
@@ -201,31 +201,31 @@ export default function SettingsScreen() {
           <List.Section>
             <List.Subheader>{t('premiumFeatures', { ns: 'settings', defaultValue: 'Premium Features' })}</List.Subheader>
             <List.Item
-              title={t('premiumActive', { ns: 'purchases', defaultValue: 'Premium Active' })}
+              title={t('premiumActive', { ns: 'settings', defaultValue: 'Premium Active' })}
               description={isPremium 
-                ? t('premiumActiveDesc', { ns: 'purchases', defaultValue: 'Your premium subscription is active' })
-                : t('premiumInactiveDesc', { ns: 'purchases', defaultValue: 'Upgrade to premium for extra features' })}
+                ? t('premiumActiveDesc', { ns: 'settings', defaultValue: 'Your premium subscription is active' })
+                : t('premiumInactiveDesc', { ns: 'settings', defaultValue: 'Upgrade to premium for extra features' })}
               left={props => <List.Icon {...props} icon="star" color={theme.colors.primary} />}
             />
             <Divider />
             <List.Item
-              title={t('unlimitedSessions', { ns: 'purchases', defaultValue: 'Unlimited Sessions' })}
-              description={t('unlimitedSessionsDesc', { ns: 'purchases', defaultValue: 'Track as many drinking sessions as you want' })}
+              title={t('unlimitedSessions', { ns: 'settings', defaultValue: 'Unlimited Sessions' })}
+              description={t('unlimitedSessionsDesc', { ns: 'settings', defaultValue: 'Track as many drinking sessions as you want' })}
               left={props => <List.Icon {...props} icon="infinity" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
             />
             <List.Item
-              title={t('advancedStatistics', { ns: 'purchases', defaultValue: 'Advanced Statistics' })}
-              description={t('advancedStatisticsDesc', { ns: 'purchases', defaultValue: 'Get detailed insights about your drinking habits' })}
+              title={t('advancedStatistics', { ns: 'settings', defaultValue: 'Advanced Statistics' })}
+              description={t('advancedStatisticsDesc', { ns: 'settings', defaultValue: 'Get detailed insights about your drinking habits' })}
               left={props => <List.Icon {...props} icon="chart-line" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
             />
             <List.Item
-              title={t('dataExport', { ns: 'purchases', defaultValue: 'Data Export' })}
-              description={t('dataExportDesc', { ns: 'purchases', defaultValue: 'Export your data in CSV format' })}
+              title={t('dataExport', { ns: 'settings', defaultValue: 'Data Export' })}
+              description={t('dataExportDesc', { ns: 'settings', defaultValue: 'Export your data in CSV format' })}
               left={props => <List.Icon {...props} icon="file-export" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
             />
             <List.Item
-              title={t('noAds', { ns: 'purchases', defaultValue: 'No Advertisements' })}
-              description={t('noAdsDesc', { ns: 'purchases', defaultValue: 'Enjoy an ad-free experience' })}
+              title={t('noAds', { ns: 'settings', defaultValue: 'No Advertisements' })}
+              description={t('noAdsDesc', { ns: 'settings', defaultValue: 'Enjoy an ad-free experience' })}
               left={props => <List.Icon {...props} icon="block-helper" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
             />
           </List.Section>
@@ -273,8 +273,8 @@ export default function SettingsScreen() {
           <List.Section>
               <List.Subheader>{t('appearance', { ns: 'settings', defaultValue: 'Appearance' })}</List.Subheader>
             <List.Item
-                title={t('language', { defaultValue: 'Language' })}
-                description={t('selectLanguage', { defaultValue: 'Select language' })}
+                title={t('language', { ns: 'settings', defaultValue: 'Language' })}
+                description={t('selectLanguage', { ns: 'settings', defaultValue: 'Select language' })}
                 left={props => <List.Icon {...props} icon="translate" color={theme.colors.primary} />}
                 right={() => (
               <RadioButton.Group 
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
             </List.Section>
             
             <List.Section>
-              <List.Subheader>{t('preferences', { defaultValue: 'Preferences' })}</List.Subheader>
+              <List.Subheader>{t('preferences', { ns: 'settings', defaultValue: 'Preferences' })}</List.Subheader>
               <List.Item
                 title={t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
                 description={t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
@@ -361,7 +361,7 @@ export default function SettingsScreen() {
             <List.Section>
               <List.Subheader>{t('about', { ns: 'settings', defaultValue: 'About' })}</List.Subheader>
             <List.Item
-                title={t('version', { defaultValue: 'Version' })}
+                title={t('version', { ns: 'settings', defaultValue: 'Version' })}
                 description={`${appVersion} (${appBuild})`}
                 left={props => <List.Icon {...props} icon="information" color={theme.colors.primary} />}
             />
