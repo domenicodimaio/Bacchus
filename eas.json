@@ -9,7 +9,8 @@
       "distribution": "internal",
       "env": {
         "APP_ENVIRONMENT": "development"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -18,7 +19,8 @@
       },
       "env": {
         "APP_ENVIRONMENT": "staging"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": false,
@@ -35,7 +37,8 @@
         "buildConfiguration": "Release",
         "image": "latest",
         "scheme": "Bacchus"
-      }
+      },
+      "channel": "production"
     },
     "development-simulator": {
       "developmentClient": true,
@@ -45,7 +48,8 @@
       },
       "env": {
         "APP_ENVIRONMENT": "development"
-      }
+      },
+      "channel": "development-simulator"
     },
     "development-device": {
       "developmentClient": true,
@@ -55,7 +59,8 @@
       },
       "env": {
         "APP_ENVIRONMENT": "development"
-      }
+      },
+      "channel": "development-device"
     },
     "standalone": {
       "distribution": "internal",
@@ -64,7 +69,8 @@
       },
       "env": {
         "APP_ENVIRONMENT": "staging"
-      }
+      },
+      "channel": "standalone"
     },
     "internal": {
       "autoIncrement": true,
@@ -75,7 +81,8 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "internal"
     }
   },
   "submit": {
