@@ -420,11 +420,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
       
+      // === RISOLUZIONE DEL PROBLEMA DI REINDIRIZZAMENTO ===
+      // Pulizia RADICALE di tutte le flag di navigazione globali
+      clearAllNavigationBlocks();
+      
+      // Registra un evento per assicurarci che non ci siano reindirizzamenti indesiderati
+      console.log('Pulizia flag di navigazione globali completata');
+      
+      // Aggiungi un piccolo ritardo per garantire che tutte le operazioni siano completate
+      // prima di reindirizzare alla schermata di login
+      
       // FASE 6: Reindirizza direttamente alla schermata di login
       if (router) {
         setTimeout(() => {
+          // Verifica nuovamente che tutte le flag siano disattivate prima di reindirizzare
+          clearAllNavigationBlocks();
+          console.log('Reindirizzamento alla schermata di login...');
           router.replace('/auth/login');
-        }, 100);
+        }, 300); // Aumentato a 300ms per maggiore sicurezza
       }
       
       setIsLoading(false);
