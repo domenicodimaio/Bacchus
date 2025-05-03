@@ -8,6 +8,24 @@ import * as profileService from './lib/services/profile.service';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { repairDatabaseSchema } from './lib/supabase/repair-schema';
 import Ionicons from '@expo/vector-icons/Ionicons';
+// Importazione diretta delle risorse di traduzione per forzare il loro caricamento
+import i18n from './i18n';
+import { loadLanguageFromStorage } from './i18n';
+// Importazione esplicita dei file di traduzione per garantire che vengano inclusi nel bundle
+import commonIT from './locales/it/common.json';
+import commonEN from './locales/en/common.json';
+import sessionIT from './locales/it/session.json';
+import sessionEN from './locales/en/session.json';
+import profileIT from './locales/it/profile.json';
+import profileEN from './locales/en/profile.json';
+import settingsIT from './locales/it/settings.json';
+import settingsEN from './locales/en/settings.json';
+import authIT from './locales/it/auth.json';
+import authEN from './locales/en/auth.json';
+import dashboardIT from './locales/it/dashboard.json';
+import dashboardEN from './locales/en/dashboard.json';
+import purchasesIT from './locales/it/purchases.json';
+import purchasesEN from './locales/en/purchases.json';
 
 /**
  * PAGINA INIZIALE DELL'APP
@@ -23,6 +41,68 @@ ExpoSplashScreen.preventAutoHideAsync().catch(() => {
   console.log('Errore nella prevenzione della chiusura automatica della splash screen');
 });
 
+// Precarica tutte le traduzioni in modo esplicito
+const preloadTranslations = async () => {
+  console.log('🌐🌐🌐 [STARTUP] Precaricamento forzato delle traduzioni...');
+  
+  // Verifico che i file di traduzione siano stati caricati
+  console.log('🌐 [STARTUP] Verifica file di traduzione:');
+  console.log('🌐 [STARTUP] IT-common:', Boolean(commonIT && Object.keys(commonIT).length));
+  console.log('🌐 [STARTUP] IT-settings:', Boolean(settingsIT && Object.keys(settingsIT).length));
+  console.log('🌐 [STARTUP] EN-common:', Boolean(commonEN && Object.keys(commonEN).length));
+  console.log('🌐 [STARTUP] EN-settings:', Boolean(settingsEN && Object.keys(settingsEN).length));
+  
+  // Carica la lingua dalle preferenze utente
+  const currentLang = await loadLanguageFromStorage();
+  console.log(`🌐 [STARTUP] Lingua caricata: ${currentLang}`);
+  
+  // Test traduzione
+  try {
+    const testIT = i18n.getFixedT('it');
+    const testEN = i18n.getFixedT('en');
+    
+    // Test di traduzione chiavi specifiche che causavano problemi
+    console.log('🌐 [STARTUP] Test traduzione IT:');
+    console.log(`🌐 [STARTUP] 'settings' (IT): "${testIT('settings', { ns: 'common' })}"`);
+    console.log(`🌐 [STARTUP] 'appearance' (IT): "${testIT('appearance', { ns: 'settings' })}"`);
+    console.log(`🌐 [STARTUP] 'darkMode' (IT): "${testIT('darkMode', { ns: 'settings' })}"`);
+    
+    console.log('🌐 [STARTUP] Test traduzione EN:');
+    console.log(`🌐 [STARTUP] 'settings' (EN): "${testEN('settings', { ns: 'common' })}"`);
+    console.log(`🌐 [STARTUP] 'appearance' (EN): "${testEN('appearance', { ns: 'settings' })}"`);
+    console.log(`🌐 [STARTUP] 'darkMode' (EN): "${testEN('darkMode', { ns: 'settings' })}"`);
+    
+    // Registra un oggetto globale per i namespace i18n caricati (per debug)
+    if (typeof global !== 'undefined') {
+      global.i18nResources = {
+        it: { 
+          common: commonIT, 
+          settings: settingsIT,
+          session: sessionIT,
+          profile: profileIT,
+          auth: authIT,
+          dashboard: dashboardIT,
+          purchases: purchasesIT
+        },
+        en: {
+          common: commonEN,
+          settings: settingsEN,
+          session: sessionEN,
+          profile: profileEN,
+          auth: authEN,
+          dashboard: dashboardEN,
+          purchases: purchasesEN
+        }
+      };
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('🌐 [STARTUP] Errore nel test delle traduzioni:', error);
+    return false;
+  }
+};
+
 // Colore di sfondo identico alla schermata di login
 const BACKGROUND_COLOR = '#0c2348';
 
@@ -35,6 +115,7 @@ export default function InitialScreen() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const navigationState = useRootNavigationState();
   const [hasNavigated, setHasNavigated] = useState(false);
+  const [translationsLoaded, setTranslationsLoaded] = useState(false);
   
   // Riferimento per tenere traccia se abbiamo già effettuato una navigazione
   const hasNavigatedRef = useRef(false);
@@ -43,6 +124,16 @@ export default function InitialScreen() {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(1.5)).current;
   const logoPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  
+  // Precarica traduzioni all'avvio
+  useEffect(() => {
+    const loadTranslations = async () => {
+      const success = await preloadTranslations();
+      setTranslationsLoaded(success);
+    };
+    
+    loadTranslations();
+  }, []);
   
   // Calcola la posizione finale del logo (come nella schermata di login)
   const getLogoFinalPosition = () => {
@@ -65,6 +156,9 @@ export default function InitialScreen() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Attendi che le traduzioni siano caricate prima di procedere
+        if (!translationsLoaded) return;
+        
         // Nascondi la splash screen nativa dopo un breve ritardo
         setTimeout(async () => {
           try {
@@ -130,12 +224,12 @@ export default function InitialScreen() {
     };
     
     initializeApp();
-  }, [insets.top, height, isAuthenticated, isAuthLoading]);
+  }, [insets.top, height, isAuthenticated, isAuthLoading, translationsLoaded]);
   
   // Controllo dello stato di autenticazione e navigazione
   useEffect(() => {
-    // Attendi che lo stato di navigazione e autenticazione siano pronti
-    if (!navigationState?.key || isAuthLoading) return;
+    // Attendi che lo stato di navigazione, autenticazione e traduzioni siano pronti
+    if (!navigationState?.key || isAuthLoading || !translationsLoaded) return;
     
     // Evita esecuzioni multiple
     if (hasNavigatedRef.current) return;
@@ -149,6 +243,7 @@ export default function InitialScreen() {
         }
         
         console.log(`Stato autenticazione: ${isAuthenticated ? 'autenticato' : 'non autenticato'}`);
+        console.log('Traduzioni caricate:', translationsLoaded);
         
         // Evita navigazioni multiple
         if (hasNavigatedRef.current) return;
@@ -252,7 +347,7 @@ export default function InitialScreen() {
     };
     
     checkUserStatus();
-  }, [navigationState?.key, isAuthLoading, isAuthenticated, router]);
+  }, [navigationState?.key, isAuthLoading, isAuthenticated, router, translationsLoaded]);
   
   return (
     <View style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
