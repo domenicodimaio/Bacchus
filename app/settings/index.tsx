@@ -249,18 +249,18 @@ export default function SettingsScreen() {
           }
         ]}>
           {/* Appearance Section */}
-          <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
             {t('appearance', { ns: 'settings', defaultValue: 'Appearance' })}
           </Text>
           
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Ionicons name="language-outline" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <Ionicons name="language-outline" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
               <View style={styles.settingTextContainer}>
                 <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                   {t('language', { ns: 'settings', defaultValue: 'Language' })}
                 </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
                   {t('selectLanguage', { ns: 'settings', defaultValue: 'Select language' })}
                 </Text>
               </View>
@@ -276,7 +276,7 @@ export default function SettingsScreen() {
               >
                 <Text style={[
                   styles.languageButtonText, 
-                  { color: language === 'it' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                  { color: language === 'it' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
                 ]}>
                   🇮🇹
                 </Text>
@@ -292,7 +292,7 @@ export default function SettingsScreen() {
               >
                 <Text style={[
                   styles.languageButtonText, 
-                  { color: language === 'en' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                  { color: language === 'en' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
                 ]}>
                   🇬🇧
                 </Text>
@@ -304,12 +304,12 @@ export default function SettingsScreen() {
           
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <Ionicons name="moon-outline" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
               <View style={styles.settingTextContainer}>
                 <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                   {t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
                 </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
                   {t('darkModeDesc', { ns: 'settings', defaultValue: 'Toggle dark or light appearance' })}
                 </Text>
               </View>
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
             <Switch
               value={isDarkMode}
               onValueChange={handleDarkModeToggle}
-              color={isDark ? '#00bcd7' : '#00838f'}
+              color={isDark ? '#6CC9FF' : '#00838f'}
             />
           </View>
           
@@ -325,12 +325,12 @@ export default function SettingsScreen() {
           
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Ionicons name="wifi-outline" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <Ionicons name="wifi-outline" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
               <View style={styles.settingTextContainer}>
                 <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                   {t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
                 </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
                   {t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
                 </Text>
               </View>
@@ -338,7 +338,7 @@ export default function SettingsScreen() {
             <Switch
               value={offlineMode}
               onValueChange={handleOfflineModeToggle}
-              color={isDark ? '#00bcd7' : '#00838f'}
+              color={isDark ? '#6CC9FF' : '#00838f'}
             />
           </View>
         </View>
@@ -351,7 +351,7 @@ export default function SettingsScreen() {
             borderColor: isDark ? '#254175' : '#e0e0e0',
           }
         ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
             {t('premiumFeatures', { ns: 'settings', defaultValue: 'Premium Features' })}
           </Text>
           
@@ -360,13 +360,13 @@ export default function SettingsScreen() {
               <Ionicons 
                 name="star" 
                 size={24} 
-                color={isPremium ? (isDark ? '#FFD700' : '#FFC107') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+                color={isPremium ? (isDark ? '#FFD700' : '#FFC107') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
               />
               <View style={styles.settingTextContainer}>
                 <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                   {t('premiumActive', { ns: 'settings', defaultValue: 'Premium Active' })}
                 </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
                   {isPremium 
                     ? t('premiumActiveDesc', { ns: 'settings', defaultValue: 'Your premium subscription is active' })
                     : t('premiumInactiveDesc', { ns: 'settings', defaultValue: 'Upgrade to premium for extra features' })}
@@ -375,7 +375,7 @@ export default function SettingsScreen() {
             </View>
             {!isPremium && (
               <TouchableOpacity 
-                style={[styles.upgradeButton, { backgroundColor: isDark ? '#00bcd7' : '#00838f' }]}
+                style={[styles.upgradeButton, { backgroundColor: isDark ? '#6CC9FF' : '#00838f' }]}
                 onPress={() => {
                   /* TODO: Implementare upgrade */
                   Alert.alert('Premium', 'Premium upgrade coming soon');
@@ -396,11 +396,11 @@ export default function SettingsScreen() {
               <Ionicons 
                 name="infinite" 
                 size={20} 
-                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
               />
               <Text style={[
                 styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
               ]}>
                 {t('unlimitedSessions', { ns: 'settings', defaultValue: 'Unlimited Sessions' })}
               </Text>
@@ -410,11 +410,11 @@ export default function SettingsScreen() {
               <Ionicons 
                 name="stats-chart" 
                 size={20} 
-                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
               />
               <Text style={[
                 styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
               ]}>
                 {t('advancedStatistics', { ns: 'settings', defaultValue: 'Advanced Statistics' })}
               </Text>
@@ -424,11 +424,11 @@ export default function SettingsScreen() {
               <Ionicons 
                 name="document-text" 
                 size={20} 
-                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
               />
               <Text style={[
                 styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
               ]}>
                 {t('dataExport', { ns: 'settings', defaultValue: 'Data Export' })}
               </Text>
@@ -438,11 +438,11 @@ export default function SettingsScreen() {
               <Ionicons 
                 name="close-circle" 
                 size={20} 
-                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
               />
               <Text style={[
                 styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
               ]}>
                 {t('noAds', { ns: 'settings', defaultValue: 'No Advertisements' })}
               </Text>
@@ -459,18 +459,18 @@ export default function SettingsScreen() {
               borderColor: isDark ? '#254175' : '#e0e0e0',
             }
           ]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+            <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
               {t('account', { ns: 'settings', defaultValue: 'Account' })}
             </Text>
             
             {user && (
               <View style={styles.accountInfo}>
-                <Ionicons name="person" size={40} color={isDark ? '#00bcd7' : '#00838f'} />
+                <Ionicons name="person" size={40} color={isDark ? '#6CC9FF' : '#00838f'} />
                 <View style={styles.accountTextContainer}>
                   <Text style={[styles.accountEmail, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                     {user.email}
                   </Text>
-                  <Text style={[styles.accountStatus, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                  <Text style={[styles.accountStatus, { color: isDark ? '#C5D5ED' : '#757575' }]}>
                     {t('loggedIn', { ns: 'settings', defaultValue: 'Logged in' })}
                   </Text>
                 </View>
@@ -481,7 +481,7 @@ export default function SettingsScreen() {
               style={[styles.logoutButton, { borderColor: isDark ? '#254175' : '#e0e0e0' }]}
               onPress={handleLogout}
             >
-              <Ionicons name="log-out-outline" size={20} color={isDark ? '#00bcd7' : '#00838f'} />
+              <Ionicons name="log-out-outline" size={20} color={isDark ? '#6CC9FF' : '#00838f'} />
               <Text style={[styles.logoutButtonText, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                 {t('logout', { ns: 'settings', defaultValue: 'Logout' })}
               </Text>
@@ -498,7 +498,7 @@ export default function SettingsScreen() {
               borderColor: isDark ? '#254175' : '#e0e0e0',
             }
           ]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+            <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
               {t('developerOptions', { ns: 'settings', defaultValue: 'Developer Options' })}
             </Text>
             
@@ -506,12 +506,12 @@ export default function SettingsScreen() {
               style={styles.devOption}
               onPress={togglePremiumStatus}
             >
-              <Ionicons name="construct" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <Ionicons name="construct" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
               <View style={styles.devOptionTextContainer}>
                 <Text style={[styles.devOptionTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
                   {t('togglePremium', { ns: 'settings', defaultValue: 'Toggle Premium Status' })}
                 </Text>
-                <Text style={[styles.devOptionDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                <Text style={[styles.devOptionDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
                   {isPremium 
                     ? t('disablePremium', { ns: 'settings', defaultValue: 'Disable premium features for testing' })
                     : t('enablePremium', { ns: 'settings', defaultValue: 'Enable premium features for testing' })}
@@ -529,12 +529,12 @@ export default function SettingsScreen() {
             borderColor: isDark ? '#254175' : '#e0e0e0',
           }
         ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
             {t('about', { ns: 'settings', defaultValue: 'About' })}
           </Text>
           
           <View style={styles.versionInfo}>
-            <Text style={[styles.versionLabel, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+            <Text style={[styles.versionLabel, { color: isDark ? '#C5D5ED' : '#757575' }]}>
               {t('version', { ns: 'settings', defaultValue: 'Version' })}
             </Text>
             <Text style={[styles.versionNumber, { color: isDark ? '#FFFFFF' : '#333333' }]}>
@@ -543,7 +543,7 @@ export default function SettingsScreen() {
           </View>
           
           <View style={styles.credits}>
-            <Text style={[styles.creditsText, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+            <Text style={[styles.creditsText, { color: isDark ? '#C5D5ED' : '#757575' }]}>
               © 2023 Bacchus
             </Text>
           </View>
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 131, 143, 0.15)',
   },
   selectedLanguageButtonDark: {
-    backgroundColor: 'rgba(0, 188, 215, 0.25)',
+    backgroundColor: 'rgba(108, 201, 255, 0.25)',
   },
   languageButtonText: {
     fontSize: 18,
