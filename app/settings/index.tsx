@@ -1,18 +1,17 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Switch as RNSwitch } from 'react-native';
-import { Text, List, Divider, RadioButton, useTheme } from 'react-native-paper';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Text, List, Divider, useTheme, Switch } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import i18next from '../i18n';
 import { saveLanguageToStorage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import NavigationContext from '../contexts/NavigationContext';
 import { useTheme as useAppTheme } from '../contexts/ThemeContext';
 import Constants from 'expo-constants';
-
-// Colors
-const PRIMARY_COLOR = '#5DB075';
+import { Ionicons } from '@expo/vector-icons';
 
 // Storage keys
 const STORAGE_KEY = {
@@ -25,13 +24,15 @@ const STORAGE_KEY = {
 export default function SettingsScreen() {
   // Theme and translation
   const theme = useTheme();
-  const { t } = useTranslation(['common', 'settings']);
+  const { colors } = theme;
+  const { t, i18n } = useTranslation(['common', 'settings']);
   
   // Auth and navigation contexts
   const auth = useAuth();
   const navigationContext = useContext(NavigationContext);
   const setBlockNavigation = navigationContext?.setBlockNavigation;
   const { isDarkMode, toggleDarkMode } = useAppTheme();
+  const isDark = theme.dark;
   
   // Extract auth properties with defaults
   const isLoggedIn = auth?.isAuthenticated || false;
@@ -47,17 +48,6 @@ export default function SettingsScreen() {
   const [offlineMode, setOfflineMode] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showDeveloperOptions, setShowDeveloperOptions] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Function to safely get translation
-  const safeTranslate = useCallback((key: string, namespace = 'settings', defaultValue = '') => {
-    try {
-      return t(key, { ns: namespace, defaultValue: defaultValue || key });
-    } catch (err) {
-      console.error(`Translation error for: ${namespace}:${key}`, err);
-      return defaultValue || key;
-    }
-  }, [t]);
   
   // Load saved settings on component mount
   useEffect(() => {
@@ -90,7 +80,6 @@ export default function SettingsScreen() {
       setShowDeveloperOptions(parseInt(devModeCount, 10) >= 7);
     } catch (error) {
       console.error('Error loading settings:', error);
-      setError('Failed to load settings');
       
       // In caso di errore, usa i valori predefiniti
       setLanguage('it');
@@ -102,17 +91,31 @@ export default function SettingsScreen() {
   
   // Function to handle language change
   const handleLanguageChange = async (newLanguage: string) => {
-    if (!newLanguage) return;
+    if (!newLanguage || newLanguage === language) return;
     
     try {
       setLanguage(newLanguage);
       await AsyncStorage.setItem(STORAGE_KEY.LANGUAGE, newLanguage);
+      
+      // Prima salva la lingua in storage, poi cambia lingua nell'app
       await saveLanguageToStorage(newLanguage);
+      
+      // Cambia lingua nell'app
+      await i18n.changeLanguage(newLanguage);
+      
+      // Mostra una conferma
+      setTimeout(() => {
+        Alert.alert(
+          t('languageChanged', { ns: 'settings', defaultValue: 'Language changed successfully' }),
+          '',
+          [{ text: 'OK' }]
+        );
+      }, 100);
     } catch (error) {
       console.error('Error changing language:', error);
       Alert.alert(
-        safeTranslate('error', 'common', 'Error'),
-        safeTranslate('errorGeneric', 'common', 'An error occurred. Please try again.')
+        t('error', { ns: 'common', defaultValue: 'Error' }),
+        t('languageChangeError', { ns: 'settings', defaultValue: 'Error changing language' })
       );
     }
   };
@@ -123,13 +126,22 @@ export default function SettingsScreen() {
       const newValue = !offlineMode;
       setOfflineMode(newValue);
       await AsyncStorage.setItem(STORAGE_KEY.OFFLINE_MODE, newValue.toString());
+      
+      // Mostra un messaggio di conferma
+      Alert.alert(
+        newValue 
+          ? t('offlineModeEnabled', { ns: 'common', defaultValue: 'Offline mode enabled' })
+          : t('offlineModeDisabled', { ns: 'common', defaultValue: 'Offline mode disabled' }),
+        '',
+        [{ text: 'OK' }]
+      );
     } catch (error) {
       console.error('Error toggling offline mode:', error);
       // Riporta lo stato al valore originale in caso di errore
       setOfflineMode(offlineMode);
       Alert.alert(
-        safeTranslate('error', 'common', 'Error'),
-        safeTranslate('errorGeneric', 'common', 'An error occurred. Please try again.')
+        t('error', { ns: 'common', defaultValue: 'Error' }),
+        t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
       );
     }
   };
@@ -141,8 +153,8 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error('Error toggling dark mode:', error);
       Alert.alert(
-        safeTranslate('error', 'common', 'Error'),
-        safeTranslate('errorGeneric', 'common', 'An error occurred. Please try again.')
+        t('error', { ns: 'common', defaultValue: 'Error' }),
+        t('themeChangeError', { ns: 'settings', defaultValue: 'Error changing theme' })
       );
     }
   };
@@ -167,8 +179,8 @@ export default function SettingsScreen() {
       
       if (!result.success) {
         Alert.alert(
-          safeTranslate('error', 'common', 'Error'),
-          safeTranslate('errorGeneric', 'common', 'An error occurred.')
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred.' })
         );
       }
     } catch (error) {
@@ -177,8 +189,8 @@ export default function SettingsScreen() {
       }
       console.error('Logout error:', error);
       Alert.alert(
-        safeTranslate('error', 'common', 'Error'),
-        safeTranslate('errorGeneric', 'common', 'An error occurred. Please try again.')
+        t('error', { ns: 'common', defaultValue: 'Error' }),
+        t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
       );
     }
   };
@@ -190,182 +202,338 @@ export default function SettingsScreen() {
       setIsPremium(newStatus);
       await AsyncStorage.setItem(STORAGE_KEY.IS_PREMIUM, newStatus.toString());
       Alert.alert(
-        safeTranslate('developerMode', 'settings', 'Developer Mode'),
+        t('developerMode', { ns: 'settings', defaultValue: 'Developer Mode' }),
         newStatus 
-          ? safeTranslate('premiumEnabled', 'settings', 'Premium features enabled for testing')
-          : safeTranslate('premiumDisabled', 'settings', 'Premium features disabled')
+          ? t('premiumEnabled', { ns: 'settings', defaultValue: 'Premium features enabled for testing' })
+          : t('premiumDisabled', { ns: 'settings', defaultValue: 'Premium features disabled' })
       );
     } catch (error) {
       console.error('Error toggling premium status:', error);
     }
   };
 
-  // If there was an error loading settings, show an error screen
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Si è verificato un errore</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity 
-            style={styles.errorButton}
-            onPress={loadSettings}
-          >
-            <Text style={styles.errorButtonText}>Riprova</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   // Render settings screen
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView>
-        <View style={styles.content}>
-          <List.Section>
-            <List.Subheader>{safeTranslate('appearance', 'settings', 'Appearance')}</List.Subheader>
-            <List.Item
-              title={safeTranslate('language', 'settings', 'Language')}
-              description={safeTranslate('selectLanguage', 'settings', 'Select language')}
-              left={props => <List.Icon {...props} icon="translate" color={theme.colors.primary} />}
-              right={() => (
-                <RadioButton.Group 
-                  onValueChange={handleLanguageChange} 
-                  value={language}
-                >
-                  <View style={styles.radioGroup}>
-                    <View style={styles.radioItem}>
-                      <RadioButton 
-                        value="it" 
-                        status={language === 'it' ? 'checked' : 'unchecked'} 
-                      />
-                      <Text>🇮🇹</Text>
-                    </View>
-                    <View style={styles.radioItem}>
-                      <RadioButton 
-                        value="en" 
-                        status={language === 'en' ? 'checked' : 'unchecked'} 
-                      />
-                      <Text>🇬🇧</Text>
-                    </View>
-                  </View>
-                </RadioButton.Group>
-              )}
-            />
-            <List.Item
-              title={safeTranslate('darkMode', 'settings', 'Dark Mode')}
-              description={safeTranslate('darkModeDesc', 'settings', 'Toggle dark or light appearance')}
-              left={props => <List.Icon {...props} icon="theme-light-dark" color={theme.colors.primary} />}
-              right={() => (
-                <RNSwitch
-                  value={isDarkMode}
-                  onValueChange={handleDarkModeToggle}
-                  trackColor={{ false: '#767577', true: theme.colors.primary }}
-                  thumbColor={isDarkMode ? '#f5dd4b' : '#f4f3f4'}
-                  ios_backgroundColor="#3e3e3e"
-                />
-              )}
-            />
-          </List.Section>
+    <SafeAreaView 
+      style={[
+        styles.container, 
+        { backgroundColor: isDark ? '#0f1c35' : '#f5f5f5' }
+      ]} 
+      edges={['top']}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+          {t('settings', { ns: 'common', defaultValue: 'Settings' })}
+        </Text>
+      </View>
+      
+      <ScrollView style={styles.scrollView}>
+        <View style={[
+          styles.sectionContainer, 
+          { 
+            backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
+            borderColor: isDark ? '#254175' : '#e0e0e0',
+          }
+        ]}>
+          {/* Appearance Section */}
+          <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+            {t('appearance', { ns: 'settings', defaultValue: 'Appearance' })}
+          </Text>
           
-          <List.Section>
-            <List.Subheader>{safeTranslate('preferences', 'settings', 'Preferences')}</List.Subheader>
-            <List.Item
-              title={safeTranslate('offlineMode', 'settings', 'Offline Mode')}
-              description={safeTranslate('offlineModeDesc', 'settings', 'Save data locally only')}
-              left={props => <List.Icon {...props} icon="wifi-off" color={theme.colors.primary} />}
-              right={() => (
-                <RNSwitch
-                  value={offlineMode}
-                  onValueChange={handleOfflineModeToggle}
-                  trackColor={{ false: '#767577', true: theme.colors.primary }}
-                  thumbColor={offlineMode ? '#f5dd4b' : '#f4f3f4'}
-                  ios_backgroundColor="#3e3e3e"
-                />
-              )}
-            />
-          </List.Section>
-          
-          {/* Premium features section */}
-          <List.Section>
-            <List.Subheader>{safeTranslate('premiumFeatures', 'settings', 'Premium Features')}</List.Subheader>
-            <List.Item
-              title={safeTranslate('premiumActive', 'settings', 'Premium Active')}
-              description={isPremium 
-                ? safeTranslate('premiumActiveDesc', 'settings', 'Your premium subscription is active')
-                : safeTranslate('premiumInactiveDesc', 'settings', 'Upgrade to premium for extra features')}
-              left={props => <List.Icon {...props} icon="star" color={theme.colors.primary} />}
-            />
-            <Divider />
-            <List.Item
-              title={safeTranslate('unlimitedSessions', 'settings', 'Unlimited Sessions')}
-              description={safeTranslate('unlimitedSessionsDesc', 'settings', 'Track as many drinking sessions as you want')}
-              left={props => <List.Icon {...props} icon="infinity" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
-            />
-            <List.Item
-              title={safeTranslate('advancedStatistics', 'settings', 'Advanced Statistics')}
-              description={safeTranslate('advancedStatisticsDesc', 'settings', 'Get detailed insights about your drinking habits')}
-              left={props => <List.Icon {...props} icon="chart-line" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
-            />
-            <List.Item
-              title={safeTranslate('dataExport', 'settings', 'Data Export')}
-              description={safeTranslate('dataExportDesc', 'settings', 'Export your data in CSV format')}
-              left={props => <List.Icon {...props} icon="file-export" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
-            />
-            <List.Item
-              title={safeTranslate('noAds', 'settings', 'No Advertisements')}
-              description={safeTranslate('noAdsDesc', 'settings', 'Enjoy an ad-free experience')}
-              left={props => <List.Icon {...props} icon="block-helper" color={isPremium ? theme.colors.primary : theme.colors.outline} />}
-            />
-          </List.Section>
-          
-          {/* Account section - only show if logged in */}
-          {isLoggedIn && (
-            <List.Section>
-              <List.Subheader>{safeTranslate('account', 'settings', 'Account')}</List.Subheader>
-              {user && (
-                <List.Item
-                  title={user.email || safeTranslate('user', 'settings', 'User')}
-                  description={safeTranslate('loggedIn', 'settings', 'Logged in')}
-                  left={props => <List.Icon {...props} icon="account" color={theme.colors.primary} />}
-                />
-              )}
-              <TouchableOpacity onPress={handleLogout}>
-                <List.Item
-                  title={safeTranslate('logout', 'settings', 'Logout')}
-                  description={safeTranslate('logoutDesc', 'settings', 'Sign out of your account')}
-                  left={props => <List.Icon {...props} icon="logout" color={theme.colors.primary} />}
-                />
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Ionicons name="language-outline" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                  {t('language', { ns: 'settings', defaultValue: 'Language' })}
+                </Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                  {t('selectLanguage', { ns: 'settings', defaultValue: 'Select language' })}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.languageSelector}>
+              <TouchableOpacity 
+                style={[
+                  styles.languageButton, 
+                  language === 'it' && 
+                  (isDark ? styles.selectedLanguageButtonDark : styles.selectedLanguageButton)
+                ]}
+                onPress={() => handleLanguageChange('it')}
+              >
+                <Text style={[
+                  styles.languageButtonText, 
+                  { color: language === 'it' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                ]}>
+                  🇮🇹
+                </Text>
               </TouchableOpacity>
-            </List.Section>
-          )}
-          
-          {/* Developer section - only show if unlocked */}
-          {showDeveloperOptions && (
-            <List.Section>
-              <List.Subheader>{safeTranslate('developerOptions', 'settings', 'Developer Options')}</List.Subheader>
-              <TouchableOpacity onPress={togglePremiumStatus}>
-                <List.Item
-                  title={safeTranslate('togglePremium', 'settings', 'Toggle Premium Status')}
-                  description={isPremium 
-                    ? safeTranslate('disablePremium', 'settings', 'Disable premium features for testing')
-                    : safeTranslate('enablePremium', 'settings', 'Enable premium features for testing')}
-                  left={props => <List.Icon {...props} icon="developer-board" color={theme.colors.primary} />}
-                />
+              
+              <TouchableOpacity 
+                style={[
+                  styles.languageButton, 
+                  language === 'en' && 
+                  (isDark ? styles.selectedLanguageButtonDark : styles.selectedLanguageButton)
+                ]}
+                onPress={() => handleLanguageChange('en')}
+              >
+                <Text style={[
+                  styles.languageButtonText, 
+                  { color: language === 'en' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+                ]}>
+                  🇬🇧
+                </Text>
               </TouchableOpacity>
-            </List.Section>
-          )}
+            </View>
+          </View>
           
-          {/* About section */}
-          <List.Section>
-            <List.Subheader>{safeTranslate('about', 'settings', 'About')}</List.Subheader>
-            <List.Item
-              title={safeTranslate('version', 'settings', 'Version')}
-              description={`${appVersion} (${appBuild})`}
-              left={props => <List.Icon {...props} icon="information" color={theme.colors.primary} />}
+          <View style={styles.divider} />
+          
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Ionicons name="moon-outline" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                  {t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
+                </Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                  {t('darkModeDesc', { ns: 'settings', defaultValue: 'Toggle dark or light appearance' })}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleDarkModeToggle}
+              color={isDark ? '#00bcd7' : '#00838f'}
             />
-          </List.Section>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Ionicons name="wifi-outline" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                  {t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
+                </Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                  {t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={offlineMode}
+              onValueChange={handleOfflineModeToggle}
+              color={isDark ? '#00bcd7' : '#00838f'}
+            />
+          </View>
+        </View>
+        
+        {/* Premium Features */}
+        <View style={[
+          styles.sectionContainer, 
+          { 
+            backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
+            borderColor: isDark ? '#254175' : '#e0e0e0',
+          }
+        ]}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+            {t('premiumFeatures', { ns: 'settings', defaultValue: 'Premium Features' })}
+          </Text>
+          
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Ionicons 
+                name="star" 
+                size={24} 
+                color={isPremium ? (isDark ? '#FFD700' : '#FFC107') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+              />
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                  {t('premiumActive', { ns: 'settings', defaultValue: 'Premium Active' })}
+                </Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                  {isPremium 
+                    ? t('premiumActiveDesc', { ns: 'settings', defaultValue: 'Your premium subscription is active' })
+                    : t('premiumInactiveDesc', { ns: 'settings', defaultValue: 'Upgrade to premium for extra features' })}
+                </Text>
+              </View>
+            </View>
+            {!isPremium && (
+              <TouchableOpacity 
+                style={[styles.upgradeButton, { backgroundColor: isDark ? '#00bcd7' : '#00838f' }]}
+                onPress={() => {
+                  /* TODO: Implementare upgrade */
+                  Alert.alert('Premium', 'Premium upgrade coming soon');
+                }}
+              >
+                <Text style={styles.upgradeButtonText}>
+                  {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Upgrade' })}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          <View style={styles.divider} />
+          
+          {/* Premium feature list */}
+          <View style={styles.premiumFeatureList}>
+            <View style={styles.premiumFeature}>
+              <Ionicons 
+                name="infinite" 
+                size={20} 
+                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+              />
+              <Text style={[
+                styles.premiumFeatureText, 
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+              ]}>
+                {t('unlimitedSessions', { ns: 'settings', defaultValue: 'Unlimited Sessions' })}
+              </Text>
+            </View>
+            
+            <View style={styles.premiumFeature}>
+              <Ionicons 
+                name="stats-chart" 
+                size={20} 
+                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+              />
+              <Text style={[
+                styles.premiumFeatureText, 
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+              ]}>
+                {t('advancedStatistics', { ns: 'settings', defaultValue: 'Advanced Statistics' })}
+              </Text>
+            </View>
+            
+            <View style={styles.premiumFeature}>
+              <Ionicons 
+                name="document-text" 
+                size={20} 
+                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+              />
+              <Text style={[
+                styles.premiumFeatureText, 
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+              ]}>
+                {t('dataExport', { ns: 'settings', defaultValue: 'Data Export' })}
+              </Text>
+            </View>
+            
+            <View style={styles.premiumFeature}>
+              <Ionicons 
+                name="close-circle" 
+                size={20} 
+                color={isPremium ? (isDark ? '#00bcd7' : '#00838f') : (isDark ? '#8a9bb5' : '#BDBDBD')} 
+              />
+              <Text style={[
+                styles.premiumFeatureText, 
+                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#8a9bb5' : '#757575') }
+              ]}>
+                {t('noAds', { ns: 'settings', defaultValue: 'No Advertisements' })}
+              </Text>
+            </View>
+          </View>
+        </View>
+        
+        {/* Account Section */}
+        {isLoggedIn && (
+          <View style={[
+            styles.sectionContainer, 
+            { 
+              backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
+              borderColor: isDark ? '#254175' : '#e0e0e0',
+            }
+          ]}>
+            <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+              {t('account', { ns: 'settings', defaultValue: 'Account' })}
+            </Text>
+            
+            {user && (
+              <View style={styles.accountInfo}>
+                <Ionicons name="person" size={40} color={isDark ? '#00bcd7' : '#00838f'} />
+                <View style={styles.accountTextContainer}>
+                  <Text style={[styles.accountEmail, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                    {user.email}
+                  </Text>
+                  <Text style={[styles.accountStatus, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                    {t('loggedIn', { ns: 'settings', defaultValue: 'Logged in' })}
+                  </Text>
+                </View>
+              </View>
+            )}
+            
+            <TouchableOpacity 
+              style={[styles.logoutButton, { borderColor: isDark ? '#254175' : '#e0e0e0' }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color={isDark ? '#00bcd7' : '#00838f'} />
+              <Text style={[styles.logoutButtonText, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                {t('logout', { ns: 'settings', defaultValue: 'Logout' })}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {/* Developer Options */}
+        {showDeveloperOptions && (
+          <View style={[
+            styles.sectionContainer, 
+            { 
+              backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
+              borderColor: isDark ? '#254175' : '#e0e0e0',
+            }
+          ]}>
+            <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+              {t('developerOptions', { ns: 'settings', defaultValue: 'Developer Options' })}
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.devOption}
+              onPress={togglePremiumStatus}
+            >
+              <Ionicons name="construct" size={24} color={isDark ? '#00bcd7' : '#00838f'} />
+              <View style={styles.devOptionTextContainer}>
+                <Text style={[styles.devOptionTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                  {t('togglePremium', { ns: 'settings', defaultValue: 'Toggle Premium Status' })}
+                </Text>
+                <Text style={[styles.devOptionDescription, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+                  {isPremium 
+                    ? t('disablePremium', { ns: 'settings', defaultValue: 'Disable premium features for testing' })
+                    : t('enablePremium', { ns: 'settings', defaultValue: 'Enable premium features for testing' })}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {/* About Section */}
+        <View style={[
+          styles.sectionContainer, 
+          { 
+            backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
+            borderColor: isDark ? '#254175' : '#e0e0e0',
+          }
+        ]}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#00bcd7' : '#00838f' }]}>
+            {t('about', { ns: 'settings', defaultValue: 'About' })}
+          </Text>
+          
+          <View style={styles.versionInfo}>
+            <Text style={[styles.versionLabel, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+              {t('version', { ns: 'settings', defaultValue: 'Version' })}
+            </Text>
+            <Text style={[styles.versionNumber, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+              {appVersion} ({appBuild})
+            </Text>
+          </View>
+          
+          <View style={styles.credits}>
+            <Text style={[styles.creditsText, { color: isDark ? '#8a9bb5' : '#757575' }]}>
+              © 2023 Bacchus
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -377,48 +545,165 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    padding: 16,
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  radioItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 10,
-  },
   header: {
-    fontSize: 22,
+    padding: 16,
+    paddingBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  sectionContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  errorContainer: {
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+  },
+  settingTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  settingDescription: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(150, 150, 150, 0.2)',
+    marginVertical: 4,
+  },
+  languageSelector: {
+    flexDirection: 'row',
+  },
+  languageButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    marginLeft: 8,
   },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  selectedLanguageButton: {
+    backgroundColor: 'rgba(0, 131, 143, 0.15)',
   },
-  errorMessage: {
-    marginBottom: 20,
-    textAlign: 'center',
+  selectedLanguageButtonDark: {
+    backgroundColor: 'rgba(0, 188, 215, 0.25)',
   },
-  errorButton: {
-    backgroundColor: PRIMARY_COLOR,
-    padding: 10,
-    borderRadius: 5,
-    minWidth: 100,
+  languageButtonText: {
+    fontSize: 18,
+  },
+  premiumFeatureList: {
+    marginTop: 8,
+  },
+  premiumFeature: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 8,
   },
-  errorButtonText: {
-    color: 'white',
+  premiumFeatureText: {
+    marginLeft: 12,
+    fontSize: 15,
+  },
+  upgradeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  upgradeButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  accountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  accountTextContainer: {
+    marginLeft: 12,
+  },
+  accountEmail: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  accountStatus: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  logoutButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  devOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  devOptionTextContainer: {
+    marginLeft: 12,
+  },
+  devOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  devOptionDescription: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  versionInfo: {
+    marginBottom: 12,
+  },
+  versionLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  versionNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  credits: {
+    marginTop: 8,
+  },
+  creditsText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 }); 
