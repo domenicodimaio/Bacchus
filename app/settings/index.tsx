@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Text, List, Divider, useTheme, Switch } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Switch } from 'react-native';
+import { Text, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
@@ -317,7 +317,8 @@ export default function SettingsScreen() {
             <Switch
               value={isDarkMode}
               onValueChange={handleDarkModeToggle}
-              color={isDark ? '#6CC9FF' : '#00838f'}
+              thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
+              trackColor={{ false: '#767577', true: isDark ? '#6CC9FF' : '#00838f' }}
             />
           </View>
           
@@ -338,7 +339,8 @@ export default function SettingsScreen() {
             <Switch
               value={offlineMode}
               onValueChange={handleOfflineModeToggle}
-              color={isDark ? '#6CC9FF' : '#00838f'}
+              thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
+              trackColor={{ false: '#767577', true: isDark ? '#6CC9FF' : '#00838f' }}
             />
           </View>
         </View>
