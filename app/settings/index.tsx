@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Switch } from 'react-native';
-import { Text, List, Divider, useTheme } from 'react-native-paper';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Alert, 
+  Platform, 
+  Switch,
+  ActivityIndicator,
+  Linking,
+  Pressable
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
@@ -21,18 +32,52 @@ const STORAGE_KEY = {
   DEV_MODE_COUNT: 'bacchus_dev_mode_count'
 };
 
+// Colori per migliore accessibilità
+const COLORS = {
+  dark: {
+    background: '#0f1c35',
+    card: '#162a4e',
+    cardBorder: '#254175',
+    text: '#FFFFFF',
+    textSecondary: '#C5D5ED',
+    accent: '#6CC9FF',
+    switchTrack: '#6CC9FF',
+    divider: 'rgba(150, 150, 150, 0.2)',
+    gold: '#FFD700',
+    buttonBorder: '#254175',
+    buttonPrimary: '#6CC9FF',
+  },
+  light: {
+    background: '#f5f5f5',
+    card: '#FFFFFF',
+    cardBorder: '#e0e0e0',
+    text: '#333333',
+    textSecondary: '#757575',
+    accent: '#00838f',
+    switchTrack: '#00838f',
+    divider: 'rgba(150, 150, 150, 0.2)',
+    gold: '#FFC107',
+    buttonBorder: '#e0e0e0',
+    buttonPrimary: '#00838f',
+  }
+};
+
 export default function SettingsScreen() {
+  // State
+  const [language, setLanguage] = useState('it');
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showDeveloperOptions, setShowDeveloperOptions] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
   // Theme and translation
-  const theme = useTheme();
-  const { colors } = theme;
+  const { isDarkMode, toggleDarkMode } = useAppTheme();
   const { t, i18n } = useTranslation(['common', 'settings']);
   
   // Auth and navigation contexts
   const auth = useAuth();
   const navigationContext = useContext(NavigationContext);
   const setBlockNavigation = navigationContext?.setBlockNavigation;
-  const { isDarkMode, toggleDarkMode } = useAppTheme();
-  const isDark = theme.dark;
   
   // Extract auth properties with defaults
   const isLoggedIn = auth?.isAuthenticated || false;
@@ -43,11 +88,8 @@ export default function SettingsScreen() {
   const appVersion = Constants?.expoConfig?.version || '1.0.0';
   const appBuild = Constants?.expoConfig?.ios?.buildNumber || '1';
   
-  // State
-  const [language, setLanguage] = useState('it');
-  const [offlineMode, setOfflineMode] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
-  const [showDeveloperOptions, setShowDeveloperOptions] = useState(false);
+  // Colori basati sul tema
+  const colors = isDarkMode ? COLORS.dark : COLORS.light;
   
   // Load saved settings on component mount
   useEffect(() => {
@@ -57,10 +99,16 @@ export default function SettingsScreen() {
   // Function to load settings from storage
   const loadSettings = async () => {
     try {
+      setIsLoading(true);
+      console.log('🔧 [Settings] Caricando le impostazioni...');
+      
       // Load language
       const storedLanguage = await AsyncStorage.getItem(STORAGE_KEY.LANGUAGE);
       if (storedLanguage) {
         setLanguage(storedLanguage);
+        console.log(`🔧 [Settings] Lingua caricata: ${storedLanguage}`);
+      } else {
+        console.log('🔧 [Settings] Nessuna lingua salvata, uso il default');
       }
       
       // Load offline mode
@@ -78,14 +126,27 @@ export default function SettingsScreen() {
       // Check for developer mode
       const devModeCount = await AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT) || '0';
       setShowDeveloperOptions(parseInt(devModeCount, 10) >= 7);
+      
+      // Test translations for debug
+      try {
+        console.log('🔧 [Settings] Test traduzione chiavi:');
+        console.log(`🔧 [Settings] 'settings': ${t('settings', {ns: 'common'})}`);
+        console.log(`🔧 [Settings] 'appearance': ${t('appearance', {ns: 'settings'})}`);
+        console.log(`🔧 [Settings] 'premiumFeatures': ${t('premiumFeatures', {ns: 'settings'})}`);
+      } catch (translateError) {
+        console.error('🔧 [Settings] Errore durante il test delle traduzioni:', translateError);
+      }
+      
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('🔧 [Settings] Errore caricamento impostazioni:', error);
       
       // In caso di errore, usa i valori predefiniti
       setLanguage('it');
       setOfflineMode(false);
       setIsPremium(false);
       setShowDeveloperOptions(false);
+      setIsLoading(false);
     }
   };
   
@@ -96,6 +157,7 @@ export default function SettingsScreen() {
     try {
       // Aggiorniamo prima lo stato locale per feedback immediato all'utente
       setLanguage(newLanguage);
+      console.log(`🔧 [Settings] Cambio lingua a: ${newLanguage}`);
       
       // Salviamo in AsyncStorage
       await AsyncStorage.setItem(STORAGE_KEY.LANGUAGE, newLanguage);
@@ -108,8 +170,9 @@ export default function SettingsScreen() {
       // Cambiamo la lingua utilizzando i18n in un blocco try/catch separato
       try {
         await i18n.changeLanguage(newLanguage);
+        console.log(`🔧 [Settings] i18n.changeLanguage(${newLanguage}) completato`);
       } catch (langError) {
-        console.error('Error in i18n.changeLanguage:', langError);
+        console.error('🔧 [Settings] Errore in i18n.changeLanguage:', langError);
         // Anche se c'è un errore nel cambio lingua, non interrompiamo il flusso
       }
       
@@ -123,7 +186,7 @@ export default function SettingsScreen() {
         );
       }, 300);
     } catch (error) {
-      console.error('Error changing language:', error);
+      console.error('🔧 [Settings] Errore cambio lingua:', error);
       // Ripristiniamo lo stato locale alla lingua precedente in caso di errore
       setLanguage(language);
       Alert.alert(
@@ -137,6 +200,7 @@ export default function SettingsScreen() {
   const handleOfflineModeToggle = async () => {
     try {
       const newValue = !offlineMode;
+      console.log(`🔧 [Settings] Toggle modalità offline: ${newValue}`);
       setOfflineMode(newValue);
       await AsyncStorage.setItem(STORAGE_KEY.OFFLINE_MODE, newValue.toString());
       
@@ -149,7 +213,7 @@ export default function SettingsScreen() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Error toggling offline mode:', error);
+      console.error('🔧 [Settings] Errore toggle modalità offline:', error);
       // Riporta lo stato al valore originale in caso di errore
       setOfflineMode(offlineMode);
       Alert.alert(
@@ -162,9 +226,10 @@ export default function SettingsScreen() {
   // Function to handle dark mode toggle
   const handleDarkModeToggle = async () => {
     try {
+      console.log('🔧 [Settings] Toggle dark mode');
       await toggleDarkMode();
     } catch (error) {
-      console.error('Error toggling dark mode:', error);
+      console.error('🔧 [Settings] Errore toggle dark mode:', error);
       Alert.alert(
         t('error', { ns: 'common', defaultValue: 'Error' }),
         t('themeChangeError', { ns: 'settings', defaultValue: 'Error changing theme' })
@@ -175,7 +240,7 @@ export default function SettingsScreen() {
   // Function to handle logout
   const handleLogout = async () => {
     if (!auth || !signOut) {
-      console.error('Auth context or signOut function not available');
+      console.error('🔧 [Settings] Auth context o signOut non disponibili');
       return;
     }
     
@@ -184,6 +249,7 @@ export default function SettingsScreen() {
         setBlockNavigation(true);
       }
       
+      console.log('🔧 [Settings] Logout...');
       const result = await signOut();
       
       if (setBlockNavigation) {
@@ -200,7 +266,7 @@ export default function SettingsScreen() {
       if (setBlockNavigation) {
         setBlockNavigation(false);
       }
-      console.error('Logout error:', error);
+      console.error('🔧 [Settings] Errore logout:', error);
       Alert.alert(
         t('error', { ns: 'common', defaultValue: 'Error' }),
         t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
@@ -212,6 +278,7 @@ export default function SettingsScreen() {
   const togglePremiumStatus = async () => {
     try {
       const newStatus = !isPremium;
+      console.log(`🔧 [Settings] Toggle premium status: ${newStatus}`);
       setIsPremium(newStatus);
       await AsyncStorage.setItem(STORAGE_KEY.IS_PREMIUM, newStatus.toString());
       Alert.alert(
@@ -221,139 +288,182 @@ export default function SettingsScreen() {
           : t('premiumDisabled', { ns: 'settings', defaultValue: 'Premium features disabled' })
       );
     } catch (error) {
-      console.error('Error toggling premium status:', error);
+      console.error('🔧 [Settings] Errore toggle premium status:', error);
     }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView 
+        style={[styles.container, { backgroundColor: colors.background }]} 
+        edges={['top']}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[styles.loadingText, { color: colors.text, marginTop: 16 }]}>
+            {t('loading', { ns: 'common', defaultValue: 'Loading...' })}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Componente per riga delle impostazioni
+  const SettingRow = ({ 
+    icon, 
+    title, 
+    description, 
+    rightComponent 
+  }: { 
+    icon: string, 
+    title: string, 
+    description: string, 
+    rightComponent: React.ReactNode 
+  }) => (
+    <View>
+      <View style={styles.settingRow}>
+        <View style={styles.settingInfo}>
+          <Ionicons name={icon as any} size={24} color={colors.accent} />
+          <View style={styles.settingTextContainer}>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>
+              {title}
+            </Text>
+            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+              {description}
+            </Text>
+          </View>
+        </View>
+        {rightComponent}
+      </View>
+      <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+    </View>
+  );
 
   // Render settings screen
   return (
     <SafeAreaView 
-      style={[
-        styles.container, 
-        { backgroundColor: isDark ? '#0f1c35' : '#f5f5f5' }
-      ]} 
+      style={[styles.container, { backgroundColor: colors.background }]} 
       edges={['top']}
     >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
           {t('settings', { ns: 'common', defaultValue: 'Settings' })}
         </Text>
       </View>
       
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Appearance Section */}
         <View style={[
           styles.sectionContainer, 
           { 
-            backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
-            borderColor: isDark ? '#254175' : '#e0e0e0',
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
           }
         ]}>
-          {/* Appearance Section */}
-          <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
+          <Text style={[styles.sectionTitle, { color: colors.accent }]}>
             {t('appearance', { ns: 'settings', defaultValue: 'Appearance' })}
           </Text>
           
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="language-outline" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('language', { ns: 'settings', defaultValue: 'Language' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
-                  {t('selectLanguage', { ns: 'settings', defaultValue: 'Select language' })}
-                </Text>
+          <SettingRow
+            icon="language-outline"
+            title={t('language', { ns: 'settings', defaultValue: 'Language' })}
+            description={t('selectLanguage', { ns: 'settings', defaultValue: 'Select language' })}
+            rightComponent={
+              <View style={styles.languageSelector}>
+                <TouchableOpacity 
+                  style={[
+                    styles.languageButton, 
+                    language === 'it' && styles.selectedLanguageButton,
+                    language === 'it' && { backgroundColor: colors.accent + '33' }
+                  ]}
+                  onPress={() => handleLanguageChange('it')}
+                  accessibilityLabel="Italiano"
+                  accessibilityRole="button"
+                  accessible={true}
+                >
+                  <Text style={[
+                    styles.languageButtonText, 
+                    { color: language === 'it' ? colors.text : colors.textSecondary }
+                  ]}>
+                    🇮🇹
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[
+                    styles.languageButton, 
+                    language === 'en' && styles.selectedLanguageButton,
+                    language === 'en' && { backgroundColor: colors.accent + '33' }
+                  ]}
+                  onPress={() => handleLanguageChange('en')}
+                  accessibilityLabel="English"
+                  accessibilityRole="button"
+                  accessible={true}
+                >
+                  <Text style={[
+                    styles.languageButtonText, 
+                    { color: language === 'en' ? colors.text : colors.textSecondary }
+                  ]}>
+                    🇬🇧
+                  </Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            <View style={styles.languageSelector}>
-              <TouchableOpacity 
-                style={[
-                  styles.languageButton, 
-                  language === 'it' && 
-                  (isDark ? styles.selectedLanguageButtonDark : styles.selectedLanguageButton)
-                ]}
-                onPress={() => handleLanguageChange('it')}
-              >
-                <Text style={[
-                  styles.languageButtonText, 
-                  { color: language === 'it' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
-                ]}>
-                  🇮🇹
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.languageButton, 
-                  language === 'en' && 
-                  (isDark ? styles.selectedLanguageButtonDark : styles.selectedLanguageButton)
-                ]}
-                onPress={() => handleLanguageChange('en')}
-              >
-                <Text style={[
-                  styles.languageButtonText, 
-                  { color: language === 'en' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
-                ]}>
-                  🇬🇧
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            }
+          />
           
-          <View style={styles.divider} />
+          <SettingRow
+            icon="moon-outline"
+            title={t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
+            description={t('darkModeDesc', { ns: 'settings', defaultValue: 'Toggle dark or light appearance' })}
+            rightComponent={
+              <Switch
+                trackColor={{ false: '#767577', true: colors.switchTrack }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#767577"
+                onValueChange={handleDarkModeToggle}
+                value={isDarkMode}
+                style={styles.switch}
+                accessibilityLabel={t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
+                accessibilityRole="switch"
+                accessible={true}
+              />
+            }
+          />
           
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
-                  {t('darkModeDesc', { ns: 'settings', defaultValue: 'Toggle dark or light appearance' })}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={handleDarkModeToggle}
-              thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
-              trackColor={{ false: '#767577', true: isDark ? '#6CC9FF' : '#00838f' }}
-            />
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="wifi-outline" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
-                  {t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={offlineMode}
-              onValueChange={handleOfflineModeToggle}
-              thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
-              trackColor={{ false: '#767577', true: isDark ? '#6CC9FF' : '#00838f' }}
-            />
-          </View>
+          <SettingRow
+            icon="wifi-outline"
+            title={t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
+            description={t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
+            rightComponent={
+              <Switch
+                trackColor={{ false: '#767577', true: colors.switchTrack }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#767577"
+                onValueChange={handleOfflineModeToggle}
+                value={offlineMode}
+                style={styles.switch}
+                accessibilityLabel={t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
+                accessibilityRole="switch"
+                accessible={true}
+              />
+            }
+          />
         </View>
         
         {/* Premium Features */}
         <View style={[
           styles.sectionContainer, 
           { 
-            backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
-            borderColor: isDark ? '#254175' : '#e0e0e0',
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
           }
         ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
+          <Text style={[styles.sectionTitle, { color: colors.accent }]}>
             {t('premiumFeatures', { ns: 'settings', defaultValue: 'Premium Features' })}
           </Text>
           
@@ -362,13 +472,13 @@ export default function SettingsScreen() {
               <Ionicons 
                 name="star" 
                 size={24} 
-                color={isPremium ? (isDark ? '#FFD700' : '#FFC107') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
+                color={isPremium ? colors.gold : colors.textSecondary} 
               />
               <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                <Text style={[styles.settingTitle, { color: colors.text }]}>
                   {t('premiumActive', { ns: 'settings', defaultValue: 'Premium Active' })}
                 </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
+                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
                   {isPremium 
                     ? t('premiumActiveDesc', { ns: 'settings', defaultValue: 'Your premium subscription is active' })
                     : t('premiumInactiveDesc', { ns: 'settings', defaultValue: 'Upgrade to premium for extra features' })}
@@ -377,11 +487,16 @@ export default function SettingsScreen() {
             </View>
             {!isPremium && (
               <TouchableOpacity 
-                style={[styles.upgradeButton, { backgroundColor: isDark ? '#6CC9FF' : '#00838f' }]}
+                style={[styles.upgradeButton, { backgroundColor: colors.buttonPrimary }]}
                 onPress={() => {
-                  /* TODO: Implementare upgrade */
-                  Alert.alert('Premium', 'Premium upgrade coming soon');
+                  Alert.alert(
+                    t('premiumRequired', { ns: 'common', defaultValue: 'Premium Required' }),
+                    t('featureNeedsPremium', { ns: 'common', defaultValue: 'This feature requires a premium account' })
+                  );
                 }}
+                accessibilityLabel={t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Upgrade' })}
+                accessibilityRole="button"
+                accessible={true}
               >
                 <Text style={styles.upgradeButtonText}>
                   {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Upgrade' })}
@@ -390,65 +505,37 @@ export default function SettingsScreen() {
             )}
           </View>
           
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.divider }]} />
           
           {/* Premium feature list */}
           <View style={styles.premiumFeatureList}>
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="infinite" 
-                size={20} 
-                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
-              ]}>
-                {t('unlimitedSessions', { ns: 'settings', defaultValue: 'Unlimited Sessions' })}
-              </Text>
-            </View>
+            <PremiumFeature 
+              icon="infinite" 
+              text={t('unlimitedSessions', { ns: 'settings', defaultValue: 'Unlimited Sessions' })}
+              active={isPremium}
+              colors={colors}
+            />
             
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="stats-chart" 
-                size={20} 
-                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
-              ]}>
-                {t('advancedStatistics', { ns: 'settings', defaultValue: 'Advanced Statistics' })}
-              </Text>
-            </View>
+            <PremiumFeature 
+              icon="stats-chart" 
+              text={t('advancedStatistics', { ns: 'settings', defaultValue: 'Advanced Statistics' })}
+              active={isPremium}
+              colors={colors}
+            />
             
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="document-text" 
-                size={20} 
-                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
-              ]}>
-                {t('dataExport', { ns: 'settings', defaultValue: 'Data Export' })}
-              </Text>
-            </View>
+            <PremiumFeature 
+              icon="document-text" 
+              text={t('dataExport', { ns: 'settings', defaultValue: 'Data Export' })}
+              active={isPremium}
+              colors={colors}
+            />
             
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="close-circle" 
-                size={20} 
-                color={isPremium ? (isDark ? '#6CC9FF' : '#00838f') : (isDark ? '#C5D5ED' : '#BDBDBD')} 
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#C5D5ED' : '#757575') }
-              ]}>
-                {t('noAds', { ns: 'settings', defaultValue: 'No Advertisements' })}
-              </Text>
-            </View>
+            <PremiumFeature 
+              icon="close-circle" 
+              text={t('noAds', { ns: 'settings', defaultValue: 'No Advertisements' })}
+              active={isPremium}
+              colors={colors}
+            />
           </View>
         </View>
         
@@ -457,22 +544,22 @@ export default function SettingsScreen() {
           <View style={[
             styles.sectionContainer, 
             { 
-              backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
-              borderColor: isDark ? '#254175' : '#e0e0e0',
+              backgroundColor: colors.card,
+              borderColor: colors.cardBorder,
             }
           ]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
+            <Text style={[styles.sectionTitle, { color: colors.accent }]}>
               {t('account', { ns: 'settings', defaultValue: 'Account' })}
             </Text>
             
             {user && (
               <View style={styles.accountInfo}>
-                <Ionicons name="person" size={40} color={isDark ? '#6CC9FF' : '#00838f'} />
+                <Ionicons name="person" size={40} color={colors.accent} />
                 <View style={styles.accountTextContainer}>
-                  <Text style={[styles.accountEmail, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                  <Text style={[styles.accountEmail, { color: colors.text }]}>
                     {user.email}
                   </Text>
-                  <Text style={[styles.accountStatus, { color: isDark ? '#C5D5ED' : '#757575' }]}>
+                  <Text style={[styles.accountStatus, { color: colors.textSecondary }]}>
                     {t('loggedIn', { ns: 'settings', defaultValue: 'Logged in' })}
                   </Text>
                 </View>
@@ -480,12 +567,51 @@ export default function SettingsScreen() {
             )}
             
             <TouchableOpacity 
-              style={[styles.logoutButton, { borderColor: isDark ? '#254175' : '#e0e0e0' }]}
+              style={[styles.logoutButton, { borderColor: colors.buttonBorder }]}
               onPress={handleLogout}
+              accessibilityLabel={t('logout', { ns: 'settings', defaultValue: 'Logout' })}
+              accessibilityRole="button"
+              accessible={true}
             >
-              <Ionicons name="log-out-outline" size={20} color={isDark ? '#6CC9FF' : '#00838f'} />
-              <Text style={[styles.logoutButtonText, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+              <Ionicons name="log-out-outline" size={20} color={colors.accent} />
+              <Text style={[styles.logoutButtonText, { color: colors.text }]}>
                 {t('logout', { ns: 'settings', defaultValue: 'Logout' })}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Delete Account Button */}
+            <TouchableOpacity 
+              style={[styles.deleteAccountButton, { borderColor: colors.buttonBorder }]}
+              onPress={() => {
+                Alert.alert(
+                  t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' }),
+                  t('deleteAccountConfirm', { ns: 'settings', defaultValue: 'Are you sure you want to delete your account? This action is irreversible.' }),
+                  [
+                    {
+                      text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
+                      style: 'cancel'
+                    },
+                    {
+                      text: t('delete', { ns: 'common', defaultValue: 'Delete' }),
+                      style: 'destructive',
+                      onPress: () => {
+                        // Temporarily just show an alert
+                        Alert.alert(
+                          t('comingSoon', { ns: 'common', defaultValue: 'Coming Soon' }),
+                          t('featureInDevelopment', { ns: 'settings', defaultValue: 'This feature is still in development' })
+                        );
+                      }
+                    }
+                  ]
+                );
+              }}
+              accessibilityLabel={t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' })}
+              accessibilityRole="button"
+              accessible={true}
+            >
+              <Ionicons name="trash-outline" size={20} color="red" />
+              <Text style={styles.deleteAccountButtonText}>
+                {t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -496,24 +622,27 @@ export default function SettingsScreen() {
           <View style={[
             styles.sectionContainer, 
             { 
-              backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
-              borderColor: isDark ? '#254175' : '#e0e0e0',
+              backgroundColor: colors.card,
+              borderColor: colors.cardBorder,
             }
           ]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
+            <Text style={[styles.sectionTitle, { color: colors.accent }]}>
               {t('developerOptions', { ns: 'settings', defaultValue: 'Developer Options' })}
             </Text>
             
             <TouchableOpacity 
               style={styles.devOption}
               onPress={togglePremiumStatus}
+              accessibilityLabel={t('togglePremium', { ns: 'settings', defaultValue: 'Toggle Premium Status' })}
+              accessibilityRole="button"
+              accessible={true}
             >
-              <Ionicons name="construct" size={24} color={isDark ? '#6CC9FF' : '#00838f'} />
+              <Ionicons name="construct" size={24} color={colors.accent} />
               <View style={styles.devOptionTextContainer}>
-                <Text style={[styles.devOptionTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+                <Text style={[styles.devOptionTitle, { color: colors.text }]}>
                   {t('togglePremium', { ns: 'settings', defaultValue: 'Toggle Premium Status' })}
                 </Text>
-                <Text style={[styles.devOptionDescription, { color: isDark ? '#C5D5ED' : '#757575' }]}>
+                <Text style={[styles.devOptionDescription, { color: colors.textSecondary }]}>
                   {isPremium 
                     ? t('disablePremium', { ns: 'settings', defaultValue: 'Disable premium features for testing' })
                     : t('enablePremium', { ns: 'settings', defaultValue: 'Enable premium features for testing' })}
@@ -527,25 +656,40 @@ export default function SettingsScreen() {
         <View style={[
           styles.sectionContainer, 
           { 
-            backgroundColor: isDark ? '#162a4e' : '#FFFFFF',
-            borderColor: isDark ? '#254175' : '#e0e0e0',
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
           }
         ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#6CC9FF' : '#00838f' }]}>
+          <Text style={[styles.sectionTitle, { color: colors.accent }]}>
             {t('about', { ns: 'settings', defaultValue: 'About' })}
           </Text>
           
           <View style={styles.versionInfo}>
-            <Text style={[styles.versionLabel, { color: isDark ? '#C5D5ED' : '#757575' }]}>
+            <Text style={[styles.versionLabel, { color: colors.textSecondary }]}>
               {t('version', { ns: 'settings', defaultValue: 'Version' })}
             </Text>
-            <Text style={[styles.versionNumber, { color: isDark ? '#FFFFFF' : '#333333' }]}>
+            <Text style={[styles.versionNumber, { color: colors.text }]}>
               {appVersion} ({appBuild})
             </Text>
           </View>
           
+          <Pressable 
+            style={styles.privacyButton}
+            onPress={() => {
+              Linking.openURL('https://bacchusapp.com/privacy').catch(err => {
+                console.error('Errore nell\'apertura della privacy policy:', err);
+              });
+            }}
+            accessibilityRole="link"
+            accessible={true}
+          >
+            <Text style={[styles.privacyText, {color: colors.accent}]}>
+              {t('privacyPolicy', { ns: 'settings', defaultValue: 'Privacy Policy' })}
+            </Text>
+          </Pressable>
+          
           <View style={styles.credits}>
-            <Text style={[styles.creditsText, { color: isDark ? '#C5D5ED' : '#757575' }]}>
+            <Text style={[styles.creditsText, { color: colors.textSecondary }]}>
               © 2023 Bacchus
             </Text>
           </View>
@@ -555,10 +699,45 @@ export default function SettingsScreen() {
   );
 }
 
+// Premium feature component
+const PremiumFeature = ({ 
+  icon, 
+  text, 
+  active, 
+  colors 
+}: { 
+  icon: string, 
+  text: string, 
+  active: boolean, 
+  colors: any 
+}) => (
+  <View style={styles.premiumFeature}>
+    <Ionicons 
+      name={icon as any} 
+      size={20} 
+      color={active ? colors.accent : colors.textSecondary} 
+    />
+    <Text style={[
+      styles.premiumFeatureText, 
+      { color: active ? colors.text : colors.textSecondary } as any
+    ]}>
+      {text}
+    </Text>
+  </View>
+);
+
 // Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
   },
   header: {
     padding: 16,
@@ -570,6 +749,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 24,
   },
   sectionContainer: {
     marginHorizontal: 16,
@@ -613,7 +795,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(150, 150, 150, 0.2)',
     marginVertical: 4,
   },
   languageSelector: {
@@ -628,13 +809,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   selectedLanguageButton: {
-    backgroundColor: 'rgba(0, 131, 143, 0.15)',
-  },
-  selectedLanguageButtonDark: {
-    backgroundColor: 'rgba(108, 201, 255, 0.25)',
+    borderRadius: 20,
   },
   languageButtonText: {
     fontSize: 18,
+  },
+  switch: {
+    transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }]
   },
   premiumFeatureList: {
     marginTop: 8,
@@ -681,11 +862,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingVertical: 12,
+    marginBottom: 12,
   },
   logoutButtonText: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  deleteAccountButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'red',
   },
   devOption: {
     flexDirection: 'row',
@@ -713,6 +909,15 @@ const styles = StyleSheet.create({
   versionNumber: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  privacyButton: {
+    paddingVertical: 8,
+    marginVertical: 8,
+  },
+  privacyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
   credits: {
     marginTop: 8,
