@@ -89,8 +89,15 @@ i18next
 export const loadLanguageFromStorage = async (): Promise<string> => {
   try {
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (savedLanguage) {
-      await i18next.changeLanguage(savedLanguage);
+    if (savedLanguage && (savedLanguage === 'it' || savedLanguage === 'en')) {
+      try {
+        await i18next.changeLanguage(savedLanguage);
+      } catch (langError) {
+        console.error('Error in i18next.changeLanguage:', langError);
+        // Fallback alla lingua di default in caso di errore
+        await i18next.changeLanguage(DEFAULT_LANGUAGE);
+        return DEFAULT_LANGUAGE;
+      }
       return savedLanguage;
     }
   } catch (error) {
@@ -100,11 +107,21 @@ export const loadLanguageFromStorage = async (): Promise<string> => {
 };
 
 // Funzione per salvare la lingua selezionata
-export const saveLanguageToStorage = async (languageCode: string): Promise<void> => {
+export const saveLanguageToStorage = async (languageCode: string): Promise<boolean> => {
   try {
+    // Verifichiamo che il codice lingua sia supportato
+    if (languageCode !== 'it' && languageCode !== 'en') {
+      console.warn(`Language code '${languageCode}' not supported, defaulting to 'it'`);
+      languageCode = 'it';
+    }
+    
+    // Salviamo la lingua
     await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode);
+    
+    return true;
   } catch (error) {
     console.error('Error saving language to storage:', error);
+    return false;
   }
 };
 

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import i18next from '../i18n';
-import { saveLanguageToStorage } from '../i18n';
+import { saveLanguageToStorage, LANGUAGE_STORAGE_KEY } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import NavigationContext from '../contexts/NavigationContext';
@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Storage keys
 const STORAGE_KEY = {
-  LANGUAGE: 'bacchus_language',
+  LANGUAGE: LANGUAGE_STORAGE_KEY,
   OFFLINE_MODE: 'bacchus_offline_mode',
   IS_PREMIUM: 'bacchus_is_premium',
   DEV_MODE_COUNT: 'bacchus_dev_mode_count'
@@ -94,25 +94,38 @@ export default function SettingsScreen() {
     if (!newLanguage || newLanguage === language) return;
     
     try {
+      // Aggiorniamo prima lo stato locale per feedback immediato all'utente
       setLanguage(newLanguage);
+      
+      // Salviamo in AsyncStorage
       await AsyncStorage.setItem(STORAGE_KEY.LANGUAGE, newLanguage);
       
-      // Prima salva la lingua in storage, poi cambia lingua nell'app
-      await saveLanguageToStorage(newLanguage);
+      // Utilizziamo la funzione condivisa per salvare la lingua
+      if (saveLanguageToStorage) {
+        await saveLanguageToStorage(newLanguage);
+      }
       
-      // Cambia lingua nell'app
-      await i18n.changeLanguage(newLanguage);
+      // Cambiamo la lingua utilizzando i18n in un blocco try/catch separato
+      try {
+        await i18n.changeLanguage(newLanguage);
+      } catch (langError) {
+        console.error('Error in i18n.changeLanguage:', langError);
+        // Anche se c'è un errore nel cambio lingua, non interrompiamo il flusso
+      }
       
-      // Mostra una conferma
+      // Mostra una conferma con un timeout per dare tempo al sistema di applicare il cambio lingua
       setTimeout(() => {
+        // Utilizziamo chiavi di default per evitare problemi se le traduzioni non sono ancora pronte
         Alert.alert(
-          t('languageChanged', { ns: 'settings', defaultValue: 'Language changed successfully' }),
+          newLanguage === 'it' ? 'Lingua cambiata con successo' : 'Language changed successfully',
           '',
           [{ text: 'OK' }]
         );
-      }, 100);
+      }, 300);
     } catch (error) {
       console.error('Error changing language:', error);
+      // Ripristiniamo lo stato locale alla lingua precedente in caso di errore
+      setLanguage(language);
       Alert.alert(
         t('error', { ns: 'common', defaultValue: 'Error' }),
         t('languageChangeError', { ns: 'settings', defaultValue: 'Error changing language' })
