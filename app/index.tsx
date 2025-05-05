@@ -125,6 +125,7 @@ export default function InitialScreen() {
   const navigationState = useRootNavigationState();
   const [hasNavigated, setHasNavigated] = useState(false);
   const [translationsLoaded, setTranslationsLoaded] = useState(false);
+  const [showLoadingText, setShowLoadingText] = useState(false);
   
   // Riferimento per tenere traccia se abbiamo già effettuato una navigazione
   const hasNavigatedRef = useRef(false);
@@ -133,7 +134,56 @@ export default function InitialScreen() {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(1.5)).current;
   const logoPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const loadingTextOpacity = useRef(new Animated.Value(0)).current;
   
+  // Riferimento per l'animazione dell'icona di caricamento
+  const loadingIconSpin = useRef(new Animated.Value(0).interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  }));
+  
+  // Mostra il testo di caricamento dopo un breve ritardo se le traduzioni non sono ancora pronte
+  useEffect(() => {
+    if (!translationsLoaded) {
+      const timer = setTimeout(() => {
+        setShowLoadingText(true);
+        Animated.timing(loadingTextOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true
+        }).start();
+      }, 2000); // Mostra il testo dopo 2 secondi
+      
+      return () => clearTimeout(timer);
+    }
+  }, [translationsLoaded]);
+
+  // Animazione rotazione per l'icona di caricamento
+  useEffect(() => {
+    if (showLoadingText && !translationsLoaded) {
+      const spinValue = new Animated.Value(0);
+      
+      // Configura l'animazione di rotazione continua
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+          easing: Easing.linear
+        })
+      ).start();
+      
+      // Interpolazione per convertire il valore in gradi di rotazione
+      const spin = spinValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg']
+      });
+      
+      // Aggiorna lo stile dell'icona
+      loadingIconSpin.current = spin;
+    }
+  }, [showLoadingText, translationsLoaded]);
+
   // Precarica traduzioni all'avvio
   useEffect(() => {
     const loadTranslations = async () => {
@@ -427,6 +477,24 @@ export default function InitialScreen() {
           />
         </Animated.View>
       )}
+      
+      {/* Indicatore di caricamento */}
+      {showLoadingText && !translationsLoaded && (
+        <Animated.View 
+          style={[
+            styles.loadingContainer,
+            { opacity: loadingTextOpacity }
+          ]}
+        >
+          <Animated.Text style={styles.loadingText}>
+            Caricamento...
+          </Animated.Text>
+          {/* Icona rotante */}
+          <Animated.View style={{ transform: [{ rotate: loadingIconSpin.current }] }}>
+            <Ionicons name="refresh" size={24} color="#ffffff" />
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -444,5 +512,20 @@ const styles = StyleSheet.create({
   logo: {
     width: 150,
     height: 150,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    bottom: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginRight: 10,
+  },
+  loadingIcon: {
+    transform: [{ rotate: '0deg' }],
   }
 }); 
