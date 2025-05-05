@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { View, Image, StyleSheet, Dimensions, Animated, Easing, Text, ScrollView } from 'react-native';
+import { View, Image, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from './contexts/AuthContext';
@@ -40,42 +40,6 @@ import purchasesEN from './locales/en/purchases.json';
 ExpoSplashScreen.preventAutoHideAsync().catch(() => {
   console.log('Errore nella prevenzione della chiusura automatica della splash screen');
 });
-
-// Sistema di debug globale
-const DEBUG_LOGS = [];
-const MAX_LOGS = 50;
-
-// Funzione globale di debug
-global.debugLog = (message, type = 'info') => {
-  const timestamp = new Date().toISOString().substring(11, 23);
-  const logEntry = { 
-    timestamp, 
-    message: typeof message === 'object' ? JSON.stringify(message) : message,
-    type 
-  };
-  
-  // Aggiungi al buffer circolare
-  DEBUG_LOGS.push(logEntry);
-  if (DEBUG_LOGS.length > MAX_LOGS) {
-    DEBUG_LOGS.shift();
-  }
-  
-  // Log anche nella console nativa
-  if (type === 'error') {
-    console.error(`${timestamp} [${type}] ${logEntry.message}`);
-  } else {
-    console.log(`${timestamp} [${type}] ${logEntry.message}`);
-  }
-  
-  return logEntry;
-};
-
-// Override di console.error globale per catturare tutti gli errori
-const originalConsoleError = console.error;
-console.error = function() {
-  global.debugLog(Array.from(arguments).join(' '), 'error');
-  originalConsoleError.apply(console, arguments);
-};
 
 // Precarica tutte le traduzioni in modo esplicito
 const preloadTranslations = async () => {
@@ -162,9 +126,6 @@ export default function InitialScreen() {
   const [hasNavigated, setHasNavigated] = useState(false);
   const [translationsLoaded, setTranslationsLoaded] = useState(false);
   const [showLoadingText, setShowLoadingText] = useState(false);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [error, setError] = useState(null);
   
   // Riferimento per tenere traccia se abbiamo già effettuato una navigazione
   const hasNavigatedRef = useRef(false);
@@ -174,12 +135,6 @@ export default function InitialScreen() {
   const logoScale = useRef(new Animated.Value(1.5)).current;
   const logoPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const loadingTextOpacity = useRef(new Animated.Value(0)).current;
-  
-  // Riferimento per l'animazione dell'icona di caricamento
-  const loadingIconSpin = useRef(new Animated.Value(0).interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg']
-  }));
   
   // Mostra il testo di caricamento dopo un breve ritardo se le traduzioni non sono ancora pronte
   useEffect(() => {
@@ -196,32 +151,6 @@ export default function InitialScreen() {
       return () => clearTimeout(timer);
     }
   }, [translationsLoaded]);
-
-  // Animazione rotazione per l'icona di caricamento
-  useEffect(() => {
-    if (showLoadingText && !translationsLoaded) {
-      const spinValue = new Animated.Value(0);
-      
-      // Configura l'animazione di rotazione continua
-      Animated.loop(
-        Animated.timing(spinValue, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-          easing: Easing.linear
-        })
-      ).start();
-      
-      // Interpolazione per convertire il valore in gradi di rotazione
-      const spin = spinValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '360deg']
-      });
-      
-      // Aggiorna lo stile dell'icona
-      loadingIconSpin.current = spin;
-    }
-  }, [showLoadingText, translationsLoaded]);
 
   // Precarica traduzioni all'avvio
   useEffect(() => {
@@ -492,82 +421,13 @@ export default function InitialScreen() {
     return () => clearTimeout(timeoutId);
   }, [navigationState?.key, isAuthLoading, isAuthenticated, router, translationsLoaded]);
   
-  // Aggiorna i log di debug ogni secondo
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setDebugLogs([...DEBUG_LOGS]);
-    }, 1000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-  
-  // Handler per errori globali non catturati
-  useEffect(() => {
-    const errorHandler = (error) => {
-      global.debugLog(`ERRORE NON CATTURATO: ${error}`, 'error');
-      setError(error.toString());
-      setShowDebugPanel(true);
-    };
-    
-    // Aggiungi listener per errori globali (compatibile con React Native)
-    const errorSubscription = (global as any).ErrorUtils ? 
-      (error, isFatal) => {
-        errorHandler(error);
-        // Non interrompiamo il flusso normale
-      } : null;
-    
-    if ((global as any).ErrorUtils) {
-      try {
-        const originalGlobalHandler = (global as any).ErrorUtils.getGlobalHandler();
-        (global as any).ErrorUtils.setGlobalHandler((error, isFatal) => {
-          errorHandler(error);
-          originalGlobalHandler(error, isFatal);
-        });
-      } catch (err) {
-        console.log('Non è stato possibile impostare l\'error handler globale:', err);
-      }
-    }
-    
-    return () => {
-      // Cleanup se necessario
-      if ((global as any).ErrorUtils && errorSubscription) {
-        try {
-          // Eventuale cleanup
-        } catch (err) {
-          // Ignora errori durante il cleanup
-        }
-      }
-    };
-  }, []);
-  
-  // Abilita il pannello di debug con 3 tocchi in sequenza rapida
-  const lastTapTime = useRef(0);
-  const tapCount = useRef(0);
-  
-  const handleDebugTap = () => {
-    const now = Date.now();
-    const delta = now - lastTapTime.current;
-    
-    if (delta < 500) {
-      tapCount.current += 1;
-      if (tapCount.current >= 3) {
-        setShowDebugPanel(!showDebugPanel);
-        tapCount.current = 0;
-      }
-    } else {
-      tapCount.current = 1;
-    }
-    
-    lastTapTime.current = now;
-  };
-  
   // Effetto per garantire che l'app vada sempre avanti anche in caso di problemi
   useEffect(() => {
-    // Fallback estremo: dopo 10 secondi forziamo la navigazione se l'app è ancora bloccata
+    // Fallback semplice: dopo 10 secondi forziamo la navigazione se l'app è ancora bloccata
     const fallbackTimer = setTimeout(() => {
       // Verifica se siamo ancora nella schermata di caricamento
       if (!hasNavigated && navigationState?.key) {
-        global.debugLog('⚠️ FALLBACK DI EMERGENZA: forzatura navigazione dopo timeout', 'warning');
+        console.log('⚠️ FALLBACK: forzatura navigazione dopo timeout');
         
         try {
           // Forza la navigazione alla login o alla dashboard
@@ -580,7 +440,7 @@ export default function InitialScreen() {
             router.replace('/auth/login');
           }
         } catch (err) {
-          global.debugLog(`Errore durante il fallback di emergenza: ${err}`, 'error');
+          console.error(`Errore durante il fallback: ${err}`);
         }
       }
     }, 10000); // 10 secondi di timeout massimo
@@ -589,10 +449,7 @@ export default function InitialScreen() {
   }, [hasNavigated, navigationState?.key, isAuthenticated, router]);
   
   return (
-    <View 
-      style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}
-      onTouchStart={handleDebugTap}
-    >
+    <View style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
       {/* Mostra l'animazione del logo solo se l'utente NON è autenticato */}
       {!isAuthenticated && (
         <Animated.View
@@ -627,49 +484,8 @@ export default function InitialScreen() {
           <Animated.Text style={styles.loadingText}>
             Caricamento...
           </Animated.Text>
-          {/* Icona rotante */}
-          <Animated.View style={{ transform: [{ rotate: loadingIconSpin.current }] }}>
-            <Ionicons name="refresh" size={24} color="#ffffff" />
-          </Animated.View>
+          <Ionicons name="refresh" size={24} color="#ffffff" />
         </Animated.View>
-      )}
-      
-      {/* Pannello di debug */}
-      {showDebugPanel && (
-        <View style={styles.debugPanel}>
-          <Text style={styles.debugTitle}>Debug Info</Text>
-          
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorTitle}>ERRORE CRITICO:</Text>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-          
-          <Text style={styles.debugSectionTitle}>Stati:</Text>
-          <Text style={styles.debugText}>
-            Autenticato: {isAuthenticated ? 'Sì' : 'No'}{'\n'}
-            Caricamento Auth: {isAuthLoading ? 'Sì' : 'No'}{'\n'}
-            Traduzioni caricate: {translationsLoaded ? 'Sì' : 'No'}{'\n'}
-            Navigazione pronta: {navigationState?.key ? 'Sì' : 'No'}{'\n'}
-            Navigazione effettuata: {hasNavigated ? 'Sì' : 'No'}{'\n'}
-          </Text>
-          
-          <Text style={styles.debugSectionTitle}>Log (recenti):</Text>
-          <ScrollView style={styles.logContainer}>
-            {debugLogs.map((log, index) => (
-              <Text 
-                key={index} 
-                style={[
-                  styles.logText, 
-                  log.type === 'error' && styles.logErrorText
-                ]}
-              >
-                {log.timestamp} [{log.type}] {log.message}
-              </Text>
-            ))}
-          </ScrollView>
-        </View>
       )}
     </View>
   );
@@ -700,64 +516,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     marginRight: 10,
-  },
-  loadingIcon: {
-    transform: [{ rotate: '0deg' }],
-  },
-  debugPanel: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    padding: 10,
-    zIndex: 9999,
-  },
-  debugTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  debugSectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  debugText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-  },
-  logContainer: {
-    flex: 1,
-    marginTop: 5,
-  },
-  logText: {
-    color: '#CCCCCC',
-    fontSize: 10,
-    marginBottom: 2,
-  },
-  logErrorText: {
-    color: '#FF5555',
-  },
-  errorContainer: {
-    backgroundColor: 'rgba(255,0,0,0.2)',
-    padding: 10,
-    borderRadius: 5,
-    marginVertical: 10,
-  },
-  errorTitle: {
-    color: '#FF5555',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  errorText: {
-    color: '#FFFFFF',
-    fontSize: 12,
   }
 }); 
