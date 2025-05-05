@@ -4,7 +4,7 @@ export default {
   expo: {
     name: 'Bacchus',
     slug: 'Bacchus',
-    owner: "dimaiodomenico95",
+    owner: "domenicodimaio9595",
     version: '1.2.1',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -56,7 +56,6 @@ export default {
       typedRoutes: true
     },
     updates: {
-      url: "https://u.expo.dev/8b45518d-6d0c-4503-acb6-aed59b5675d9",
       enabled: true,
       fallbackToCacheTimeout: 0
     },
@@ -64,9 +63,6 @@ export default {
     extra: {
       supabaseUrl: process.env.SUPABASE_URL || 'https://example.supabase.co',
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'demo-key',
-      eas: {
-        projectId: "8b45518d-6d0c-4503-acb6-aed59b5675d9"
-      }
     }
   }
 }; 
