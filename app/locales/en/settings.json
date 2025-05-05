@@ -1,5 +1,5 @@
 {
-  "settings": "Settings",
+  "title": "Settings",
   "preferences": "Preferences",
   "about": "About",
   "appVersion": "Bacchus v1.0.0",
@@ -38,11 +38,16 @@
   "loggedIn": "Logged in",
   "logout": "Logout",
   "logoutDesc": "Sign out of your account",
+  "logoutConfirm": "Are you sure you want to logout?",
+  "deleteAccount": "Delete Account",
+  "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
   "version": "Version",
   "premiumFeatures": "Premium Features",
   "premiumActive": "Premium Active",
   "premiumActiveDesc": "Your premium subscription is active",
   "premiumInactiveDesc": "Upgrade to premium for extra features",
+  "premium": "Premium",
+  "premiumComingSoon": "Premium upgrade coming soon",
   "unlimitedSessions": "Unlimited Sessions",
   "unlimitedSessionsDesc": "Track as many drinking sessions as you want",
   "advancedStatistics": "Advanced Statistics",
@@ -59,5 +64,7 @@
   "premiumEnabled": "Premium features enabled for testing",
   "premiumDisabled": "Premium features disabled",
   "error": "Error",
-  "errorGeneric": "An error occurred. Please try again."
+  "errorGeneric": "An error occurred. Please try again.",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service"
 } 
