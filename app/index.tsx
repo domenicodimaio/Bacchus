@@ -561,6 +561,33 @@ export default function InitialScreen() {
     lastTapTime.current = now;
   };
   
+  // Effetto per garantire che l'app vada sempre avanti anche in caso di problemi
+  useEffect(() => {
+    // Fallback estremo: dopo 10 secondi forziamo la navigazione se l'app è ancora bloccata
+    const fallbackTimer = setTimeout(() => {
+      // Verifica se siamo ancora nella schermata di caricamento
+      if (!hasNavigated && navigationState?.key) {
+        global.debugLog('⚠️ FALLBACK DI EMERGENZA: forzatura navigazione dopo timeout', 'warning');
+        
+        try {
+          // Forza la navigazione alla login o alla dashboard
+          hasNavigatedRef.current = true;
+          setHasNavigated(true);
+          
+          if (isAuthenticated) {
+            router.replace('/dashboard');
+          } else {
+            router.replace('/auth/login');
+          }
+        } catch (err) {
+          global.debugLog(`Errore durante il fallback di emergenza: ${err}`, 'error');
+        }
+      }
+    }, 10000); // 10 secondi di timeout massimo
+    
+    return () => clearTimeout(fallbackTimer);
+  }, [hasNavigated, navigationState?.key, isAuthenticated, router]);
+  
   return (
     <View 
       style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}
