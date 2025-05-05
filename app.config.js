@@ -5,7 +5,7 @@ export default {
     name: 'Bacchus',
     slug: 'Bacchus',
     owner: "dimaiodomenico95",
-    version: '1.0.2',
+    version: '1.2.1',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',

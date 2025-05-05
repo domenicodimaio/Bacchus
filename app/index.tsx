@@ -143,7 +143,14 @@ const preloadTranslations = async () => {
       
       // Fallback di emergenza: creare una funzione di traduzione di base che non causa crash
       if (typeof global !== 'undefined') {
-        global.emergencyTranslate = (key, options = {}) => {
+        // Definisci un tipo per le opzioni di traduzione
+        interface TranslateOptions {
+          ns?: string;
+          defaultValue?: string;
+          [key: string]: any;
+        }
+        
+        global.emergencyTranslate = (key: string, options: TranslateOptions = {}) => {
           try {
             // Prova a utilizzare i18n normalmente
             const ns = options.ns || 'common';
@@ -156,19 +163,22 @@ const preloadTranslations = async () => {
               { common: commonIT, settings: settingsIT } : 
               { common: commonEN, settings: settingsEN };
             
-            return resources[ns]?.[key] || key;
+            return resources[ns]?.[key] || options.defaultValue || key;
           } catch (e) {
             console.warn('🌐 [EMERGENCY] Fallback traduzione:', e);
-            return key; // Ritorna la chiave come ultimo fallback
+            return options.defaultValue || key; // Ritorna il valore di default o la chiave come ultimo fallback
           }
         };
       }
       
-      return false;
+      // Anche in caso di errore, ritorna true per non bloccare l'avvio dell'app
+      console.warn('🌐 [STARTUP] Continuando l\'avvio anche con problemi di traduzione');
+      return true;
     }
   } catch (fatalError) {
     console.error('🌐 [STARTUP] Errore fatale nel precaricamento traduzioni:', fatalError);
-    return false;
+    // Anche in caso di errore fatale, ritorna true per non bloccare l'avvio dell'app
+    return true;
   }
 };
 
@@ -225,8 +235,19 @@ export default function InitialScreen() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Tenta di caricare le traduzioni ma procedi comunque dopo 3 secondi massimo
+        let splashTimer = setTimeout(() => {
+          console.log('🚨 [STARTUP] Timeout forzato della splash screen dopo 3s');
+          ExpoSplashScreen.hideAsync().catch(() => {});
+          setTranslationsLoaded(true); // Forza lo stato anche se non avvenuto
+        }, 3000);
+        
         // Attendi che le traduzioni siano caricate prima di procedere
-        if (!translationsLoaded) return;
+        if (!translationsLoaded) {
+          const success = await preloadTranslations();
+          setTranslationsLoaded(true); // Imposta sempre a true anche in caso di errore
+          clearTimeout(splashTimer); // Pulisci il timer se le traduzioni sono caricate prima
+        }
         
         // Nascondi la splash screen nativa dopo un breve ritardo
         setTimeout(async () => {
@@ -248,27 +269,27 @@ export default function InitialScreen() {
               // 1. Fade in del logo (grande e centrato)
               Animated.timing(logoOpacity, {
                 toValue: 1,
-                duration: 800,
+                duration: 600, // Riduci leggermente la durata
                 useNativeDriver: true,
                 easing: Easing.out(Easing.ease)
               }),
               
               // 2. Pausa per ammirare il logo
-              Animated.delay(800),
+              Animated.delay(500), // Riduci la pausa
               
               // 3. Spostamento verso la posizione finale
               Animated.parallel([
                 // Sposta il logo verso l'alto
                 Animated.timing(logoPosition, {
                   toValue: { x: 0, y: finalPositionY },
-                  duration: 1000,
+                  duration: 700, // Riduci leggermente la durata
                   useNativeDriver: true,
                   easing: Easing.inOut(Easing.cubic)
                 }),
                 // Riduci la dimensione
                 Animated.timing(logoScale, {
                   toValue: 1.0, // Dimensione finale come nella login
-                  duration: 1000,
+                  duration: 700, // Riduci leggermente la durata
                   useNativeDriver: true,
                   easing: Easing.inOut(Easing.cubic)
                 })
@@ -286,9 +307,12 @@ export default function InitialScreen() {
           } catch (err) {
             console.log('Errore nel nascondere la splash screen', err);
           }
-        }, 300);
+        }, 200); // Riduci il ritardo prima di nascondere la splash screen
       } catch (e) {
         console.error('Errore durante l\'inizializzazione:', e);
+        // Forza il proseguimento anche in caso di errore
+        setTranslationsLoaded(true);
+        ExpoSplashScreen.hideAsync().catch(() => {});
       }
     };
     
@@ -402,7 +426,7 @@ export default function InitialScreen() {
             pathname: '/auth/login',
             params: { fromSplash: 'true' }
           });
-        }, 2600); // Attendi che l'animazione sia completata (800ms fade + 800ms pausa + 1000ms movimento)
+        }, 1800); // Riduci il tempo di attesa (originale era 2600ms)
       } catch (error) {
         console.error('Errore durante il controllo dello stato dell\'utente:', error);
         
