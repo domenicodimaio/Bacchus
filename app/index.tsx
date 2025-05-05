@@ -43,73 +43,133 @@ ExpoSplashScreen.preventAutoHideAsync().catch(() => {
 
 // Precarica tutte le traduzioni in modo esplicito
 const preloadTranslations = async () => {
-  console.log('🌐🌐🌐 [STARTUP] Precaricamento forzato delle traduzioni...');
-  
-  // Verifico che i file di traduzione siano stati caricati
-  console.log('🌐 [STARTUP] Verifica file di traduzione:');
-  console.log('🌐 [STARTUP] IT-common:', commonIT ? `OK (${Object.keys(commonIT).length} chiavi)` : 'MANCANTE');
-  console.log('🌐 [STARTUP] IT-settings:', settingsIT ? `OK (${Object.keys(settingsIT).length} chiavi)` : 'MANCANTE');
-  console.log('🌐 [STARTUP] EN-common:', commonEN ? `OK (${Object.keys(commonEN).length} chiavi)` : 'MANCANTE');
-  console.log('🌐 [STARTUP] EN-settings:', settingsEN ? `OK (${Object.keys(settingsEN).length} chiavi)` : 'MANCANTE');
-  
-  // Carica la lingua dalle preferenze utente
-  const currentLang = await loadLanguageFromStorage();
-  console.log(`🌐 [STARTUP] Lingua caricata: ${currentLang}`);
-  
-  // Test traduzione
   try {
-    // Verifica che i18n sia stato inizializzato correttamente
-    if (!i18n || !i18n.getFixedT) {
-      console.error('🌐 [STARTUP] ERRORE: i18n non è stato inizializzato correttamente');
-      return true; // Continua comunque
+    console.log('🌐🌐🌐 [STARTUP] Precaricamento forzato delle traduzioni...');
+    
+    // Verifico che i file di traduzione siano stati caricati
+    console.log('🌐 [STARTUP] Verifica file di traduzione:');
+    console.log('🌐 [STARTUP] IT-common:', Boolean(commonIT && Object.keys(commonIT).length));
+    console.log('🌐 [STARTUP] IT-settings:', Boolean(settingsIT && Object.keys(settingsIT).length));
+    console.log('🌐 [STARTUP] EN-common:', Boolean(commonEN && Object.keys(commonEN).length));
+    console.log('🌐 [STARTUP] EN-settings:', Boolean(settingsEN && Object.keys(settingsEN).length));
+    
+    // Carica la lingua dalle preferenze utente
+    let currentLang = 'it'; // Default in caso di errore
+    try {
+      currentLang = await loadLanguageFromStorage() || 'it';
+      console.log(`🌐 [STARTUP] Lingua caricata: ${currentLang}`);
+    } catch (e) {
+      console.error('🌐 [STARTUP] Errore caricamento lingua:', e);
+      // In caso di errore, forzare la lingua italiana come fallback
+      currentLang = 'it';
     }
     
-    const testIT = i18n.getFixedT('it');
-    const testEN = i18n.getFixedT('en');
-    
-    // Test di traduzione chiavi specifiche che causavano problemi
-    console.log('🌐 [STARTUP] Test traduzione IT:');
-    console.log(`🌐 [STARTUP] 'settings' (IT): "${testIT('settings', { ns: 'common' }) || 'NON TROVATO'}"`);
-    console.log(`🌐 [STARTUP] 'appearance' (IT): "${testIT('appearance', { ns: 'settings' }) || 'NON TROVATO'}"`);
-    console.log(`🌐 [STARTUP] 'darkMode' (IT): "${testIT('darkMode', { ns: 'settings' }) || 'NON TROVATO'}"`);
-    
-    console.log('🌐 [STARTUP] Test traduzione EN:');
-    console.log(`🌐 [STARTUP] 'settings' (EN): "${testEN('settings', { ns: 'common' }) || 'NON TROVATO'}"`);
-    console.log(`🌐 [STARTUP] 'appearance' (EN): "${testEN('appearance', { ns: 'settings' }) || 'NON TROVATO'}"`);
-    console.log(`🌐 [STARTUP] 'darkMode' (EN): "${testEN('darkMode', { ns: 'settings' }) || 'NON TROVATO'}"`);
-    
-    // Registra un oggetto globale per i namespace i18n caricati (per debug)
-    if (typeof global !== 'undefined') {
-      global.i18nResources = {
-        it: { 
-          common: commonIT, 
-          settings: settingsIT,
-          session: sessionIT,
-          profile: profileIT,
-          auth: authIT,
-          dashboard: dashboardIT,
-          purchases: purchasesIT
-        },
-        en: {
-          common: commonEN,
-          settings: settingsEN,
-          session: sessionEN,
-          profile: profileEN,
-          auth: authEN,
-          dashboard: dashboardEN,
-          purchases: purchasesEN
-        }
-      };
-      console.log('🌐 [STARTUP] Risorse di traduzione registrate nell\'oggetto globale per debug');
+    // Forza il caricamento esplicito delle risorse
+    if (!i18n.isInitialized) {
+      console.warn('🌐 [STARTUP] i18n non è stato inizializzato correttamente, tentativo di reinizializzazione');
+      try {
+        await i18n.init({
+          lng: currentLang,
+          fallbackLng: 'it',
+          resources: {
+            it: { 
+              common: commonIT, 
+              settings: settingsIT,
+              session: sessionIT,
+              profile: profileIT,
+              auth: authIT,
+              dashboard: dashboardIT,
+              purchases: purchasesIT
+            },
+            en: {
+              common: commonEN,
+              settings: settingsEN,
+              session: sessionEN,
+              profile: profileEN,
+              auth: authEN,
+              dashboard: dashboardEN,
+              purchases: purchasesEN
+            }
+          }
+        });
+      } catch (e) {
+        console.error('🌐 [STARTUP] Errore reinizializzazione i18n:', e);
+      }
     }
     
-  } catch (error) {
-    console.error('🌐 [STARTUP] Errore nel test delle traduzioni:', error);
+    // Test traduzione
+    try {
+      const testIT = i18n.getFixedT('it');
+      const testEN = i18n.getFixedT('en');
+      
+      // Test di traduzione chiavi specifiche che causavano problemi
+      console.log('🌐 [STARTUP] Test traduzione IT:');
+      console.log(`🌐 [STARTUP] 'settings' (IT): "${testIT('settings', { ns: 'common' })}"`);
+      console.log(`🌐 [STARTUP] 'appearance' (IT): "${testIT('appearance', { ns: 'settings' })}"`);
+      console.log(`🌐 [STARTUP] 'darkMode' (IT): "${testIT('darkMode', { ns: 'settings' })}"`);
+      
+      console.log('🌐 [STARTUP] Test traduzione EN:');
+      console.log(`🌐 [STARTUP] 'settings' (EN): "${testEN('settings', { ns: 'common' })}"`);
+      console.log(`🌐 [STARTUP] 'appearance' (EN): "${testEN('appearance', { ns: 'settings' })}"`);
+      console.log(`🌐 [STARTUP] 'darkMode' (EN): "${testEN('darkMode', { ns: 'settings' })}"`);
+      
+      // Registra un oggetto globale per i namespace i18n caricati (per debug)
+      if (typeof global !== 'undefined') {
+        global.i18nResources = {
+          it: { 
+            common: commonIT, 
+            settings: settingsIT,
+            session: sessionIT,
+            profile: profileIT,
+            auth: authIT,
+            dashboard: dashboardIT,
+            purchases: purchasesIT
+          },
+          en: {
+            common: commonEN,
+            settings: settingsEN,
+            session: sessionEN,
+            profile: profileEN,
+            auth: authEN,
+            dashboard: dashboardEN,
+            purchases: purchasesEN
+          }
+        };
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('🌐 [STARTUP] Errore nel test delle traduzioni:', error);
+      
+      // Fallback di emergenza: creare una funzione di traduzione di base che non causa crash
+      if (typeof global !== 'undefined') {
+        global.emergencyTranslate = (key, options = {}) => {
+          try {
+            // Prova a utilizzare i18n normalmente
+            const ns = options.ns || 'common';
+            if (i18n && i18n.getFixedT) {
+              return i18n.getFixedT(currentLang)(key, options);
+            }
+            
+            // Fallback manuale ai file di traduzione
+            const resources = currentLang === 'it' ? 
+              { common: commonIT, settings: settingsIT } : 
+              { common: commonEN, settings: settingsEN };
+            
+            return resources[ns]?.[key] || key;
+          } catch (e) {
+            console.warn('🌐 [EMERGENCY] Fallback traduzione:', e);
+            return key; // Ritorna la chiave come ultimo fallback
+          }
+        };
+      }
+      
+      return false;
+    }
+  } catch (fatalError) {
+    console.error('🌐 [STARTUP] Errore fatale nel precaricamento traduzioni:', fatalError);
+    return false;
   }
-  
-  // Restituisci sempre true per permettere all'app di procedere anche in caso di errori
-  console.log('🌐 [STARTUP] Inizializzazione traduzioni completata');
-  return true;
 };
 
 // Colore di sfondo identico alla schermata di login
@@ -125,7 +185,6 @@ export default function InitialScreen() {
   const navigationState = useRootNavigationState();
   const [hasNavigated, setHasNavigated] = useState(false);
   const [translationsLoaded, setTranslationsLoaded] = useState(false);
-  const [showLoadingText, setShowLoadingText] = useState(false);
   
   // Riferimento per tenere traccia se abbiamo già effettuato una navigazione
   const hasNavigatedRef = useRef(false);
@@ -134,24 +193,7 @@ export default function InitialScreen() {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(1.5)).current;
   const logoPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const loadingTextOpacity = useRef(new Animated.Value(0)).current;
   
-  // Mostra il testo di caricamento dopo un breve ritardo se le traduzioni non sono ancora pronte
-  useEffect(() => {
-    if (!translationsLoaded) {
-      const timer = setTimeout(() => {
-        setShowLoadingText(true);
-        Animated.timing(loadingTextOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true
-        }).start();
-      }, 2000); // Mostra il testo dopo 2 secondi
-      
-      return () => clearTimeout(timer);
-    }
-  }, [translationsLoaded]);
-
   // Precarica traduzioni all'avvio
   useEffect(() => {
     const loadTranslations = async () => {
@@ -184,17 +226,7 @@ export default function InitialScreen() {
     const initializeApp = async () => {
       try {
         // Attendi che le traduzioni siano caricate prima di procedere
-        if (!translationsLoaded) {
-          console.log('🔄 [STARTUP] Attesa caricamento traduzioni...');
-          // Aggiungiamo un timeout di sicurezza per procedere comunque dopo 3 secondi
-          setTimeout(() => {
-            if (!translationsLoaded) {
-              console.warn('⚠️ [STARTUP] Timeout di attesa traduzioni raggiunto! Procedo comunque');
-              setTranslationsLoaded(true);
-            }
-          }, 3000);
-          return;
-        }
+        if (!translationsLoaded) return;
         
         // Nascondi la splash screen nativa dopo un breve ritardo
         setTimeout(async () => {
@@ -243,7 +275,7 @@ export default function InitialScreen() {
               ])
             ]).start();
             
-            // Riparazione database in background con gestione degli errori
+            // Riparazione database in background
             repairDatabaseSchema().then(success => {
               console.log(success 
                 ? 'Schema del database verificato e riparato con successo' 
@@ -252,15 +284,11 @@ export default function InitialScreen() {
               console.error('Eccezione nella riparazione del database:', error);
             });
           } catch (err) {
-            console.error('Errore nel nascondere la splash screen', err);
-            // Continua comunque con l'app anche se la splash screen non può essere nascosta
+            console.log('Errore nel nascondere la splash screen', err);
           }
         }, 300);
       } catch (e) {
         console.error('Errore durante l\'inizializzazione:', e);
-        // In caso di errore, prova comunque a nascondere la splash screen e proseguire
-        ExpoSplashScreen.hideAsync().catch(() => {});
-        setTranslationsLoaded(true); // Forza a procedere anche in caso di errore
       }
     };
     
@@ -270,30 +298,10 @@ export default function InitialScreen() {
   // Controllo dello stato di autenticazione e navigazione
   useEffect(() => {
     // Attendi che lo stato di navigazione, autenticazione e traduzioni siano pronti
-    if (!navigationState?.key || isAuthLoading) return;
-    
-    // Aggiungiamo un timeout di sicurezza per procedere anche se le traduzioni non si caricano
-    const timeoutId = setTimeout(() => {
-      if (!translationsLoaded) {
-        console.warn('⚠️ [STARTUP] Il caricamento delle traduzioni sta prendendo troppo tempo, procedo comunque');
-        setTranslationsLoaded(true);
-      }
-    }, 5000); // 5 secondi di timeout
+    if (!navigationState?.key || isAuthLoading || !translationsLoaded) return;
     
     // Evita esecuzioni multiple
-    if (hasNavigatedRef.current) {
-      clearTimeout(timeoutId);
-      return;
-    }
-    
-    // Se le traduzioni non sono ancora pronte, attendi (ma con il timeout già impostato)
-    if (!translationsLoaded) {
-      console.log('🔄 [STARTUP] Attendo il caricamento delle traduzioni prima di navigare...');
-      return;
-    }
-    
-    // Puliamo il timeout poiché le traduzioni sono pronte
-    clearTimeout(timeoutId);
+    if (hasNavigatedRef.current) return;
     
     const checkUserStatus = async () => {
       try {
@@ -377,15 +385,7 @@ export default function InitialScreen() {
                 
               console.log(`Navigazione immediata verso: ${destination}`);
               router.replace(destination);
-            }).catch(error => {
-              console.error('Errore nel recuperare i profili:', error);
-              // In caso di errore, vai alla dashboard (che probabilmente mostrerà un messaggio di errore)
-              router.replace('/dashboard');
             });
-          }).catch(error => {
-            console.error('Errore nel verificare lo stato del wizard:', error);
-            // In caso di errore, vai alla dashboard
-            router.replace('/dashboard');
           });
           return;
         }
@@ -416,37 +416,7 @@ export default function InitialScreen() {
     };
     
     checkUserStatus();
-    
-    // Cleanup del timeout quando l'effetto viene smontato
-    return () => clearTimeout(timeoutId);
   }, [navigationState?.key, isAuthLoading, isAuthenticated, router, translationsLoaded]);
-  
-  // Effetto per garantire che l'app vada sempre avanti anche in caso di problemi
-  useEffect(() => {
-    // Fallback semplice: dopo 10 secondi forziamo la navigazione se l'app è ancora bloccata
-    const fallbackTimer = setTimeout(() => {
-      // Verifica se siamo ancora nella schermata di caricamento
-      if (!hasNavigated && navigationState?.key) {
-        console.log('⚠️ FALLBACK: forzatura navigazione dopo timeout');
-        
-        try {
-          // Forza la navigazione alla login o alla dashboard
-          hasNavigatedRef.current = true;
-          setHasNavigated(true);
-          
-          if (isAuthenticated) {
-            router.replace('/dashboard');
-          } else {
-            router.replace('/auth/login');
-          }
-        } catch (err) {
-          console.error(`Errore durante il fallback: ${err}`);
-        }
-      }
-    }, 10000); // 10 secondi di timeout massimo
-    
-    return () => clearTimeout(fallbackTimer);
-  }, [hasNavigated, navigationState?.key, isAuthenticated, router]);
   
   return (
     <View style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
@@ -472,21 +442,6 @@ export default function InitialScreen() {
           />
         </Animated.View>
       )}
-      
-      {/* Indicatore di caricamento */}
-      {showLoadingText && !translationsLoaded && (
-        <Animated.View 
-          style={[
-            styles.loadingContainer,
-            { opacity: loadingTextOpacity }
-          ]}
-        >
-          <Animated.Text style={styles.loadingText}>
-            Caricamento...
-          </Animated.Text>
-          <Ionicons name="refresh" size={24} color="#ffffff" />
-        </Animated.View>
-      )}
     </View>
   );
 }
@@ -504,17 +459,5 @@ const styles = StyleSheet.create({
   logo: {
     width: 150,
     height: 150,
-  },
-  loadingContainer: {
-    position: 'absolute',
-    bottom: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  loadingText: {
-    color: '#ffffff',
-    fontSize: 16,
-    marginRight: 10,
   }
 }); 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
-import { Text, List, Divider, useTheme, Switch as PaperSwitch } from 'react-native-paper';
+import { Text, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,53 @@ const STORAGE_KEY = {
   OFFLINE_MODE: 'bacchus_offline_mode',
   IS_PREMIUM: 'bacchus_is_premium',
   DEV_MODE_COUNT: 'bacchus_dev_mode_count'
+};
+
+// Custom SafeSwitch component to replace PaperSwitch
+const SafeSwitch = ({ value, onValueChange, trackColor = {}, thumbColor = {}, disabled = false, accessibilityLabel = '' }) => {
+  const theme = useTheme();
+  const isDark = theme.dark;
+  
+  // Default colors if not provided
+  const defaultTrackColor = {
+    true: isDark ? '#82ccff' : '#1a73e8',
+    false: isDark ? '#486c94' : '#e5e5e5',
+    ...trackColor
+  };
+  
+  const defaultThumbColor = {
+    true: '#ffffff',
+    false: '#f4f3f4',
+    ...thumbColor
+  };
+  
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => !disabled && onValueChange(!value)}
+      disabled={disabled}
+      style={[
+        styles.switchTrack,
+        {
+          backgroundColor: value ? defaultTrackColor.true : defaultTrackColor.false,
+          opacity: disabled ? 0.4 : 1
+        }
+      ]}
+      accessibilityRole="switch"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ checked: value }}
+    >
+      <View
+        style={[
+          styles.switchThumb,
+          {
+            backgroundColor: value ? defaultThumbColor.true : defaultThumbColor.false,
+            transform: [{ translateX: value ? 18 : 0 }]
+          }
+        ]}
+      />
+    </TouchableOpacity>
+  );
 };
 
 export default function SettingsScreen() {
@@ -366,12 +413,11 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <PaperSwitch
+            <SafeSwitch
               value={isDarkMode}
               onValueChange={handleDarkModeToggle}
-              color={isDark ? '#82ccff' : '#1a73e8'}
+              trackColor={{ true: isDark ? '#82ccff' : '#1a73e8' }}
               accessibilityLabel={t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
-              accessibilityState={{ checked: isDarkMode }}
             />
           </View>
           
@@ -389,12 +435,11 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <PaperSwitch
+            <SafeSwitch
               value={offlineMode}
               onValueChange={handleOfflineModeToggle}
-              color={isDark ? '#82ccff' : '#1a73e8'}
+              trackColor={{ true: isDark ? '#82ccff' : '#1a73e8' }}
               accessibilityLabel={t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
-              accessibilityState={{ checked: offlineMode }}
             />
           </View>
         </View>
@@ -865,5 +910,22 @@ const styles = StyleSheet.create({
   },
   creditsText: {
     fontSize: 14,
+  },
+  switchTrack: {
+    width: 48,
+    height: 26,
+    borderRadius: 16,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  switchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
   },
 }); 
