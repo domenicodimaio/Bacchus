@@ -63,6 +63,9 @@ export default {
     extra: {
       supabaseUrl: process.env.SUPABASE_URL || 'https://example.supabase.co',
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'demo-key',
+      eas: {
+        projectId: "86fcd93e-98de-4626-ab02-186714a724d4"
+      }
     }
   }
 }; 
