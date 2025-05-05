@@ -144,20 +144,61 @@ export default function SettingsScreen() {
       // Aggiorniamo prima lo stato locale per feedback immediato all'utente
       setLanguage(newLanguage);
       
-      // Salviamo in AsyncStorage
-      await AsyncStorage.setItem(STORAGE_KEY.LANGUAGE, newLanguage);
-      
-      // Utilizziamo la funzione condivisa per salvare la lingua
-      if (saveLanguageToStorage) {
-        await saveLanguageToStorage(newLanguage);
+      // Blocca UI durante l'operazione
+      if (setBlockNavigation) {
+        setBlockNavigation(true);
       }
       
-      // Cambiamo la lingua utilizzando i18n in un blocco try/catch separato
+      // Salviamo in AsyncStorage
       try {
-        await i18n.changeLanguage(newLanguage);
+        await AsyncStorage.setItem(STORAGE_KEY.LANGUAGE, newLanguage);
+        console.log(`🌐 [Settings] Lingua salvata in STORAGE_KEY.LANGUAGE: ${newLanguage}`);
+      } catch (storageError) {
+        console.error('🌐 [Settings] Errore salvataggio in AsyncStorage:', storageError);
+      }
+      
+      // Utilizziamo la funzione condivisa per salvare la lingua
+      let saveSuccess = false;
+      try {
+        if (saveLanguageToStorage) {
+          saveSuccess = await saveLanguageToStorage(newLanguage);
+          console.log(`🌐 [Settings] saveLanguageToStorage risultato: ${saveSuccess}`);
+        }
+      } catch (saveLangError) {
+        console.error('🌐 [Settings] Errore in saveLanguageToStorage:', saveLangError);
+      }
+      
+      // Cambiamo la lingua utilizzando i18n in un blocco try/catch separato con timeout di sicurezza
+      try {
+        // Impostiamo un timeout di sicurezza per evitare blocchi
+        const changeLanguagePromise = new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            console.error('🌐 [Settings] TIMEOUT: changeLanguage bloccato, forzando continuazione');
+            resolve(); // Forza il proseguimento anche in caso di timeout
+          }, 3000);
+          
+          i18n.changeLanguage(newLanguage).then(() => {
+            clearTimeout(timeout);
+            resolve();
+          }).catch(error => {
+            clearTimeout(timeout);
+            console.error('🌐 [Settings] Errore in i18n.changeLanguage:', error);
+            reject(error);
+          });
+        });
+        
+        // Attendi il cambio lingua con protezione timeout
+        await changeLanguagePromise.catch(() => {
+          console.log('🌐 [Settings] Continuando nonostante errori in changeLanguage');
+        });
       } catch (langError) {
-        console.error('Error in i18n.changeLanguage:', langError);
+        console.error('🌐 [Settings] Errore in i18n.changeLanguage:', langError);
         // Anche se c'è un errore nel cambio lingua, non interrompiamo il flusso
+      } finally {
+        // Assicurati di sbloccare la navigazione
+        if (setBlockNavigation) {
+          setBlockNavigation(false);
+        }
       }
       
       // Mostra una conferma con un timeout per dare tempo al sistema di applicare il cambio lingua
@@ -173,6 +214,12 @@ export default function SettingsScreen() {
       console.error('Error changing language:', error);
       // Ripristiniamo lo stato locale alla lingua precedente in caso di errore
       setLanguage(language);
+      
+      // Sblocca UI se necessario
+      if (setBlockNavigation) {
+        setBlockNavigation(false);
+      }
+      
       Alert.alert(
         t('error', { ns: 'common', defaultValue: 'Error' }),
         t('languageChangeError', { ns: 'settings', defaultValue: 'Error changing language' })
