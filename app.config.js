@@ -3,24 +3,24 @@ import 'dotenv/config';
 export default {
   expo: {
     name: 'Bacchus',
-    slug: 'Bacchus',
+    slug: 'bacchus',
     owner: "domenicodimaio9595",
-    version: '1.2.1',
+    version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
-    userInterfaceStyle: 'automatic',
+    userInterfaceStyle: 'light',
     splash: {
-      image: './assets/splash/splash.png',
+      image: './assets/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#0c1620'
+      backgroundColor: '#0c2348'
     },
     assetBundlePatterns: [
       '**/*'
     ],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '180',
+      bundleIdentifier: 'com.domenicodimaio.bacchus',
+      buildNumber: '163',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
