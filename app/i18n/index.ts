@@ -44,22 +44,22 @@ export const SUPPORTED_LANGUAGES = [
 const verifyTranslationFiles = () => {
   const translations = {
     it: {
-      common: commonIT ? `OK (${Object.keys(commonIT).length} chiavi)` : 'MANCANTE',
-      session: sessionIT ? `OK (${Object.keys(sessionIT).length} chiavi)` : 'MANCANTE',
-      profile: profileIT ? `OK (${Object.keys(profileIT).length} chiavi)` : 'MANCANTE',
-      settings: settingsIT ? `OK (${Object.keys(settingsIT).length} chiavi)` : 'MANCANTE',
-      auth: authIT ? `OK (${Object.keys(authIT).length} chiavi)` : 'MANCANTE',
-      dashboard: dashboardIT ? `OK (${Object.keys(dashboardIT).length} chiavi)` : 'MANCANTE',
-      purchases: purchasesIT ? `OK (${Object.keys(purchasesIT).length} chiavi)` : 'MANCANTE'
+      common: Boolean(commonIT && Object.keys(commonIT).length),
+      session: Boolean(sessionIT && Object.keys(sessionIT).length),
+      profile: Boolean(profileIT && Object.keys(profileIT).length),
+      settings: Boolean(settingsIT && Object.keys(settingsIT).length),
+      auth: Boolean(authIT && Object.keys(authIT).length),
+      dashboard: Boolean(dashboardIT && Object.keys(dashboardIT).length),
+      purchases: Boolean(purchasesIT && Object.keys(purchasesIT).length)
     },
     en: {
-      common: commonEN ? `OK (${Object.keys(commonEN).length} chiavi)` : 'MANCANTE',
-      session: sessionEN ? `OK (${Object.keys(sessionEN).length} chiavi)` : 'MANCANTE',
-      profile: profileEN ? `OK (${Object.keys(profileEN).length} chiavi)` : 'MANCANTE',
-      settings: settingsEN ? `OK (${Object.keys(settingsEN).length} chiavi)` : 'MANCANTE',
-      auth: authEN ? `OK (${Object.keys(authEN).length} chiavi)` : 'MANCANTE',
-      dashboard: dashboardEN ? `OK (${Object.keys(dashboardEN).length} chiavi)` : 'MANCANTE',
-      purchases: purchasesEN ? `OK (${Object.keys(purchasesEN).length} chiavi)` : 'MANCANTE'
+      common: Boolean(commonEN && Object.keys(commonEN).length),
+      session: Boolean(sessionEN && Object.keys(sessionEN).length),
+      profile: Boolean(profileEN && Object.keys(profileEN).length),
+      settings: Boolean(settingsEN && Object.keys(settingsEN).length),
+      auth: Boolean(authEN && Object.keys(authEN).length),
+      dashboard: Boolean(dashboardEN && Object.keys(dashboardEN).length),
+      purchases: Boolean(purchasesEN && Object.keys(purchasesEN).length)
     }
   };
   
@@ -73,25 +73,25 @@ const verifyTranslationFiles = () => {
 // Esegui verifica
 const translationStatus = verifyTranslationFiles();
 
-// Risorse di traduzione - aggiungiamo un fallback per sicurezza
+// Risorse di traduzione
 const resources = {
   it: {
-    common: commonIT || {},
-    session: sessionIT || {},
-    profile: profileIT || {},
-    settings: settingsIT || {},
-    auth: authIT || {},
-    dashboard: dashboardIT || {},
-    purchases: purchasesIT || {}
+    common: commonIT,
+    session: sessionIT,
+    profile: profileIT,
+    settings: settingsIT,
+    auth: authIT,
+    dashboard: dashboardIT,
+    purchases: purchasesIT
   },
   en: {
-    common: commonEN || {},
-    session: sessionEN || {},
-    profile: profileEN || {},
-    settings: settingsEN || {},
-    auth: authEN || {},
-    dashboard: dashboardEN || {},
-    purchases: purchasesEN || {}
+    common: commonEN,
+    session: sessionEN,
+    profile: profileEN,
+    settings: settingsEN,
+    auth: authEN,
+    dashboard: dashboardEN,
+    purchases: purchasesEN
   }
 };
 
@@ -115,98 +115,81 @@ const getDeviceLanguage = (): string => {
 // Inizializzazione di i18next
 console.log('🌐 [i18n] Avvio inizializzazione i18next...');
 
-// Crea un semplice oggetto di traduzione per i casi in cui i18next non fosse disponibile
-const emergencyTranslations = {
-  it: {
-    settings: 'Impostazioni',
-    appearance: 'Aspetto',
-    darkMode: 'Modalità scura',
-    language: 'Lingua',
-    cancel: 'Annulla',
-    ok: 'OK'
-  },
-  en: {
-    settings: 'Settings',
-    appearance: 'Appearance',
-    darkMode: 'Dark Mode',
-    language: 'Language',
-    cancel: 'Cancel',
-    ok: 'OK'
-  }
+// Aggiungiamo una protezione contro l'inizializzazione bloccata
+let initializationTimeout: NodeJS.Timeout | null = null;
+
+// Funzione per inizializzare i18next con timeout di sicurezza
+const initializeI18n = () => {
+  return new Promise<void>((resolve) => {
+    // Imposta un timeout di sicurezza (5 secondi)
+    initializationTimeout = setTimeout(() => {
+      console.error('🌐 [i18n] TIMEOUT: Inizializzazione i18next bloccata, forzando continuazione');
+      resolve(); // Risolvi la promessa anche in caso di timeout
+    }, 5000);
+    
+    i18next
+      .use(initReactI18next)
+      .init({
+        resources,
+        lng: getDeviceLanguage(), // Usa la lingua del dispositivo come default iniziale
+        fallbackLng: DEFAULT_LANGUAGE,
+        supportedLngs: SUPPORTED_LANGUAGES.map(lang => lang.code),
+        ns: ['common', 'dashboard', 'profile', 'session', 'settings', 'auth', 'purchases'],
+        defaultNS: 'common',
+        debug: false,
+        interpolation: {
+          escapeValue: false
+        },
+        react: {
+          useSuspense: false
+        },
+        keySeparator: false,
+        nsSeparator: ':',
+        fallbackNS: 'common',
+        compatibilityJSON: 'v4',
+        returnNull: false,
+        returnEmptyString: false,
+        returnObjects: true,
+        parseMissingKeyHandler: (key) => {
+          console.warn(`🌐 [i18n] CHIAVE MANCANTE: "${key}" (${i18next.language})`);
+          return key;
+        },
+        missingKeyHandler: (lng, ns, key) => {
+          console.warn(`🌐 [i18n] Traduzione mancante: ${ns}:${key}, lingua: ${lng}`);
+        }
+      }, (err, t) => {
+        // Pulisci il timeout se l'inizializzazione completa
+        if (initializationTimeout) {
+          clearTimeout(initializationTimeout);
+          initializationTimeout = null;
+        }
+        
+        if (err) {
+          console.error('🌐 [i18n] Errore nell\'inizializzazione di i18next:', err);
+        } else {
+          console.log(`🌐 [i18n] i18next inizializzato con successo. Lingua attuale: ${i18next.language}`);
+          // Verifica funzionamento con alcune traduzioni di base
+          try {
+            const testIt = i18next.getFixedT('it');
+            const testEn = i18next.getFixedT('en');
+            console.log('🌐 [i18n] Test traduzioni:');
+            console.log(`🌐 [i18n] IT - settings: "${testIt('settings', { ns: 'common' })}"`);
+            console.log(`🌐 [i18n] EN - settings: "${testEn('settings', { ns: 'common' })}"`);
+          } catch (testErr) {
+            console.error('🌐 [i18n] Errore nel test delle traduzioni:', testErr);
+          }
+        }
+        
+        // Risolvi la promessa al termine dell'inizializzazione
+        resolve();
+      });
+  });
 };
 
-// Inizializzazione con tutti i controlli di sicurezza
-try {
-  i18next
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng: getDeviceLanguage(), // Usa la lingua del dispositivo come default iniziale
-      fallbackLng: DEFAULT_LANGUAGE,
-      supportedLngs: SUPPORTED_LANGUAGES.map(lang => lang.code),
-      ns: ['common', 'dashboard', 'profile', 'session', 'settings', 'auth', 'purchases'],
-      defaultNS: 'common',
-      debug: false,
-      interpolation: {
-        escapeValue: false
-      },
-      react: {
-        useSuspense: false
-      },
-      keySeparator: false,
-      nsSeparator: ':',
-      fallbackNS: 'common',
-      compatibilityJSON: 'v4',
-      returnNull: false,
-      returnEmptyString: false,
-      returnObjects: true,
-      parseMissingKeyHandler: (key) => {
-        console.warn(`🌐 [i18n] CHIAVE MANCANTE: "${key}" (${i18next.language})`);
-        // Tenta di trovare la chiave nelle traduzioni di emergenza
-        const lang = i18next.language || DEFAULT_LANGUAGE;
-        if (emergencyTranslations[lang] && emergencyTranslations[lang][key]) {
-          console.log(`🌐 [i18n] Recuperata traduzione di emergenza per: ${key}`);
-          return emergencyTranslations[lang][key];
-        }
-        return key;
-      },
-      missingKeyHandler: (lng, ns, key) => {
-        console.warn(`🌐 [i18n] Traduzione mancante: ${ns}:${key}, lingua: ${lng}`);
-      }
-    }, (err, t) => {
-      if (err) {
-        console.error('🌐 [i18n] Errore nell\'inizializzazione di i18next:', err);
-      } else {
-        console.log(`🌐 [i18n] i18next inizializzato con successo. Lingua attuale: ${i18next.language}`);
-        // Verifica funzionamento con alcune traduzioni di base
-        try {
-          const testIt = i18next.getFixedT('it');
-          const testEn = i18next.getFixedT('en');
-          console.log('🌐 [i18n] Test traduzioni:');
-          console.log(`🌐 [i18n] IT - settings: "${testIt('settings', { ns: 'common' }) || 'non trovato'}"`);
-          console.log(`🌐 [i18n] EN - settings: "${testEn('settings', { ns: 'common' }) || 'non trovato'}"`);
-        } catch (testErr) {
-          console.error('🌐 [i18n] Errore nel test delle traduzioni:', testErr);
-        }
-      }
-    });
-} catch (initError) {
-  console.error('🌐 [i18n] ERRORE CRITICO nell\'inizializzazione del sistema di traduzione:', initError);
-  // Tentativo di recupero
-  console.log('🌐 [i18n] Tentativo di recupero con inizializzazione di base...');
-  try {
-    i18next.init({
-      resources: {
-        it: { common: emergencyTranslations.it },
-        en: { common: emergencyTranslations.en }
-      },
-      lng: DEFAULT_LANGUAGE,
-      fallbackLng: DEFAULT_LANGUAGE
-    });
-  } catch (recoveryError) {
-    console.error('🌐 [i18n] Anche il recupero è fallito:', recoveryError);
-  }
-}
+// Esegui l'inizializzazione con protezione
+initializeI18n().then(() => {
+  console.log('🌐 [i18n] Processo di inizializzazione completato (con o senza errori)');
+});
 
 // Funzione per caricare lo stato della lingua da AsyncStorage
 export const loadLanguageFromStorage = async (): Promise<string> => {
@@ -217,20 +200,45 @@ export const loadLanguageFromStorage = async (): Promise<string> => {
     
     if (savedLanguage && (savedLanguage === 'it' || savedLanguage === 'en')) {
       try {
-        await i18next.changeLanguage(savedLanguage);
-        console.log(`🌐 [i18n] Lingua cambiata con successo: ${savedLanguage}`);
-        return savedLanguage;
+        // Imposta un timeout per la modifica della lingua (3 secondi)
+        const changeLanguagePromise = new Promise<string>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            console.error(`🌐 [i18n] TIMEOUT: changeLanguage bloccato, forzando continuazione`);
+            resolve(savedLanguage); // Usa comunque la lingua salvata
+          }, 3000);
+          
+          i18next.changeLanguage(savedLanguage).then(() => {
+            clearTimeout(timeout);
+            console.log(`🌐 [i18n] Lingua cambiata con successo: ${savedLanguage}`);
+            resolve(savedLanguage);
+          }).catch(error => {
+            clearTimeout(timeout);
+            console.error('🌐 [i18n] Errore in i18next.changeLanguage:', error);
+            reject(error);
+          });
+        });
+        
+        // Attendi il cambio lingua con protezione timeout
+        return await changeLanguagePromise.catch(() => DEFAULT_LANGUAGE);
       } catch (langError) {
         console.error('🌐 [i18n] Errore in i18next.changeLanguage:', langError);
         // Fallback alla lingua di default in caso di errore
-        await i18next.changeLanguage(DEFAULT_LANGUAGE);
+        try {
+          await i18next.changeLanguage(DEFAULT_LANGUAGE);
+        } catch (e) {
+          console.error('🌐 [i18n] Anche il fallback ha fallito:', e);
+        }
         return DEFAULT_LANGUAGE;
       }
     } else {
       // Se non c'è una lingua salvata, usa la lingua del dispositivo
       const deviceLang = getDeviceLanguage();
       console.log(`🌐 [i18n] Nessuna lingua in storage, uso quella del dispositivo: ${deviceLang}`);
-      await i18next.changeLanguage(deviceLang);
+      try {
+        await i18next.changeLanguage(deviceLang);
+      } catch (e) {
+        console.error('🌐 [i18n] Errore nel cambio alla lingua del dispositivo:', e);
+      }
       return deviceLang;
     }
   } catch (error) {
