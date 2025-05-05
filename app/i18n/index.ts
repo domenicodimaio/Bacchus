@@ -44,22 +44,22 @@ export const SUPPORTED_LANGUAGES = [
 const verifyTranslationFiles = () => {
   const translations = {
     it: {
-      common: Boolean(commonIT && Object.keys(commonIT).length),
-      session: Boolean(sessionIT && Object.keys(sessionIT).length),
-      profile: Boolean(profileIT && Object.keys(profileIT).length),
-      settings: Boolean(settingsIT && Object.keys(settingsIT).length),
-      auth: Boolean(authIT && Object.keys(authIT).length),
-      dashboard: Boolean(dashboardIT && Object.keys(dashboardIT).length),
-      purchases: Boolean(purchasesIT && Object.keys(purchasesIT).length)
+      common: commonIT ? `OK (${Object.keys(commonIT).length} chiavi)` : 'MANCANTE',
+      session: sessionIT ? `OK (${Object.keys(sessionIT).length} chiavi)` : 'MANCANTE',
+      profile: profileIT ? `OK (${Object.keys(profileIT).length} chiavi)` : 'MANCANTE',
+      settings: settingsIT ? `OK (${Object.keys(settingsIT).length} chiavi)` : 'MANCANTE',
+      auth: authIT ? `OK (${Object.keys(authIT).length} chiavi)` : 'MANCANTE',
+      dashboard: dashboardIT ? `OK (${Object.keys(dashboardIT).length} chiavi)` : 'MANCANTE',
+      purchases: purchasesIT ? `OK (${Object.keys(purchasesIT).length} chiavi)` : 'MANCANTE'
     },
     en: {
-      common: Boolean(commonEN && Object.keys(commonEN).length),
-      session: Boolean(sessionEN && Object.keys(sessionEN).length),
-      profile: Boolean(profileEN && Object.keys(profileEN).length),
-      settings: Boolean(settingsEN && Object.keys(settingsEN).length),
-      auth: Boolean(authEN && Object.keys(authEN).length),
-      dashboard: Boolean(dashboardEN && Object.keys(dashboardEN).length),
-      purchases: Boolean(purchasesEN && Object.keys(purchasesEN).length)
+      common: commonEN ? `OK (${Object.keys(commonEN).length} chiavi)` : 'MANCANTE',
+      session: sessionEN ? `OK (${Object.keys(sessionEN).length} chiavi)` : 'MANCANTE',
+      profile: profileEN ? `OK (${Object.keys(profileEN).length} chiavi)` : 'MANCANTE',
+      settings: settingsEN ? `OK (${Object.keys(settingsEN).length} chiavi)` : 'MANCANTE',
+      auth: authEN ? `OK (${Object.keys(authEN).length} chiavi)` : 'MANCANTE',
+      dashboard: dashboardEN ? `OK (${Object.keys(dashboardEN).length} chiavi)` : 'MANCANTE',
+      purchases: purchasesEN ? `OK (${Object.keys(purchasesEN).length} chiavi)` : 'MANCANTE'
     }
   };
   
@@ -73,25 +73,25 @@ const verifyTranslationFiles = () => {
 // Esegui verifica
 const translationStatus = verifyTranslationFiles();
 
-// Risorse di traduzione
+// Risorse di traduzione - aggiungiamo un fallback per sicurezza
 const resources = {
   it: {
-    common: commonIT,
-    session: sessionIT,
-    profile: profileIT,
-    settings: settingsIT,
-    auth: authIT,
-    dashboard: dashboardIT,
-    purchases: purchasesIT
+    common: commonIT || {},
+    session: sessionIT || {},
+    profile: profileIT || {},
+    settings: settingsIT || {},
+    auth: authIT || {},
+    dashboard: dashboardIT || {},
+    purchases: purchasesIT || {}
   },
   en: {
-    common: commonEN,
-    session: sessionEN,
-    profile: profileEN,
-    settings: settingsEN,
-    auth: authEN,
-    dashboard: dashboardEN,
-    purchases: purchasesEN
+    common: commonEN || {},
+    session: sessionEN || {},
+    profile: profileEN || {},
+    settings: settingsEN || {},
+    auth: authEN || {},
+    dashboard: dashboardEN || {},
+    purchases: purchasesEN || {}
   }
 };
 
@@ -114,53 +114,99 @@ const getDeviceLanguage = (): string => {
 
 // Inizializzazione di i18next
 console.log('🌐 [i18n] Avvio inizializzazione i18next...');
-i18next
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: getDeviceLanguage(), // Usa la lingua del dispositivo come default iniziale
-    fallbackLng: DEFAULT_LANGUAGE,
-    supportedLngs: SUPPORTED_LANGUAGES.map(lang => lang.code),
-    ns: ['common', 'dashboard', 'profile', 'session', 'settings', 'auth', 'purchases'],
-    defaultNS: 'common',
-    debug: false,
-    interpolation: {
-      escapeValue: false
-    },
-    react: {
-      useSuspense: false
-    },
-    keySeparator: false,
-    nsSeparator: ':',
-    fallbackNS: 'common',
-    compatibilityJSON: 'v4',
-    returnNull: false,
-    returnEmptyString: false,
-    returnObjects: true,
-    parseMissingKeyHandler: (key) => {
-      console.warn(`🌐 [i18n] CHIAVE MANCANTE: "${key}" (${i18next.language})`);
-      return key;
-    },
-    missingKeyHandler: (lng, ns, key) => {
-      console.warn(`🌐 [i18n] Traduzione mancante: ${ns}:${key}, lingua: ${lng}`);
-    }
-  }, (err, t) => {
-    if (err) {
-      console.error('🌐 [i18n] Errore nell\'inizializzazione di i18next:', err);
-    } else {
-      console.log(`🌐 [i18n] i18next inizializzato con successo. Lingua attuale: ${i18next.language}`);
-      // Verifica funzionamento con alcune traduzioni di base
-      try {
-        const testIt = i18next.getFixedT('it');
-        const testEn = i18next.getFixedT('en');
-        console.log('🌐 [i18n] Test traduzioni:');
-        console.log(`🌐 [i18n] IT - settings: "${testIt('settings', { ns: 'common' })}"`);
-        console.log(`🌐 [i18n] EN - settings: "${testEn('settings', { ns: 'common' })}"`);
-      } catch (testErr) {
-        console.error('🌐 [i18n] Errore nel test delle traduzioni:', testErr);
+
+// Crea un semplice oggetto di traduzione per i casi in cui i18next non fosse disponibile
+const emergencyTranslations = {
+  it: {
+    settings: 'Impostazioni',
+    appearance: 'Aspetto',
+    darkMode: 'Modalità scura',
+    language: 'Lingua',
+    cancel: 'Annulla',
+    ok: 'OK'
+  },
+  en: {
+    settings: 'Settings',
+    appearance: 'Appearance',
+    darkMode: 'Dark Mode',
+    language: 'Language',
+    cancel: 'Cancel',
+    ok: 'OK'
+  }
+};
+
+// Inizializzazione con tutti i controlli di sicurezza
+try {
+  i18next
+    .use(initReactI18next)
+    .init({
+      resources,
+      lng: getDeviceLanguage(), // Usa la lingua del dispositivo come default iniziale
+      fallbackLng: DEFAULT_LANGUAGE,
+      supportedLngs: SUPPORTED_LANGUAGES.map(lang => lang.code),
+      ns: ['common', 'dashboard', 'profile', 'session', 'settings', 'auth', 'purchases'],
+      defaultNS: 'common',
+      debug: false,
+      interpolation: {
+        escapeValue: false
+      },
+      react: {
+        useSuspense: false
+      },
+      keySeparator: false,
+      nsSeparator: ':',
+      fallbackNS: 'common',
+      compatibilityJSON: 'v4',
+      returnNull: false,
+      returnEmptyString: false,
+      returnObjects: true,
+      parseMissingKeyHandler: (key) => {
+        console.warn(`🌐 [i18n] CHIAVE MANCANTE: "${key}" (${i18next.language})`);
+        // Tenta di trovare la chiave nelle traduzioni di emergenza
+        const lang = i18next.language || DEFAULT_LANGUAGE;
+        if (emergencyTranslations[lang] && emergencyTranslations[lang][key]) {
+          console.log(`🌐 [i18n] Recuperata traduzione di emergenza per: ${key}`);
+          return emergencyTranslations[lang][key];
+        }
+        return key;
+      },
+      missingKeyHandler: (lng, ns, key) => {
+        console.warn(`🌐 [i18n] Traduzione mancante: ${ns}:${key}, lingua: ${lng}`);
       }
-    }
-  });
+    }, (err, t) => {
+      if (err) {
+        console.error('🌐 [i18n] Errore nell\'inizializzazione di i18next:', err);
+      } else {
+        console.log(`🌐 [i18n] i18next inizializzato con successo. Lingua attuale: ${i18next.language}`);
+        // Verifica funzionamento con alcune traduzioni di base
+        try {
+          const testIt = i18next.getFixedT('it');
+          const testEn = i18next.getFixedT('en');
+          console.log('🌐 [i18n] Test traduzioni:');
+          console.log(`🌐 [i18n] IT - settings: "${testIt('settings', { ns: 'common' }) || 'non trovato'}"`);
+          console.log(`🌐 [i18n] EN - settings: "${testEn('settings', { ns: 'common' }) || 'non trovato'}"`);
+        } catch (testErr) {
+          console.error('🌐 [i18n] Errore nel test delle traduzioni:', testErr);
+        }
+      }
+    });
+} catch (initError) {
+  console.error('🌐 [i18n] ERRORE CRITICO nell\'inizializzazione del sistema di traduzione:', initError);
+  // Tentativo di recupero
+  console.log('🌐 [i18n] Tentativo di recupero con inizializzazione di base...');
+  try {
+    i18next.init({
+      resources: {
+        it: { common: emergencyTranslations.it },
+        en: { common: emergencyTranslations.en }
+      },
+      lng: DEFAULT_LANGUAGE,
+      fallbackLng: DEFAULT_LANGUAGE
+    });
+  } catch (recoveryError) {
+    console.error('🌐 [i18n] Anche il recupero è fallito:', recoveryError);
+  }
+}
 
 // Funzione per caricare lo stato della lingua da AsyncStorage
 export const loadLanguageFromStorage = async (): Promise<string> => {
