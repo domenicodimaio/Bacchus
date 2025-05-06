@@ -5,7 +5,7 @@ export default {
     name: 'Bacchus',
     slug: 'bacchus',
     owner: "domenicodimaio9595",
-    version: '1.0.2',
+    version: '1.2.1',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -20,7 +20,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.domenicodimaio.bacchus',
-      buildNumber: '163',
+      buildNumber: '190',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
