@@ -20,7 +20,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.domenicodimaio.bacchus',
-      buildNumber: '190',
+      buildNumber: '196',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
@@ -61,8 +61,8 @@ export default {
     },
     runtimeVersion: "1.0.0",
     extra: {
-      supabaseUrl: process.env.SUPABASE_URL || 'https://example.supabase.co',
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'demo-key',
+      supabaseUrl: 'https://egdpjqdsugbcoroclgys.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTg5MjM0MzksImV4cCI6MjAxNDQ5OTQzOX0.hGyWUlOCmpRyRg-OdWVy6S-vLXgI2iq36OEjMZ4TbnA',
       eas: {
         projectId: "86fcd93e-98de-4626-ab02-186714a724d4"
       }

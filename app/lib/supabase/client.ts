@@ -9,11 +9,11 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Get environment variables
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 'https://qnmtpoiavhfllrzuerqq.supabase.co';
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubXRwb2lhdmhmbGxyenVlcnFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NjI4MDMsImV4cCI6MjA1NjMzODgwM30.2C3GDLsRJ2It_gPdt7JT_7nR7aP48Q2LopofdLtVgLA';
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 'https://egdpjqdsugbcoroclgys.supabase.co';
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTg5MjM0MzksImV4cCI6MjAxNDQ5OTQzOX0.hGyWUlOCmpRyRg-OdWVy6S-vLXgI2iq36OEjMZ4TbnA';
 
 // Estrai il projectRef dal supabaseUrl
-const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'qnmtpoiavhfllrzuerqq';
+const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'egdpjqdsugbcoroclgys';
 // La chiave che Supabase usa per salvare il token di autenticazione
 export const SUPABASE_AUTH_TOKEN_KEY = `sb-${projectRef}-auth-token`;
 
