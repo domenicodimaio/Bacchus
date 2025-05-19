@@ -212,13 +212,13 @@ export default function ProfileWizard() {
   // Stato per i dati del profilo
   const [profile, setProfileState] = useState({
     name: user?.name || '',
-    gender: '',
-    weightKg: '',
-    age: '',
-    height: '',
-    drinkingFrequency: '',
-    emoji: '',
-    color: AVATAR_COLORS[0],
+    gender: 'male',
+    weightKg: 70,
+    age: 30,
+    height: 170,
+    drinkingFrequency: 'occasionally',
+    emoji: '👤',
+    color: '#4F8EF7',
     isDefault: true
   });
   
@@ -230,20 +230,21 @@ export default function ProfileWizard() {
   const params = useLocalSearchParams();
   
   // Stati del wizard
-  const [emoji, setEmoji] = useState('🥂');
   const [name, setName] = useState('');
-  const [gender, setGender] = useState('');
-  const [weightKg, setWeightKg] = useState('70');
-  const [heightCm, setHeightCm] = useState('170');
-  const [age, setAge] = useState('30');
-  const [color, setColor] = useState(AVATAR_COLORS[0]);
-  const [drinkingFrequency, setDrinkingFrequency] = useState('');
-  const [isGuest, setIsGuest] = useState(params.guest === 'true');
-  // Track if user coming from registration - wizard is mandatory in this case
-  const [isFromRegistration, setIsFromRegistration] = useState(false);
+  const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [weightKg, setWeightKg] = useState<number>(70);
+  const [heightCm, setHeightCm] = useState<number>(170);
+  const [age, setAge] = useState<number>(30);
+  const [emoji, setEmoji] = useState<string>('👤');
+  const [color, setColor] = useState<string>('#4F8EF7');
+  const [drinkingFrequency, setDrinkingFrequency] = useState<'rarely' | 'occasionally' | 'regularly' | 'frequently'>('occasionally');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [heightError, setHeightError] = useState('');
-  const [loading, setLoading] = useState(false);
+  // Track if user coming from registration - wizard is mandatory in this case
+  const [isFromRegistration, setIsFromRegistration] = useState(false);
   
   // Reset dello stato del wizard all'inizializzazione
   useEffect(() => {
@@ -263,14 +264,14 @@ export default function ProfileWizard() {
       });
       
       // Se l'utente non è ospite e non è autenticato, reindirizza alla pagina di login
-      if (!isGuest && !user) {
+      if (!user) {
         // console.log('WIZARD: Utente non autorizzato, reindirizzamento a /auth/login');
         router.replace('/auth/login');
       }
     } catch (error) {
       console.error('Error resetting wizard state:', error);
     }
-  }, [isGuest, user]);
+  }, [user]);
 
   // Gestione eventi di apertura/chiusura tastiera
   useEffect(() => {
@@ -361,137 +362,76 @@ export default function ProfileWizard() {
   const handleComplete = async () => {
     try {
       setLoading(true);
-      console.log('WIZARD: Iniziando completamento wizard...');
       
-      // Verifica finale sui dati obbligatori
-      if (!profile.name || !profile.gender || !profile.weightKg || !profile.age) {
-        Alert.alert(
-          t('error', { ns: 'common', defaultValue: 'Errore' }),
-          t('requiredFields', { ns: 'profile', defaultValue: 'Completa tutti i campi obbligatori' })
-        );
-        setLoading(false);
-        return;
-      }
-      
-      // CRITICAL: Prima di tutto, imposta esplicitamente il flag di completamento wizard
-      // Questo assicura che anche se il resto fallisce, il flag sarà già impostato
-      try {
-        console.log('WIZARD: Impostazione flag completamento wizard...');
-        await authService.setProfileWizardCompleted(true);
-        console.log('WIZARD: Flag completamento wizard impostato con successo');
-      } catch (e) {
-        console.error('WIZARD: Errore nell\'impostazione flag completamento wizard:', e);
-        // Continuiamo comunque
-      }
-      
-      // CRITICAL: Rimuovi tutti i flag globali che potrebbero causare loop
-      if (typeof global !== 'undefined') {
-        console.log('WIZARD: Pulizia flag globali...');
-        global.__WIZARD_AFTER_REGISTRATION__ = false;
-        global.__BLOCK_ALL_SCREENS__ = false;
-        global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-        global.__PREVENT_ALL_REDIRECTS__ = false;
-        if (global.__WIZARD_START_TIME__) {
-          delete global.__WIZARD_START_TIME__;
-        }
-        console.log('WIZARD: Flag globali rimossi con successo');
-      }
-      
-      // Crea il profilo
-      const profileData = {
-        ...profile,
-        isDefault: isGuest ? true : false,
-        id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-        // Converti i tipi per rispettare l'interfaccia UserProfile
-        gender: profile.gender as 'male' | 'female',
-        weightKg: parseInt(profile.weightKg.toString()),
-        age: parseInt(profile.age.toString()),
-        height: parseInt(profile.height.toString()),
-        drinkingFrequency: profile.drinkingFrequency as 'rarely' | 'occasionally' | 'regularly' | 'frequently'
+      // Crea un oggetto profilo con i dati raccolti
+      const newProfile = {
+        name: name.trim(),
+        gender: gender,
+        weightKg: parseFloat(weightKg.toString()),
+        heightCm: parseFloat(heightCm.toString()),
+        age: parseInt(age.toString()),
+        emoji: emoji,
+        color: color,
+        drinkingFrequency: drinkingFrequency,
+        isDefault: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       
-      console.log('WIZARD: Creazione profilo con dati:', JSON.stringify(profileData));
+      console.log('WIZARD: Creazione profilo con:', JSON.stringify(newProfile));
       
-      // Gestione speciale per la modalità ospite
-      if (isGuest) {
-        console.log('WIZARD: Modalità ospite rilevata, assicurandosi che la sessione sia corretta...');
-        // Forziamo il passaggio alla modalità ospite per sicurezza
-        try {
-          await authService.switchToGuestMode();
-          console.log('WIZARD: Passaggio alla modalità ospite completato');
-        } catch (guestError) {
-          console.error('WIZARD: Errore nel passaggio a modalità ospite:', guestError);
-          // Continuiamo comunque
+      let userId = user?.id;
+      
+      console.log('WIZARD: userId:', userId);
+      
+      // Crea un profilo per un utente registrato
+      const success = await profileService.createProfile({
+        ...newProfile,
+        isDefault: true,
+        userId: userId,
+        gender: gender as 'male' | 'female',
+        drinkingFrequency: drinkingFrequency as 'rarely' | 'occasionally' | 'regularly' | 'frequently'
+      });
+      
+      if (success) {
+        console.log('WIZARD: Profilo creato con successo');
+        
+        // Reset di tutti i flag di navigazione
+        if (typeof global !== 'undefined') {
+          global.__WIZARD_AFTER_REGISTRATION__ = false;
+          global.__PREVENT_ALL_REDIRECTS__ = false;
+          global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+          global.__BLOCK_ALL_SCREENS__ = false;
         }
-      }
-      
-      // Creazione profilo con gestione errori migliorata
-      let createdProfile = null;
-      try {
-        createdProfile = await profileService.createProfile(profileData);
-        if (!createdProfile) {
-          throw new Error('profileService.createProfile ha restituito null');
-        }
-        console.log('WIZARD: Profilo creato con ID:', createdProfile.id);
-      } catch (creationError) {
-        console.error('WIZARD: Errore durante la creazione del profilo:', creationError);
-        throw new Error(`Errore creazione profilo: ${creationError.message}`); // Rilancia l'errore per il catch esterno
-      }
-      
-      // Imposta il profilo come attivo
-      try {
-        await profileService.setActiveProfile(createdProfile.id);
-        console.log('WIZARD: Profilo impostato come attivo');
-      } catch (activationError) {
-        console.error('WIZARD: Errore durante l\'attivazione del profilo:', activationError);
-        // Non blocchiamo, ma registriamo l'errore
-      }
-      
-      // Imposta il profilo nel contesto
-      try {
-        setProfile(createdProfile);
-        console.log('WIZARD: Profilo impostato nel contesto');
-      } catch (contextError) {
-        console.error('WIZARD: Errore durante l\'impostazione del profilo nel contesto:', contextError);
-        // Non blocchiamo, ma registriamo l'errore
-      }
-      
-      console.log('WIZARD: Reindirizzamento alla destinazione finale...');
-      
-      // Reindirizzamento in base allo stato dell'utente
-      if (isGuest || !isFromRegistration) {
-        console.log('WIZARD: Reindirizzamento alla dashboard come ospite o dopo modifica profilo');
-        router.replace('/dashboard');
+        
+        // Salva il completamento del wizard per questo utente
+        await authService.setProfileWizardCompleted(true);
+        
+        // Crea una sessione per questo utente
+        await sessionService.getOrCreateSessionWithFirstProfile();
+        
+        setLoading(false);
+        console.log('WIZARD: Reindirizzamento alla dashboard');
+        
+        // Usa setTimeout per evitare race conditions nella navigazione
+        setTimeout(() => {
+          try {
+            router.replace('/dashboard');
+          } catch (error) {
+            console.error('WIZARD: Errore nella navigazione:', error);
+            // Fallback in caso di errore
+            setTimeout(() => router.navigate('/'), 100);
+          }
+        }, 300);
       } else {
-        // Se viene dalla registrazione, mostra l'offerta premium
-        console.log('WIZARD: Reindirizzamento all\'offerta premium dopo registrazione');
-        router.replace({
-          pathname: '/onboarding/subscription-offer',
-          params: { fromWizard: 'true', createdProfile: 'true' }
-        });
+        console.error('WIZARD: Errore nella creazione del profilo');
+        setLoading(false);
+        alert(getTranslation('errorCreatingProfile', 'Errore nella creazione del profilo'));
       }
     } catch (error) {
-      console.error('WIZARD: Errore nel completamento wizard:', error);
-      let errorMessage = t('errorSavingProfile', { ns: 'profile', defaultValue: 'Errore nel salvare il profilo' });
-      
-      // Fornisci un messaggio più dettagliato se possibile
-      if (error && (error as any).message) {
-        errorMessage += `: ${(error as any).message}`;
-      }
-      
-      Alert.alert(
-        t('error', { ns: 'common', defaultValue: 'Errore' }),
-        errorMessage
-      );
+      console.error('WIZARD: Errore nella creazione del profilo:', error);
       setLoading(false);
-      
-      // Ensure flags are cleaned even if there's an error
-      if (typeof global !== 'undefined') {
-        global.__WIZARD_AFTER_REGISTRATION__ = false;
-        global.__BLOCK_ALL_SCREENS__ = false;
-        global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-        global.__PREVENT_ALL_REDIRECTS__ = false;
-      }
+      alert(getTranslation('errorCreatingProfile', 'Errore nella creazione del profilo'));
     }
   };
   
@@ -523,20 +463,12 @@ export default function ProfileWizard() {
               clearAllNavigationBlocks();
             }
             
-            // Try to determine the best destination
-            const isGuest = params.guest === 'true';
-            
-            if (isGuest) {
-              // If l'utente è ospite, torna alla login
-              router.replace('/auth/login');
-            } else {
-              // Altrimenti, prova prima a tornare indietro, e se non è possibile vai alla dashboard
-              try {
-                router.back();
-              } catch (error) {
-                console.log('Errore nel tornare indietro, reindirizzamento alla dashboard');
-                router.replace('/dashboard');
-              }
+            // Altrimenti, prova prima a tornare indietro, e se non è possibile vai alla dashboard
+            try {
+              router.back();
+            } catch (error) {
+              console.log('Errore nel tornare indietro, reindirizzamento alla dashboard');
+              router.replace('/dashboard');
             }
           }
         }
