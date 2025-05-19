@@ -15,7 +15,8 @@ import {
   Animated,
   Easing,
   Dimensions,
-  ScrollView
+  ScrollView,
+  Linking
 } from 'react-native';
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import supabase, { SUPABASE_AUTH_TOKEN_KEY } from '../lib/supabase/client';
+import supabase, { SUPABASE_AUTH_TOKEN_KEY, supabaseUrl, supabaseAnonKey } from '../lib/supabase/client';
 import * as authService from '../lib/services/auth.service';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -34,6 +35,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { COLORS } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import config from '../lib/config';
+import { createClient } from '@supabase/supabase-js';
 
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
@@ -349,25 +351,56 @@ export default function LoginScreen() {
           console.log('🍎 Login con Apple - Autenticazione nativa completata');
           
           if (credential && credential.identityToken) {
-            // Usa il token di identità per autenticarsi con Supabase
-            const { data, error } = await supabase.auth.signInWithIdToken({
-              provider: 'apple',
-              token: credential.identityToken,
+            console.log('🍎 Token ottenuto, invio a Supabase con OAuthSignIn invece di idToken');
+            
+            // Non possiamo usare signInWithOAuth e passare il token, passiamo direttamente al metodo alternativo
+            console.log('🍎 Passaggio diretto al metodo alternativo con client temporaneo')
+            
+            // Se siamo qui, significa che il metodo precedente non ha funzionato
+            // Prova un'alternativa: crea un client Supabase temporaneo con opzioni custom
+            console.log('🍎 Tentativo alternativo di login con client temporaneo');
+            const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+              auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: false,
+              }
             });
             
-            if (error) {
-              console.error('🍎 Errore durante l\'autenticazione con Supabase:', error);
-              Alert.alert(
-                t('error', { ns: 'common' }),
-                error.message || t('loginError', { ns: 'auth' })
-              );
-              setIsLoading(false);
-              return;
+            try {
+              // Utilizza il metodo signInWithIdToken con il client temporaneo
+              const { data, error } = await tempClient.auth.signInWithIdToken({
+                provider: 'apple',
+                token: credential.identityToken,
+              });
+              
+              if (error) {
+                console.error('🍎 Errore durante l\'autenticazione alternativa:', error);
+                Alert.alert(
+                  t('error', { ns: 'common' }),
+                  error.message || t('loginError', { ns: 'auth' })
+                );
+                setIsLoading(false);
+                return;
+              }
+              
+              console.log('🍎 Login con Apple - Autenticazione alternativa completata');
+              if (data.user) {
+                // Salva la sessione nel client principale
+                await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
+                router.replace('/dashboard');
+                return;
+              }
+            } catch (altError) {
+              console.error('🍎 Errore durante l\'autenticazione alternativa:', altError);
             }
             
-            console.log('🍎 Login con Apple - Autenticazione Supabase completata');
-            // Autenticazione completata con successo
-            router.replace('/dashboard');
+            // Se siamo arrivati qui, entrambi i metodi hanno fallito
+            Alert.alert(
+              t('error', { ns: 'common' }),
+              t('loginError', { ns: 'auth' })
+            );
+            setIsLoading(false);
             return;
           } else {
             console.error('🍎 Login con Apple - Token di identità mancante');

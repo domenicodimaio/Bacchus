@@ -89,29 +89,82 @@ export const signUp = async (email: string, password: string): Promise<AuthRespo
     // Verifica connessione
     const isOffline = await offlineService.isOffline();
     if (isOffline) {
+      console.log('[AUTH] Registrazione fallita: dispositivo offline');
       return {
         success: false,
         error: 'No internet connection available'
       };
     }
     
+    console.log('[AUTH] Inizio processo di registrazione per:', email);
+    
     // Prima della registrazione, pulisci qualsiasi token di autenticazione esistente
+    console.log('[AUTH] Pulizia token di autenticazione precedenti');
     await clearStoredAuthSessions();
     
     // Importa e inizializza il servizio sessioni
+    console.log('[AUTH] Inizializzazione servizio sessioni');
     const sessionServiceImport = await import('./session.service');
     
-    // Verifica connessione a Supabase
-    const isValidConnection = await validateSupabaseConnection();
-    if (!isValidConnection) {
-      console.error('[AUTH] Errore di connessione a Supabase durante registrazione.');
-      return {
-        success: false, 
-        error: 'Errore di connessione al server. Verifica la tua connessione internet.'
-      };
+    // Bypass della validazione della connessione in alcuni casi
+    let skipConnectionValidation = false;
+    try {
+      const bypassValue = process.env.EXPO_PUBLIC_BYPASS_CONNECTION_CHECK;
+      skipConnectionValidation = bypassValue === 'true' || bypassValue === '1';
+    } catch (e) {
+      console.log('[AUTH] Errore nel controllo variabile di bypass:', e);
     }
     
-    console.log('[AUTH] Registrazione utente:', email);
+    // Verifica connessione a Supabase
+    if (!skipConnectionValidation) {
+      console.log('[AUTH] Verifica connessione a Supabase');
+      const isValidConnection = await validateSupabaseConnection();
+      
+      if (!isValidConnection) {
+        console.error('[AUTH] Errore di connessione a Supabase durante registrazione.');
+        
+        // Tentiamo comunque la registrazione come ultima risorsa
+        console.log('[AUTH] Tentativo di registrazione nonostante l\'errore di connessione');
+        
+        try {
+          // Usa un client temporaneo per questo tentativo
+          const tempClient = createTempClient();
+          const { data: signupData, error: signupError } = await tempClient.auth.signUp({
+            email,
+            password,
+          });
+          
+          if (signupError) {
+            console.error('[AUTH] Fallimento registrazione con client temporaneo:', signupError);
+            return {
+              success: false,
+              error: 'Errore durante la registrazione. Riprova più tardi.'
+            };
+          }
+          
+          if (signupData.user) {
+            console.log('[AUTH] Registrazione riuscita con client temporaneo:', signupData.user.id);
+            return {
+              success: true,
+              user: signupData.user,
+              session: signupData.session,
+              redirectToProfileCreation: true
+            };
+          }
+        } catch (tempClientError) {
+          console.error('[AUTH] Errore fatale con client temporaneo:', tempClientError);
+        }
+        
+        return {
+          success: false, 
+          error: 'Errore di connessione al server. Verifica la tua connessione internet.'
+        };
+      }
+    } else {
+      console.log('[AUTH] Validazione connessione saltata per configurazione');
+    }
+    
+    console.log('[AUTH] Registrazione utente in corso:', email);
     
     // Registra utente con Supabase
     const { data, error } = await supabase.auth.signUp({

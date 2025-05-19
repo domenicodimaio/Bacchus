@@ -22,9 +22,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import * as authService from '../lib/services/auth.service';
-import supabase from '../lib/supabase/client';
+import supabase, { supabaseUrl, supabaseAnonKey } from '../lib/supabase/client';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { createClient } from '@supabase/supabase-js';
 
 // Funzione per validare il formato dell'email
 const isValidEmail = (email: string): boolean => {
@@ -207,8 +208,18 @@ export default function SignupScreen() {
               global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
             }
             
-            // Usa il token di identità per autenticarsi con Supabase
-            const { data, error } = await supabase.auth.signInWithIdToken({
+            // Crea un client temporaneo per utilizzare il token di identità
+            console.log('🍎 Utilizzo client temporaneo per autenticazione con token Apple');
+            const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+              auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: false,
+              }
+            });
+            
+            // Usa il token di identità con il client temporaneo
+            const { data, error } = await tempClient.auth.signInWithIdToken({
               provider: 'apple',
               token: credential.identityToken,
             });
