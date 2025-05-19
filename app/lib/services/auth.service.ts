@@ -12,7 +12,8 @@ import supabase, {
   supabaseUrl, 
   supabaseAnonKey,
   validateSupabaseConnection,
-  clearStoredAuthSessions
+  clearStoredAuthSessions,
+  createTempClient
 } from '../supabase/client';
 import { storeAuthState } from '../supabase/middleware';
 import * as offlineService from './offline.service';
@@ -196,7 +197,7 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     const isConnectionValid = await validateSupabaseConnection();
     
     // Utilizzare un client temporaneo per evitare problemi di sessione persistente
-    const authClient = createGuestClient();
+    const authClient = createTempClient();
     
     // Invio richiesta login a Supabase
     console.log('[AUTH] Invio richiesta login a Supabase...');
@@ -529,14 +530,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
  */
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    // Prima verifica se l'utente è in modalità ospite
-    const isGuestMode = await AsyncStorage.getItem(IS_GUEST_KEY);
-    if (isGuestMode === 'true') {
-      console.log('[AUTH] Utente autenticato come ospite');
-      return true;
-    }
-    
-    // Se non è ospite, verifica l'autenticazione normale
+    // Verifica se l'utente è autenticato normalmente
     const user = await getCurrentUser();
     return !!user;
   } catch (error) {

@@ -44,7 +44,7 @@ const isValidPassword = (password: string): boolean => {
 export default function SignupScreen() {
   const { t } = useTranslation(['auth', 'common']);
   const { currentTheme } = useTheme();
-  const { register, loginWithProvider } = useAuth();
+  const { signup, loginWithProvider } = useAuth();
   const colors = currentTheme.COLORS;
 
   // Stato
@@ -106,7 +106,7 @@ export default function SignupScreen() {
       }
 
       // Registra l'utente
-      const { success, error } = await register(email, password, name || email.split('@')[0]);
+      const { success, error } = await signup(email, password);
 
       if (success) {
         // CRITICAL FIX: Imposta i flag globali per assicurarsi che il wizard venga mostrato
@@ -303,7 +303,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={[styles.input, { 
                     backgroundColor: '#1e355a',
-                    color: colors.text,
+                    color: '#FFFFFF',
                     borderWidth: 1,
                     borderColor: '#2e4a7a',
                     shadowColor: '#000',
@@ -331,7 +331,7 @@ export default function SignupScreen() {
                   ref={passwordInputRef}
                   style={[styles.input, { 
                     backgroundColor: '#1e355a',
-                    color: colors.text,
+                    color: '#FFFFFF',
                     borderWidth: 1,
                     borderColor: '#2e4a7a',
                     shadowColor: '#000',
@@ -368,7 +368,7 @@ export default function SignupScreen() {
                   ref={confirmPasswordInputRef}
                   style={[styles.input, { 
                     backgroundColor: '#1e355a',
-                    color: colors.text,
+                    color: '#FFFFFF',
                     borderWidth: 1,
                     borderColor: '#2e4a7a',
                     shadowColor: '#000',
