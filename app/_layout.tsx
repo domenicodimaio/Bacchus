@@ -51,23 +51,18 @@ const ensureTranslationsLoaded = async () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Forza il caricamento di tutti i namespace per entrambe le lingue
-    for (const lang of SUPPORTED_LANGUAGES) {
-      for (const ns of ALL_NAMESPACES) {
-        try {
-          // Verifica se il namespace è già caricato
-          if (!i18n.hasResourceBundle(lang, ns)) {
-            // Se non è caricato, tenta di caricarlo
-            console.log(`🌐 [i18n] Caricamento forzato: ${lang}:${ns}`);
-            
-            // Aggiungi il bundle manualmente
-            const data = require(`./locales/${lang}/${ns}.json`);
-            i18n.addResourceBundle(lang, ns, data, true, true);
-          }
-        } catch (error) {
-          console.error(`🌐 [i18n] Errore nel caricamento del namespace ${lang}:${ns}:`, error);
-        }
+    // Verifica che i namespace principali siano caricati
+    const currentLng = i18n.language || 'it';
+    for (const ns of ALL_NAMESPACES) {
+      if (!i18n.hasResourceBundle(currentLng, ns)) {
+        console.log(`🌐 [i18n] Namespace mancante: ${currentLng}:${ns}`);
       }
+    }
+    
+    // Attendiamo che i18n sia completamente inizializzato
+    if (!i18n.isInitialized) {
+      console.log('🌐 [i18n] Attesa inizializzazione...');
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
     
     return true;

@@ -7,14 +7,23 @@
 
 import { Session, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import supabase, { SUPABASE_AUTH_TOKEN_KEY } from '../supabase/client';
+import supabase, { 
+  SUPABASE_AUTH_TOKEN_KEY, 
+  supabaseUrl, 
+  supabaseAnonKey,
+  validateSupabaseConnection,
+  clearStoredAuthSessions
+} from '../supabase/client';
 import { storeAuthState } from '../supabase/middleware';
-import offlineService from './offline.service';
+import * as offlineService from './offline.service';
 import { router } from "expo-router";
 import { resetLocalProfiles, getProfiles } from './profile.service';
 import sessionServiceDirect from './session.service';
 import { clearUserData } from './session.service';
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+import { Linking, Platform } from 'react-native';
+import config from '../config';
 
 // Variabili usate per le importazioni ritardate, per evitare dipendenze cicliche
 let profileService: any = null;
@@ -31,33 +40,45 @@ const importServices = async () => {
   }
 };
 
-// Chiavi per AsyncStorage
-const AUTH_STATE_KEY = 'bacchus_auth_state';
-const USER_SESSION_KEY = 'bacchus_user_session';
-const USER_DATA_KEY = 'bacchus_user_data';
-const PROFILE_SETTINGS_KEY = 'bacchus_profile_settings';
-const GUEST_ACTIVE_SESSION_KEY = 'bacchus_guest_active_session';
-const GUEST_SESSION_HISTORY_KEY = 'bacchus_guest_session_history';
+// Chiavi per storage locale
+export const USER_DATA_KEY = 'bacchus_user_data';
+export const USER_SESSION_KEY = 'bacchus_user_session';
+export const SELECTED_PROFILE_KEY = 'bacchus_selected_profile';
 
-// Supabase Client configuration
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://egdpjqdsugbcoroclgys.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-
-// Create Supabase Admin client (diverso dal client principale importato sopra)
-const supabaseAdmin = serviceRoleKey 
-  ? createClient(supabaseUrl, serviceRoleKey)
-  : null;
+// Supabase Admin client (diverso dal client principale importato sopra)
+const supabaseAdmin = null; // Disabled admin client to avoid key issues
 
 /**
- * Interfaccia per le risposte di autenticazione
+ * Tipo per la risposta dell'autenticazione
  */
-export interface AuthResponse {
+export type AuthResponse = {
   success: boolean;
-  user?: User | null;
-  session?: Session | null;
   error?: string;
-}
+  user?: User;
+  session?: Session;
+  data?: any;
+  redirectToProfileCreation?: boolean;
+};
+
+// Helper function to get environment variables from various sources
+const getEnvVar = (key) => {
+  if (process.env[key]) {
+    return process.env[key];
+  }
+  
+  // Check in Constants if available
+  if (Constants?.expoConfig?.extra?.[key.toLowerCase()]) {
+    return Constants.expoConfig.extra[key.toLowerCase()];
+  }
+  
+  // Check in .env directly through the EXPO_PUBLIC prefix
+  const publicKey = `EXPO_PUBLIC_${key}`;
+  if (process.env[publicKey]) {
+    return process.env[publicKey];
+  }
+  
+  return undefined;
+};
 
 /**
  * Registra un nuovo utente con email e password
@@ -73,58 +94,76 @@ export const signUp = async (email: string, password: string): Promise<AuthRespo
       };
     }
     
-    // Prima di creare un nuovo profilo, reinizializziamo il servizio delle sessioni
-    // per assicurarci che non ci siano sessioni di account diversi
-    try {
-      // Importa dinamicamente il servizio delle sessioni per evitare dipendenze circolari
-      await sessionServiceDirect.initSessionService();
-      console.log('Servizio delle sessioni reinizializzato prima della registrazione');
-    } catch (sessionError) {
-      console.error('Errore nella reinizializzazione del servizio delle sessioni:', sessionError);
-      // Continuiamo comunque con la creazione del profilo
+    // Prima della registrazione, pulisci qualsiasi token di autenticazione esistente
+    await clearStoredAuthSessions();
+    
+    // Importa e inizializza il servizio sessioni
+    const sessionServiceImport = await import('./session.service');
+    
+    // Verifica connessione a Supabase
+    const isValidConnection = await validateSupabaseConnection();
+    if (!isValidConnection) {
+      console.error('[AUTH] Errore di connessione a Supabase durante registrazione.');
+      return {
+        success: false, 
+        error: 'Errore di connessione al server. Verifica la tua connessione internet.'
+      };
     }
     
+    console.log('[AUTH] Registrazione utente:', email);
+    
+    // Registra utente con Supabase
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
     
-    if (error) throw error;
-    
-    if (data?.user) {
-      // Salva i dati utente localmente
-      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        createdAt: data.user.created_at
-      }));
+    if (error) {
+      console.error('[AUTH] Errore registrazione:', error.message);
       
-      // Salva la sessione
-      if (data.session) {
-        await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
-        await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
+      // Traduzioni dei messaggi di errore più comuni
+      let errorMessage = error.message;
+      if (error.message.includes('valid email')) {
+        errorMessage = 'Inserisci un indirizzo email valido.';
+      } else if (error.message.includes('least 6 characters')) {
+        errorMessage = 'La password deve essere di almeno 6 caratteri.';
+      } else if (error.message.includes('already registered')) {
+        errorMessage = 'Email già registrata. Prova ad accedere.';
       }
       
-      // Inizializza nuovamente il servizio sessioni per il nuovo utente
-      await sessionServiceDirect.initSessionService();
-      
       return {
-        success: true,
-        user: data.user,
-        session: data.session
+        success: false,
+        error: errorMessage
       };
     }
     
+    if (!data.user) {
+      console.error('[AUTH] Nessun utente restituito dopo la registrazione');
+      return {
+        success: false,
+        error: 'Errore durante la registrazione. Riprova più tardi.'
+      };
+    }
+    
+    console.log('[AUTH] Utente registrato con successo:', data.user.id);
+
+    // Redirigi alla schermata corretta
+    // L'utente dovrebbe creare il proprio profilo
+    console.log('[AUTH] Reindirizzamento per creazione profilo');
+    
+    // Restituisci il risultato
     return {
       success: true,
-      user: null,
-      error: 'No user returned from signUp'
+      user: data.user,
+      session: data.session,
+      redirectToProfileCreation: true
     };
-  } catch (error: any) {
-    console.error('Sign up error:', error);
+    
+  } catch (error) {
+    console.error('[AUTH] Errore sconosciuto durante registrazione:', error);
     return {
       success: false,
-      error: error.message
+      error: 'Errore durante la registrazione. Riprova più tardi.'
     };
   }
 };
@@ -143,84 +182,77 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
       };
     }
     
-    console.log('[DEBUG] Tentativo di login con email:', email);
+    console.log('[AUTH] Tentativo di login con email:', email);
     
-    // Prima di tentare il login, assicuriamoci che non ci siano sessioni precedenti
-    console.log('[DEBUG] Pulizia token precedenti...');
-    await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-    await AsyncStorage.removeItem(USER_SESSION_KEY);
-    console.log('[DEBUG] Token rimossi dallo storage');
+    // Prima di tentare il login, pulisci qualsiasi token di autenticazione esistente
+    console.log('[AUTH] Pulizia token precedenti...');
+    await clearStoredAuthSessions();
     
-    // Reinizializziamo il servizio sessioni per garantire che non ci siano sessioni residue
-    console.log('[DEBUG] Inizializzazione servizio sessioni pre-login...');
-    await sessionServiceDirect.initSessionService();
-    console.log('[DEBUG] Servizio sessioni inizializzato prima del login');
+    // Importa e inizializza il servizio sessioni
+    const sessionServiceImport = await import('./session.service');
+    await sessionServiceImport.initSessionService();
     
-    console.log('[DEBUG] Tentativo di autenticazione con Supabase...');
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Tenta di verificare la connessione a Supabase
+    const isConnectionValid = await validateSupabaseConnection();
+    
+    // Utilizzare un client temporaneo per evitare problemi di sessione persistente
+    const authClient = createGuestClient();
+    
+    // Invio richiesta login a Supabase
+    console.log('[AUTH] Invio richiesta login a Supabase...');
+    const { data, error } = await authClient.auth.signInWithPassword({
       email,
-      password,
+      password
     });
     
+    // Se c'è un errore, mostriamolo
     if (error) {
-      console.error('[DEBUG] Errore durante il login Supabase:', error);
-      throw error;
-    }
-    
-    if (data?.session) {
-      console.log('[DEBUG] Login completato con successo, sessione creata');
+      console.error('[AUTH] Errore durante il login Supabase:', error);
       
-      try {
-        // Salva i dati utente localmente
-        if (data.user) {
-          console.log('[DEBUG] Salvataggio dati utente in localStorage...');
-          await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
-            id: data.user.id,
-            email: data.user.email,
-            createdAt: data.user.created_at
-          }));
-          console.log('[DEBUG] Dati utente salvati con userId:', data.user.id);
-        }
-        
-        // Verifica che la sessione sia stata salvata correttamente
-        console.log('[DEBUG] Salvataggio token di sessione in localStorage...');
-        await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
-        await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
-        console.log('[DEBUG] Token di sessione salvati in localStorage');
-        
-        // Salva lo stato di autenticazione
-        console.log('[DEBUG] Salvataggio stato autenticazione...');
-        await storeAuthState(data.session);
-        console.log('[DEBUG] Stato autenticazione salvato');
-        
-        // Inizializza nuovamente il servizio sessioni per il nuovo utente
-        console.log('[DEBUG] Inizializzazione servizio sessioni post-login...');
-        const beforeInit = new Date().getTime();
-        await sessionServiceDirect.initSessionService();
-        const afterInit = new Date().getTime();
-        console.log(`[DEBUG] Servizio sessioni inizializzato (${afterInit - beforeInit}ms)`);
-        
-        // Verifica che i dati siano stati salvati
-        const savedToken = await AsyncStorage.getItem(SUPABASE_AUTH_TOKEN_KEY);
-        console.log('[DEBUG] Verifica token sessione salvato:', !!savedToken);
-      } catch (storageError) {
-        console.error('[DEBUG] Errore durante il salvataggio dati sessione:', storageError);
-      }
-      
-      return {
-        success: true,
-        user: data.user,
-        session: data.session
-      };
-    } else {
-      console.log('[DEBUG] Login fallito: Nessuna sessione restituita');
       return {
         success: false,
-        error: 'Authentication failed'
+        error: error.message
       };
     }
-  } catch (error: any) {
-    console.error('[DEBUG] Errore durante il login:', error);
+    
+    // Login riuscito, salviamo i dati dell'utente
+    if (!data.user) {
+      return {
+        success: false,
+        error: 'Nessun dato utente ricevuto'
+      };
+    }
+    
+    // Salva i dati dell'utente
+    await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
+      id: data.user.id,
+      email: data.user.email,
+      createdAt: data.user.created_at
+    }));
+    
+    // Salva la sessione
+    if (data.session) {
+      await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
+      
+      // Formato della chiave Supabase: sb-{ref}-auth-token
+      const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || '';
+      const tokenKey = `sb-${projectRef}-auth-token`;
+      
+      await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
+      await AsyncStorage.setItem(tokenKey, JSON.stringify(data.session));
+    }
+    
+    // Inizializza il servizio sessioni con l'ID utente
+    await sessionServiceImport.initSessionService(data.user.id);
+    
+    // Login completato con successo
+    return {
+      success: true,
+      user: data.user,
+      session: data.session
+    };
+  } catch (error) {
+    console.error('[AUTH] Errore imprevisto durante il login:', error);
     return {
       success: false,
       error: error.message
@@ -233,8 +265,6 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
  */
 export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<AuthResponse> => {
   try {
-    console.log(`AUTH: Avvio login con provider ${provider}...`);
-    
     // Verifica connessione
     const isOffline = await offlineService.isOffline();
     if (isOffline) {
@@ -244,74 +274,88 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
       };
     }
     
-    // Pulizia token esistenti
-    console.log('AUTH: Pulizia token esistenti...');
-    await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-    await AsyncStorage.removeItem(USER_SESSION_KEY);
+    console.log(`AUTH: Tentativo di login con ${provider}...`);
     
-    // Per Apple ID, imposta la variabile globale che indica che siamo in registrazione
-    if (provider === 'apple') {
-      console.log('AUTH: Login con Apple ID - imposto flag registrazione...');
-      // Questo assicura che il wizard venga mostrato dopo l'accesso con Apple
-      if (typeof global !== 'undefined') {
-        // Resetta tutti i flag prima di impostare quelli nuovi per evitare conflitti
-        global.__WIZARD_AFTER_REGISTRATION__ = false;
-        global.__BLOCK_ALL_SCREENS__ = false;
-        global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-        
-        // Poi imposta i flag necessari
-        global.__WIZARD_AFTER_REGISTRATION__ = true;
-        global.__WIZARD_START_TIME__ = Date.now();
-        console.log('AUTH: Flag per mostrare wizard impostati');
-      }
-      
-      // Imposta che il flag di wizard NON è completato per forzare il wizard
-      try {
-        await setProfileWizardCompleted(false);
-        console.log('AUTH: Flag completamento wizard impostato a false per Apple Auth');
-      } catch (e) {
-        console.error('AUTH: Errore impostazione flag wizard:', e);
-      }
-    }
+    // Ottieni le configurazioni per OAuth dal modulo centralizzato
+    const redirectTo = config.getRedirectUrl(provider);
+    console.log(`AUTH: URL di redirezione per ${provider}:`, redirectTo);
     
-    // Prima di creare un nuovo profilo, reinizializziamo il servizio delle sessioni
-    // per assicurarci che non ci siano sessioni di account diversi
-    try {
-      // Importa dinamicamente il servizio delle sessioni per evitare dipendenze circolari
-      await sessionServiceDirect.initSessionService();
-      console.log('AUTH: Servizio delle sessioni reinizializzato prima del login con provider');
-    } catch (sessionError) {
-      console.error('AUTH: Errore nella reinizializzazione del servizio delle sessioni:', sessionError);
-      // Continuiamo comunque con la creazione del profilo
-    }
+    // Ottieni configurazioni specifiche per il provider
+    const providerOptions = config.getOAuthConfig(provider);
+    console.log(`AUTH: Opzioni per ${provider}:`, providerOptions);
     
     // Inizia il flusso di autenticazione OAuth
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: provider,
-      options: {
-        redirectTo: 'bacchus://login-callback',
-      }
+      options: providerOptions
     });
     
-    if (error) throw error;
-    
-    return {
-      success: true,
-      error: 'Please continue in the browser window'
-    };
-  } catch (error: any) {
-    console.error('AUTH: Sign in with provider error:', error);
-    
-    // In caso di errore, pulisci tutti i flag per evitare stati inconsistenti
-    if (typeof global !== 'undefined') {
-      global.__WIZARD_AFTER_REGISTRATION__ = false;
-      global.__BLOCK_ALL_SCREENS__ = false;
-      global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+    if (error) {
+      console.error(`AUTH: Errore durante l'autenticazione con ${provider}:`, error);
+      throw error;
     }
     
+    if (!data.url) {
+      console.error(`AUTH: Non è stata restituita una URL di autorizzazione da ${provider}`);
+      return {
+        success: false,
+        error: `Errore durante l'autenticazione con ${provider}: URL mancante`
+      };
+    }
+    
+    console.log(`AUTH: URL di autorizzazione per ${provider} ottenuta:`, data.url);
+    
+    // Gestione speciale per evitare redirezioni esterne su Apple
+    if (provider === 'apple' && Platform.OS === 'ios') {
+      try {
+        // Richiedi importazione dell'expo-auth-session
+        const { exchangeCodeAsync } = require('expo-auth-session');
+        // Apri la URL usando un WebBrowser interno
+        const response = await Linking.openURL(data.url);
+        console.log(`AUTH: Apertura browser interno per ${provider} completata`);
+        return {
+          success: true,
+          // Il flusso di autenticazione continuerà in expo-router
+        };
+      } catch (err) {
+        console.error(`AUTH: Errore nell'apertura del browser interno per ${provider}:`, err);
+        return {
+          success: false,
+          error: `Impossibile aprire il browser per ${provider}`
+        };
+      }
+    }
+    
+    // Apri la URL nel browser - questo è importante per il flusso di autenticazione
+    try {
+      const canOpen = await Linking.canOpenURL(data.url);
+      
+      if (canOpen) {
+        await Linking.openURL(data.url);
+        console.log(`AUTH: Browser aperto con URL di autorizzazione per ${provider}`);
+        return {
+          success: true,
+          // Il flusso di autenticazione continuerà in expo-router
+        };
+      } else {
+        console.error(`AUTH: Impossibile aprire la URL di autorizzazione per ${provider}`);
+        return {
+          success: false,
+          error: `Impossibile aprire la URL di autorizzazione per ${provider}`
+        };
+      }
+    } catch (error) {
+      console.error(`AUTH: Errore durante l'apertura della URL di autorizzazione per ${provider}:`, error);
+      return {
+        success: false,
+        error: `Errore durante l'apertura della URL di autorizzazione per ${provider}`
+      };
+    }
+  } catch (error: any) {
+    console.error(`AUTH: Errore generale durante il login con ${provider}:`, error);
     return {
       success: false,
-      error: error.message
+      error: error?.message || `Errore durante il login con ${provider}`
     };
   }
 };
@@ -485,6 +529,14 @@ export const getCurrentUser = async (): Promise<User | null> => {
  */
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
+    // Prima verifica se l'utente è in modalità ospite
+    const isGuestMode = await AsyncStorage.getItem(IS_GUEST_KEY);
+    if (isGuestMode === 'true') {
+      console.log('[AUTH] Utente autenticato come ospite');
+      return true;
+    }
+    
+    // Se non è ospite, verifica l'autenticazione normale
     const user = await getCurrentUser();
     return !!user;
   } catch (error) {
@@ -505,7 +557,7 @@ export const onAuthStateChange = (callback: (event: string, session: Session | n
  */
 export const saveProfileSettings = async (settings: any): Promise<boolean> => {
   try {
-    await AsyncStorage.setItem(PROFILE_SETTINGS_KEY, JSON.stringify(settings));
+    await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify(settings));
     return true;
   } catch (error) {
     console.error('Save profile settings error:', error);
@@ -518,7 +570,7 @@ export const saveProfileSettings = async (settings: any): Promise<boolean> => {
  */
 export const getProfileSettings = async (): Promise<any> => {
   try {
-    const settingsJson = await AsyncStorage.getItem(PROFILE_SETTINGS_KEY);
+    const settingsJson = await AsyncStorage.getItem(SELECTED_PROFILE_KEY);
     if (settingsJson) {
       return JSON.parse(settingsJson);
     }
@@ -536,9 +588,8 @@ export const getProfileSettings = async (): Promise<any> => {
 export const resetAuthState = async (): Promise<void> => {
   try {
     // Rimuovi i dati di autenticazione da AsyncStorage
-    await AsyncStorage.removeItem(AUTH_STATE_KEY);
-    await AsyncStorage.removeItem(USER_SESSION_KEY);
     await AsyncStorage.removeItem(USER_DATA_KEY);
+    await AsyncStorage.removeItem(USER_SESSION_KEY);
     await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
     
     console.log('Auth state reset successfully');
@@ -555,7 +606,7 @@ export const hasCompletedProfileWizard = async (): Promise<boolean> => {
     console.log('Verifica completamento wizard...');
     
     // Verifica PRIMA in AsyncStorage (più veloce e affidabile)
-    const profileSettingsStr = await AsyncStorage.getItem(PROFILE_SETTINGS_KEY);
+    const profileSettingsStr = await AsyncStorage.getItem(SELECTED_PROFILE_KEY);
     if (profileSettingsStr) {
       const profileSettings = JSON.parse(profileSettingsStr);
       if (profileSettings.completedWizard === true) {
@@ -594,7 +645,7 @@ export const hasCompletedProfileWizard = async (): Promise<boolean> => {
           // Se troviamo il flag nel DB, aggiorniamo anche AsyncStorage per la prossima volta
           const profileSettings = profileSettingsStr ? JSON.parse(profileSettingsStr) : {};
           profileSettings.completedWizard = true;
-          await AsyncStorage.setItem(PROFILE_SETTINGS_KEY, JSON.stringify(profileSettings));
+          await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify(profileSettings));
           
           console.log('Wizard completato (da DB):', true);
           return true;
@@ -623,24 +674,24 @@ export const setProfileWizardCompleted = async (completed: boolean = true): Prom
     
     // OTTIMIZZAZIONE 1: Prima salviamo in AsyncStorage (veloce)
     // per garantire una risposta rapida all'UI
-    const profileSettingsStr = await AsyncStorage.getItem(PROFILE_SETTINGS_KEY);
+    const profileSettingsStr = await AsyncStorage.getItem(SELECTED_PROFILE_KEY);
     const profileSettings = profileSettingsStr ? JSON.parse(profileSettingsStr) : {};
     
     // Aggiorna lo stato del wizard
     profileSettings.completedWizard = completed;
     
     // Salva le impostazioni aggiornate in modo sincrono
-    await AsyncStorage.setItem(PROFILE_SETTINGS_KEY, JSON.stringify(profileSettings));
+    await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify(profileSettings));
     console.log('Stato wizard salvato in AsyncStorage:', completed);
     
     // Verifica che il salvataggio sia stato effettivo
-    const verifySettings = await AsyncStorage.getItem(PROFILE_SETTINGS_KEY);
+    const verifySettings = await AsyncStorage.getItem(SELECTED_PROFILE_KEY);
     if (verifySettings) {
       const parsedSettings = JSON.parse(verifySettings);
       if (parsedSettings.completedWizard !== completed) {
         console.error('ERRORE CRITICO: Il flag wizard non è stato salvato correttamente in AsyncStorage');
         // Riprova una volta
-        await AsyncStorage.setItem(PROFILE_SETTINGS_KEY, JSON.stringify({...profileSettings, completedWizard: completed}));
+        await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify({...profileSettings, completedWizard: completed}));
       }
     }
     
@@ -1137,7 +1188,7 @@ const resetAppState = () => {
 export const resetUserData = async (): Promise<void> => {
   try {
     // Rimuovi i dati del profilo
-    await AsyncStorage.removeItem(PROFILE_SETTINGS_KEY);
+    await AsyncStorage.removeItem(SELECTED_PROFILE_KEY);
     await AsyncStorage.removeItem(USER_DATA_KEY);
     
     // Importa i servizi necessari prima di usarli
@@ -1156,54 +1207,6 @@ export const resetUserData = async (): Promise<void> => {
     console.log('Dati utente ripristinati con successo');
   } catch (error) {
     console.error('Errore durante il reset dei dati utente:', error);
-  }
-};
-
-/**
- * Logout dell'utente
- * Modifica per garantire la pulizia dei dati ospite
- */
-export const logout = async (navigation?: any): Promise<void> => {
-  try {
-    console.log('Logout in corso...');
-    
-    // Ottieni lo stato attuale dell'autenticazione prima del logout
-    // Sostituisco isGuestUser che non esiste con una verifica diretta dell'email dell'utente
-    const currentUser = await getCurrentUser();
-    const wasGuest = currentUser && currentUser.email ? currentUser.email.includes('guest') : false;
-    
-    // Se era un ospite, pulisci i suoi dati
-    if (wasGuest) {
-      await clearGuestData();
-    } else {
-      // Per un utente registrato, salva la sessione attiva prima del logout
-      const sessionService = require('./session.service');
-      const activeSession = sessionService.getActiveSession();
-      
-      if (activeSession) {
-        console.log('Salvataggio sessione attiva prima del logout...');
-        await sessionService.saveSessionToSupabase(activeSession, true);
-      }
-    }
-    
-    // Procedi con il logout effettivo
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      console.error('Errore durante il logout:', error);
-      throw error;
-    }
-    
-    // Rimuovo i riferimenti alle variabili _currentUser e _isInitialized che non esistono
-    console.log('Logout completato con successo');
-    
-    // Reindirizza alla schermata di login se è stata fornita la navigazione
-    if (navigation) {
-      navigation.replace('Login');
-    }
-  } catch (error) {
-    console.error('Errore durante il logout:', error);
-    throw error;
   }
 };
 

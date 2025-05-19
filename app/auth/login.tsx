@@ -32,6 +32,8 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
 import { COLORS } from '../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import config from '../lib/config';
 
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
@@ -66,8 +68,6 @@ export default function LoginScreen() {
   const cardTranslateY = useRef(new Animated.Value(20)).current;
   const socialOpacity = useRef(new Animated.Value(0)).current;
   const socialTranslateY = useRef(new Animated.Value(20)).current;
-  const guestOpacity = useRef(new Animated.Value(0)).current;
-  const guestTranslateY = useRef(new Animated.Value(20)).current;
   const footerOpacity = useRef(new Animated.Value(0)).current;
   
   // Riferimenti per i campi di input
@@ -117,22 +117,6 @@ export default function LoginScreen() {
           easing: Easing.out(Easing.ease)
         }),
         Animated.timing(socialTranslateY, {
-          toValue: 0,
-          duration: 450,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.cubic)
-        })
-      ]),
-      
-      // Pulsante ospite
-      Animated.parallel([
-        Animated.timing(guestOpacity, {
-          toValue: 1,
-          duration: 450,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.ease)
-        }),
-        Animated.timing(guestTranslateY, {
           toValue: 0,
           duration: 450,
           useNativeDriver: true,
@@ -331,46 +315,86 @@ export default function LoginScreen() {
     }
   };
   
-  // Gestisci login Apple
+  // Funzione per eseguire il login con Apple
   const handleAppleLogin = async () => {
     try {
       setIsLoading(true);
+      console.log('🍎 Login con Apple - Inizio processo');
       
-      const { success, error } = await loginWithProvider('apple');
-      
-      if (success) {
-        // If this is a new account with Apple, set the flag to show the profile wizard
-        // This fixes the issue where Apple login doesn't properly redirect to the profile wizard
-        if (typeof global !== 'undefined') {
-          global.__WIZARD_AFTER_REGISTRATION__ = true;
-          global.__WIZARD_START_TIME__ = Date.now();
-          router.replace('/onboarding/profile-wizard');
-        } else {
-          router.replace('/dashboard');
+      // Verifica se il servizio Apple Sign In è disponibile (solo su iOS)
+      if (Platform.OS === 'ios') {
+        console.log('🍎 Login con Apple - Controllo disponibilità servizio su iOS');
+        try {
+          // Prima verifica con expo-apple-authentication che è più affidabile
+          let isAvailable = false;
+          
+          try {
+            isAvailable = await AppleAuthentication.isAvailableAsync();
+          } catch (appleAuthCheckError) {
+            console.warn('🍎 Errore controllo AppleAuthentication:', appleAuthCheckError);
+          }
+          
+          // Fallback a invertase/react-native-apple-authentication
+          if (!isAvailable) {
+            try {
+              const isSupported = await appleAuth.isSupported;
+              isAvailable = !!isSupported;
+            } catch (invertaseCheckError) {
+              console.warn('🍎 Errore controllo invertase/appleAuth:', invertaseCheckError);
+            }
+          }
+          
+          if (!isAvailable) {
+            console.log('🍎 Login con Apple - Servizio non disponibile su questo dispositivo');
+            Alert.alert(
+              t('error', { ns: 'common' }),
+              t('appleAuthUnavailable', { ns: 'auth', defaultValue: 'Login con Apple non disponibile su questo dispositivo' })
+            );
+            setIsLoading(false);
+            return;
+          }
+          console.log('🍎 Login con Apple - Servizio disponibile su iOS');
+        } catch (checkError) {
+          console.error('🍎 Errore nel controllo disponibilità Apple Auth:', checkError);
         }
+      }
+      
+      console.log('🍎 Login con Apple - Chiamata al servizio di autenticazione');
+      
+      // Usa la configurazione centralizzata
+      const configOptions = config.getOAuthConfig('apple');
+      console.log('🍎 Login con Apple - Opzioni configurazione:', configOptions);
+      
+      const result = await authService.signInWithProvider('apple');
+      
+      if (result.success) {
+        console.log('🍎 Login con Apple - Prima fase completata, in attesa di reindirizzamento');
+        // Il risultato success qui significa solo che la richiesta è stata inviata
+        // La vera autenticazione avviene nel browser
+        
+        if (result.error) {
+          console.log('🍎 Login con Apple - Messaggio dal servizio:', result.error);
+        }
+        
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 5000); // 5 secondi per dare tempo al browser di aprirsi
       } else {
+        console.log('🍎 Login con Apple - Errore nella prima fase:', result.error);
+        setIsLoading(false);
         Alert.alert(
-          t('loginFailed', { ns: 'auth', defaultValue: 'Login Failed' }),
-          error || t('genericError', { ns: 'auth', defaultValue: 'An error occurred' })
+          t('error', { ns: 'common' }),
+          result.error || t('loginError', { ns: 'auth' })
         );
       }
     } catch (error) {
-      console.error('Apple login error:', error);
-      Alert.alert(
-        t('loginFailed', { ns: 'auth', defaultValue: 'Login Failed' }),
-        t('genericError', { ns: 'auth', defaultValue: 'An error occurred' })
-      );
-    } finally {
+      console.error('🍎 Errore imprevisto nel login con Apple:', error);
       setIsLoading(false);
+      Alert.alert(
+        t('error', { ns: 'common' }),
+        t('loginErrorUnexpected', { ns: 'auth', defaultValue: 'Si è verificato un errore imprevisto durante il login con Apple' })
+      );
     }
-  };
-  
-  // Gestione accesso ospite
-  const handleGuestAccess = () => {
-    router.replace({
-      pathname: '/onboarding/profile-wizard',
-      params: { guest: 'true' }
-    });
   };
   
   // Navigazione al recupero password
@@ -594,27 +618,6 @@ export default function LoginScreen() {
               )}
             </Animated.View>
             
-            {/* Pulsante ospite */}
-            <Animated.View
-              style={[
-                { 
-                  width: '100%',
-                  opacity: guestOpacity,
-                  transform: [{ translateY: guestTranslateY }]
-                }
-              ]}
-            >
-              <TouchableOpacity 
-                style={[styles.guestButton, { borderColor: '#2c3e60' }]}
-                onPress={handleGuestAccess}
-              >
-                <Ionicons name="person-outline" size={20} color="#ffffff" />
-                <Text style={[styles.guestButtonText, { color: '#ffffff' }]}>
-                  {t('continueAsGuest', { defaultValue: 'Continua come Ospite' })}
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-            
             {/* Footer con link di registrazione */}
             <Animated.View 
               style={[
@@ -761,20 +764,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  guestButton: {
-    flexDirection: 'row',
-    height: 48,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    width: '100%',
-    marginBottom: 5,
-  },
-  guestButtonText: {
-    fontSize: 16,
-    marginLeft: 10,
-  },
   footerContainer: {
     flexDirection: 'row',
     marginTop: 15,
@@ -787,5 +776,20 @@ const styles = StyleSheet.create({
   signupText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  buttonContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  button: {
+    padding: 16,
+    borderRadius: 10,
+    backgroundColor: '#673ab7',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
 }); 

@@ -1,222 +1,182 @@
 /**
  * Supabase Client Configuration
  * 
- * This file initializes and exports the Supabase client for database operations.
- * It uses environment variables for the URL and API keys.
+ * Questo file inizializza ed esporta il client Supabase per le operazioni sul database.
  */
 import { createClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// Get environment variables
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || 'https://egdpjqdsugbcoroclgys.supabase.co';
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTg5MjM0MzksImV4cCI6MjAxNDQ5OTQzOX0.hGyWUlOCmpRyRg-OdWVy6S-vLXgI2iq36OEjMZ4TbnA';
-
-// Estrai il projectRef dal supabaseUrl
-const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'egdpjqdsugbcoroclgys';
-// La chiave che Supabase usa per salvare il token di autenticazione
-export const SUPABASE_AUTH_TOKEN_KEY = `sb-${projectRef}-auth-token`;
-
-// Custom storage implementation that adds debug logs
-const customStorage = {
-  async getItem(key: string): Promise<string | null> {
-    try {
-      const value = await AsyncStorage.getItem(key);
-      return value;
-    } catch (error) {
-      return null;
-    }
-  },
-  async setItem(key: string, value: string): Promise<void> {
-    try {
-      await AsyncStorage.setItem(key, value);
-    } catch (error) {
-    }
-  },
-  async removeItem(key: string): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(key);
-    } catch (error) {
-    }
-  },
-};
-
-// Initialize Supabase client with AsyncStorage for auth state persistence
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: customStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
-    debug: __DEV__, // Abilita il debug solo in modalità sviluppo
-  },
-});
-
-/**
- * Validation function to verify that the Supabase client is properly initialized
- */
-export const validateSupabaseConnection = async () => {
+// Multiple approaches to get Supabase credentials to handle different environments
+const getSupabaseUrl = () => {
   try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      return false;
+    // Try Expo public env vars first (preferred approach)
+    if (process.env.EXPO_PUBLIC_SUPABASE_URL) {
+      return process.env.EXPO_PUBLIC_SUPABASE_URL;
     }
-    return true;
+    
+    // Then try from Expo Constants (from app.config.js extra)
+    if (Constants.expoConfig?.extra?.supabaseUrl) {
+      return Constants.expoConfig.extra.supabaseUrl;
+    }
+    
+    // Fallback to hardcoded value as last resort
+    return 'https://egdpjqdsugbcoroclgys.supabase.co';
   } catch (error) {
-    return false;
+    console.error('[Supabase] Error getting URL:', error);
+    return 'https://egdpjqdsugbcoroclgys.supabase.co';
   }
 };
 
-/**
- * Manually get session from storage and set it in Supabase client
- */
-export const restoreSession = async (): Promise<boolean> => {
+const getSupabaseAnonKey = () => {
   try {
-    const storedSession = await AsyncStorage.getItem(SUPABASE_AUTH_TOKEN_KEY);
-    if (storedSession) {
-      const parsedSession = JSON.parse(storedSession);
-      
-      const { data, error } = await supabase.auth.setSession({
-        access_token: parsedSession.access_token,
-        refresh_token: parsedSession.refresh_token,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      return true;
-    } else {
-      return false;
+    // Try Expo public env vars first (preferred approach)
+    if (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
+      return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     }
+    
+    // Then try from Expo Constants (from app.config.js extra)
+    if (Constants.expoConfig?.extra?.supabaseAnonKey) {
+      return Constants.expoConfig.extra.supabaseAnonKey;
+    }
+    
+    // Fallback to hardcoded value as last resort
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NTg0MTUsImV4cCI6MjA1ODAzNDQxNX0.VNZ0L4a7yixOk3oATyAz-bCDsohhuNE5ohQdV363xWM';
   } catch (error) {
-    return false;
+    console.error('[Supabase] Error getting anon key:', error);
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NTg0MTUsImV4cCI6MjA1ODAzNDQxNX0.VNZ0L4a7yixOk3oATyAz-bCDsohhuNE5ohQdV363xWM';
   }
 };
 
-/**
- * Authentication functions
- */
-export const signUpWithEmail = async (email: string, password: string) => {
-  try {
-    // Assicurati che non ci siano sessioni precedenti
-    await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { data, error };
-  } catch (e) {
-    return { data: null, error: e };
-  }
+// Set the URL and key using our robust retrieval functions
+export const supabaseUrl = getSupabaseUrl();
+export const supabaseAnonKey = getSupabaseAnonKey();
+
+// Log the values we'll be using
+console.log('[Supabase] Using URL:', supabaseUrl);
+
+// Chiave per il token di autenticazione
+export const SUPABASE_AUTH_TOKEN_KEY = 'supabase_auth_token';
+
+// Storage personalizzato per Supabase che utilizza AsyncStorage
+export const customStorage = {
+  getItem: (key) => {
+    console.log(`[Storage] Read key: ${key}`);
+    return AsyncStorage.getItem(key);
+  },
+  setItem: (key, value) => {
+    console.log(`[Storage] Write key: ${key}`);
+    return AsyncStorage.setItem(key, value);
+  },
+  removeItem: (key) => {
+    console.log(`[Storage] Remove key: ${key}`);
+    return AsyncStorage.removeItem(key);
+  },
 };
 
-export const signInWithEmail = async (email: string, password: string) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    // Verifica che la sessione sia stata salvata correttamente
-    if (data?.session) {
-      const savedToken = await AsyncStorage.getItem(SUPABASE_AUTH_TOKEN_KEY);
-      
-      // Se per qualche motivo non è stata salvata, salviamola manualmente
-      if (!savedToken) {
-        await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
-      }
-    }
-    
-    return { data, error };
-  } catch (e) {
-    return { data: null, error: e };
-  }
-};
-
-export const signOut = async () => {
-  try {
-    // Prima rimuovi la sessione da AsyncStorage
-    await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-    
-    // Poi esegui il signout da Supabase
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  } catch (e) {
-    return { error: e };
-  }
-};
-
-export const resetPassword = async (email: string) => {
-  try {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
-    return { data, error };
-  } catch (e) {
-    return { data: null, error: e };
-  }
-};
-
-/**
- * Get the current authenticated user
- */
-export const getCurrentUser = async () => {
-  try {
-    // Prima prova a recuperare la sessione salvata
-    const sessionStr = await AsyncStorage.getItem(SUPABASE_AUTH_TOKEN_KEY);
-    if (sessionStr) {
-      try {
-        const session = JSON.parse(sessionStr);
-        // Tenta di impostare la sessione
-        const { data, error } = await supabase.auth.setSession(session);
-        if (error) {
-          if (error.message.includes('expired')) {
-            await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-          }
-        } else if (data?.user) {
-          return data.user;
-        }
-      } catch (e) {
-      }
-    }
-    
-    // Se non abbiamo potuto ripristinare la sessione, proviamo a ottenere l'utente normalmente
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) {
-      // Se l'errore è AuthSessionMissingError, cancelliamo i dati di autenticazione
-      if (error.message && error.message.includes('Auth session missing')) {
-        await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-      }
-      return null;
-    }
-    return user;
-  } catch (e) {
-    return null;
-  }
-};
-
-/**
- * Subscribe to auth changes
- */
-export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-  return supabase.auth.onAuthStateChange((event, session) => {
-    // Se l'utente si è autenticato, verifichiamo che la sessione sia salvata
-    if (event === 'SIGNED_IN' && session) {
-      AsyncStorage.getItem(SUPABASE_AUTH_TOKEN_KEY).then(storedSession => {
-        if (!storedSession) {
-          AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(session));
-        }
-      });
-    }
-    // Se l'utente si è disconnesso, rimuoviamo la sessione
-    else if (event === 'SIGNED_OUT') {
-      AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-    }
-    
-    callback(event, session);
+// Crea un client base con le opzioni comuni
+const createBaseClient = (storage = customStorage) => {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      storage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+      flowType: Platform.OS === 'web' ? 'implicit' : 'pkce',
+    },
+    // Configurazione globale per il reindirizzamento dopo autenticazione via email
+    global: {
+      headers: {
+        'x-application-name': 'Bacchus',
+      },
+    },
   });
 };
 
-// Export the supabase instance for direct use
+// Crea il client principale
+const supabase = createBaseClient();
+
+console.log('[Supabase] Client initialized with URL:', supabaseUrl);
+
+/**
+ * Valida la connessione a Supabase
+ * Verifica che l'API key sia valida tramite una semplice richiesta
+ */
+export const validateSupabaseConnection = async () => {
+  try {
+    console.log('[Supabase] Validating connection');
+    
+    // Tenta una semplice richiesta HTTP all'API Supabase per verificare che la chiave sia valida
+    const response = await fetch(`${supabaseUrl}/rest/v1/profiles?count=exact&limit=1`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    // Verifica lo stato della risposta
+    // 200-299: successo, 401-403: chiave API invalida
+    if (response.status >= 200 && response.status < 300) {
+      console.log('[Supabase] Connection validation successful');
+      return true;
+    } else if (response.status === 401 || response.status === 403) {
+      console.error('[Supabase] Connection validation failed: Invalid API key');
+      return false;
+    } else {
+      // Per altri errori, potrebbe essere un problema temporaneo di rete
+      console.warn(`[Supabase] Connection validation returned unexpected status: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('[Supabase] Connection validation error:', error);
+    return false;
+  }
+};
+
+/**
+ * Crea un client temporaneo per un singolo utilizzo
+ * Non mantiene la sessione e non interferisce con il client principale
+ */
+export const createTempClient = () => {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
+
+/**
+ * Pulisce tutte le sessioni di autenticazione salvate in AsyncStorage
+ */
+export const clearStoredAuthSessions = async () => {
+  try {
+    console.log('[Supabase] Clearing stored auth sessions');
+    
+    // Elimina le chiavi di autenticazione note
+    await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
+    
+    // Trova e rimuovi tutte le chiavi relative a Supabase
+    const allKeys = await AsyncStorage.getAllKeys();
+    const supabaseKeys = allKeys.filter(key => 
+      key.startsWith('sb-') || 
+      key.includes('supabase') || 
+      key.includes('auth-token')
+    );
+    
+    if (supabaseKeys.length > 0) {
+      await AsyncStorage.multiRemove(supabaseKeys);
+      console.log(`[Supabase] Removed ${supabaseKeys.length} auth-related keys`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[Supabase] Error clearing auth sessions:', error);
+    return false;
+  }
+};
+
+// Esporta il client Supabase
 export default supabase; 
