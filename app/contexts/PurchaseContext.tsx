@@ -7,6 +7,13 @@ import { useAuth } from './AuthContext';
 import * as purchaseService from '../lib/services/purchase.service';
 import { PremiumFeatures, PurchaseState, FREE_LIMITS } from '../types/purchases';
 
+// Chiavi specifiche dello storage
+const STORAGE_KEYS = {
+  SIMULATE_PREMIUM: 'SIMULATE_PREMIUM',
+  PREMIUM_STATUS: 'PREMIUM_STATUS',
+  CURRENT_PATH: 'CURRENT_PATH'
+};
+
 // Contesto degli acquisti
 interface PurchaseContextType {
   isInitialized: boolean;
@@ -80,6 +87,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { t } = useTranslation(['purchases', 'common']);
   const { user } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isSubscriptionModalVisible, setIsSubscriptionModalVisible] = useState(false);
+  const [currentPath, setCurrentPath] = useState<string>('/');
+  
+  // Stato principale
   const [state, setState] = useState<PurchaseState>({
     isLoading: true,
     isPremium: false,
@@ -92,6 +103,14 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     remainingFreeSessions: FREE_LIMITS.SESSIONS_PER_WEEK,
   });
   
+  // Versione sicura per settare lo stato
+  const safeSetState = (newState: Partial<PurchaseState>) => {
+    setState(prevState => ({
+      ...prevState,
+      ...newState
+    }));
+  };
+  
   // Inizializza il servizio acquisti
   const initializePurchases = async () => {
     console.log('Initializing purchases...');
@@ -100,45 +119,51 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (isInitialized) return true;
       
       // Check if premium simulation is enabled
-      const simulatePremium = await AsyncStorage.getItem('SIMULATE_PREMIUM');
+      const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
       if (simulatePremium === 'true') {
         console.log('SIMULATION: Premium mode enabled');
-        setState(prev => ({
-          ...prev,
+        safeSetState({
           isPremium: true,
-          isInitialized: true,
+          isAdFree: true,
           isLoading: false
-        }));
+        });
+        setIsInitialized(true);
         return true;
       }
       
+      // Inizializza il servizio acquisti
       const success = await purchaseService.initPurchases();
-      if (!success) return false;
       
-      // Se l'utente è loggato, imposta l'utente per gli acquisti
-      if (user?.id) {
-        await purchaseService.setUserForPurchases(user.id);
-      }
-      
-      // Carica i prodotti
-      const offerings = await purchaseService.getProducts();
-      
+      // Anche se l'inizializzazione fallisce, continuiamo per non bloccare l'app
       // Ottieni stato premium e ad-free
       const isPremium = await purchaseService.isPremium();
       const isAdFree = await purchaseService.isAdFree();
+      
+      // Ottenere prodotti potrebbe fallire, iniziamo con lista vuota
+      let products = [];
+      let subscriptions = [];
+      
+      try {
+        // Carica i prodotti (operazione che potrebbe fallire)
+        const offerings = await purchaseService.getProducts();
+        if (offerings) {
+          products = offerings.availablePackages || [];
+          subscriptions = offerings.availablePackages.filter((p: any) => p.packageType !== 'LIFETIME') || [];
+        }
+      } catch (productsError) {
+        console.error('Failed to load products:', productsError);
+      }
       
       // Ottieni il conteggio sessioni rimaste
       const remainingSessions = await purchaseService.getRemainingSessionsCount();
       
       // Aggiorna lo stato
-      setState({
-        ...state,
+      safeSetState({
         isLoading: false,
         isPremium,
         isAdFree,
-        currentOffering: offerings,
-        products: offerings?.availablePackages || [],
-        subscriptions: offerings?.availablePackages.filter((p: any) => p.packageType !== 'LIFETIME') || [],
+        products: products,
+        subscriptions: subscriptions,
         remainingFreeSessions: remainingSessions < 0 ? FREE_LIMITS.SESSIONS_PER_WEEK : remainingSessions,
       });
       
@@ -146,48 +171,154 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       return true;
     } catch (error) {
       console.error('Failed to initialize purchases in context:', error);
-      setState({ ...state, isLoading: false });
-      return false;
+      
+      // In caso di errore, impostiamo comunque lo stato come inizializzato
+      // per non bloccare l'app
+      safeSetState({ 
+        isLoading: false,
+        isPremium: false,
+        isAdFree: false 
+      });
+      setIsInitialized(true);
+      return true; // Ritorniamo true anche in caso di errore
     }
   };
   
   // Effetto per inizializzare gli acquisti
   useEffect(() => {
     if (!isInitialized) {
-      initializePurchases();
+      initializePurchases().catch(error => {
+        console.error('Error in purchase initialization effect:', error);
+        setIsInitialized(true); // Forza l'inizializzazione anche in caso di errore
+      });
     }
   }, [isInitialized]);
   
   // Effetto per aggiornare l'utente quando cambia
   useEffect(() => {
     if (isInitialized && user?.id) {
-      purchaseService.setUserForPurchases(user.id);
+      purchaseService.setUserForPurchases(user.id).catch(error => {
+        console.error('Error setting user for purchases:', error);
+      });
     }
   }, [user?.id, isInitialized]);
+  
+  // Restituisce le funzionalità premium disponibili
+  const getPremiumFeatures = (): PremiumFeatures => {
+    try {
+      return {
+        canUseWidgets: state.isPremium,
+        canUseLiveActivities: state.isPremium,
+        canCreateUnlimitedSessions: state.isPremium,
+        sessionLimit: state.isPremium ? Infinity : FREE_LIMITS.SESSIONS_PER_WEEK,
+        remainingSessions: state.remainingFreeSessions,
+        canExportData: state.isPremium,
+        hasDetailedStatistics: state.isPremium,
+        hasPersonalizedMetabolism: state.isPremium,
+        canRemoveAds: state.isPremium || state.isAdFree,
+      };
+    } catch (error) {
+      console.error('Error getting premium features:', error);
+      // Valore sicuro di default
+      return {
+        canUseWidgets: false,
+        canUseLiveActivities: false,
+        canCreateUnlimitedSessions: false,
+        sessionLimit: FREE_LIMITS.SESSIONS_PER_WEEK,
+        remainingSessions: state.remainingFreeSessions,
+        canExportData: false,
+        hasDetailedStatistics: false,
+        hasPersonalizedMetabolism: false,
+        canRemoveAds: false,
+      };
+    }
+  };
+
+  // Verifica se è possibile creare una nuova sessione
+  const checkCanCreateSession = async (): Promise<boolean> => {
+    try {
+      // Se l'utente è premium, può creare sessioni illimitate
+      if (state.isPremium) return true;
+      
+      // Altrimenti, controlla il contatore delle sessioni
+      const canCreate = await purchaseService.canCreateNewSession();
+      
+      // Se l'utente non può creare una nuova sessione, mostra il prompt
+      if (!canCreate) {
+        showUpgradePrompt('session_limit');
+      }
+      
+      return canCreate;
+    } catch (error) {
+      console.error('Error checking if can create session:', error);
+      return true; // In caso di errore, consentiamo la creazione per non bloccare l'utente
+    }
+  };
+  
+  // Incrementa il contatore delle sessioni
+  const incrementSessionCounter = async (): Promise<number> => {
+    try {
+      // Se l'utente è premium, non conta le sessioni
+      if (state.isPremium) return Infinity;
+      
+      // Incrementa il contatore e ottieni il valore aggiornato
+      const remaining = await purchaseService.incrementSessionCount();
+      
+      // Aggiorna lo stato
+      safeSetState({ remainingFreeSessions: remaining });
+      
+      return remaining;
+    } catch (error) {
+      console.error('Error incrementing session counter:', error);
+      return state.remainingFreeSessions; // In caso di errore, mantieni il conteggio attuale
+    }
+  };
+  
+  // Funzioni di UI per mostrare/nascondere la finestra di abbonamento
+  const showSubscriptionScreen = () => {
+    setIsSubscriptionModalVisible(true);
+  };
+  
+  const hideSubscriptionScreen = () => {
+    setIsSubscriptionModalVisible(false);
+  };
   
   // Acquista un abbonamento
   const purchaseSubscription = async (plan: 'monthly' | 'annual'): Promise<boolean> => {
     try {
       if (state.isLoading) return false;
       
-      const result = await purchaseService.purchasePackage(state.subscriptions.find((p: any) => p.packageType === plan));
+      // Trova l'abbonamento corrispondente
+      const sub = state.subscriptions.find((p: any) => p.packageType === plan);
+      if (!sub) {
+        console.error('Subscription plan not found:', plan);
+        return false;
+      }
+      
+      const result = await purchaseService.purchasePackage(sub);
       
       if (result.success) {
         // Aggiorna lo stato
-        setState({
-          ...state,
+        safeSetState({
           isPremium: true,
           isAdFree: true,
           customerInfo: result.customerInfo,
         });
-        await AsyncStorage.setItem('PREMIUM_STATUS', 'true');
+        await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, 'true');
         return true;
       }
       
       return false;
     } catch (error) {
       console.error('Failed to purchase subscription:', error);
-      Alert.alert(t('error', { ns: 'common' }), t('purchaseError'));
+      
+      // Mostra l'errore all'utente
+      try {
+        Alert.alert(t('error', { ns: 'common' }), t('purchaseError'));
+      } catch (alertError) {
+        console.error('Error showing alert:', alertError);
+      }
+      
       return false;
     }
   };
@@ -208,8 +339,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       
       if (result.success) {
         // Aggiorna lo stato
-        setState({
-          ...state,
+        safeSetState({
           isAdFree: true,
           customerInfo: result.customerInfo,
         });
@@ -232,292 +362,131 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         const isAdFree = await purchaseService.isAdFree();
         
         // Aggiorna lo stato
-        setState({
-          ...state,
+        safeSetState({
           isPremium,
           isAdFree,
           customerInfo: result.customerInfo,
         });
-        await AsyncStorage.setItem('PREMIUM_STATUS', 'true');
-        Alert.alert(t('success', { ns: 'common' }), t('purchaseRestored'));
+        
+        await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, isPremium ? 'true' : 'false');
+        
+        // Mostra messaggio di successo
+        try {
+          Alert.alert(t('success', { ns: 'common' }), t('purchaseRestored'));
+        } catch (alertError) {
+          console.error('Error showing alert:', alertError);
+        }
+        
         return true;
       }
       
       return result.success;
     } catch (error) {
       console.error('Failed to restore purchases:', error);
-      Alert.alert(t('error', { ns: 'common' }), t('restoreError'));
+      
+      // Mostra l'errore all'utente
+      try {
+        Alert.alert(t('error', { ns: 'common' }), t('restoreError'));
+      } catch (alertError) {
+        console.error('Error showing alert:', alertError);
+      }
+      
       return false;
     }
   };
   
-  // Ottiene le funzionalità premium disponibili
-  const getPremiumFeatures = (): PremiumFeatures => {
-    return {
-      canUseWidgets: state.isPremium || Platform.OS !== 'ios',
-      canUseLiveActivities: state.isPremium || Platform.OS !== 'ios',
-      canCreateUnlimitedSessions: state.isPremium,
-      sessionLimit: FREE_LIMITS.SESSIONS_PER_WEEK,
-      remainingSessions: state.remainingFreeSessions,
-      canExportData: state.isPremium,
-      hasDetailedStatistics: state.isPremium,
-      hasPersonalizedMetabolism: state.isPremium,
-      canRemoveAds: state.isPremium || state.isAdFree,
-    };
-  };
-  
-  // Verifica se l'utente può creare una nuova sessione
-  const checkCanCreateSession = async (): Promise<boolean> => {
-    try {
-      const canCreate = await purchaseService.canCreateNewSession();
-      const remaining = await purchaseService.getRemainingSessionsCount();
-      
-      setState({
-        ...state,
-        remainingFreeSessions: remaining < 0 ? FREE_LIMITS.SESSIONS_PER_WEEK : remaining,
-      });
-      
-      return canCreate;
-    } catch (error) {
-      console.error('Failed to check if can create session:', error);
-      return state.isPremium || state.remainingFreeSessions > 0;
-    }
-  };
-  
-  // Incrementa il contatore sessioni
-  const incrementSessionCounter = async (): Promise<number> => {
-    if (state.isPremium) return -1; // Premium ha sessioni illimitate
-    
-    try {
-      const newCount = await purchaseService.incrementSessionCount();
-      const remaining = FREE_LIMITS.SESSIONS_PER_WEEK - newCount;
-      
-      setState({
-        ...state,
-        remainingFreeSessions: Math.max(0, remaining),
-      });
-      
-      return remaining;
-    } catch (error) {
-      console.error('Failed to increment session counter:', error);
-      return state.remainingFreeSessions - 1;
-    }
-  };
-  
-  // Funzioni per mostrare/nascondere lo schermo di sottoscrizione
-  const showSubscriptionScreen = () => {
-    try {
-      console.log('[PurchaseContext] Mostrando la schermata abbonamento con modalità modale stabile');
-      
-      // Importante: impostiamo una variabile globale per impedire che altre navigazioni possano interferire
-      if (typeof global !== 'undefined') {
-        global.__SHOWING_SUBSCRIPTION_SCREEN__ = true;
-        // Impostiamo questa flag per evitare che altri componenti inneschino automaticamente navigazioni
-        global.__PREVENT_AUTO_NAVIGATION__ = true;
-      }
-      
-      // Utilizziamo il metodo push invece di navigate per garantire che la schermata si apra come nuova
-      router.push({
-        pathname: '/onboarding/subscription-offer',
-        params: { 
-          source: 'direct', 
-          fromWizard: 'false',
-          ts: Date.now().toString(), // evita cache di navigazione
-          permanent: 'true' // indica che questa schermata non deve essere chiusa automaticamente
-        }
-      });
-      
-      // Registriamo una funzione di protezione che impedisce la chiusura automatica
-      setTimeout(() => {
-        console.log('[PurchaseContext] Controllo che la schermata sia ancora attiva');
-        if (global.__SHOWING_SUBSCRIPTION_SCREEN__) {
-          const lastPathSegment = getLastPathSegment();
-          if (lastPathSegment !== 'subscription-offer') {
-            console.log('[PurchaseContext] La schermata è stata chiusa prematuramente, la riapro');
-            router.push('/onboarding/subscription-offer');
-          }
-        }
-      }, 1000);
-    } catch (error) {
-      console.error('[PurchaseContext] Errore nella navigazione:', error);
-      
-      // Mostriamo un fallback se la navigazione fallisce
-      Alert.alert(
-        t('error', { ns: 'common', defaultValue: 'Errore' }),
-        t('errorGeneric', { ns: 'common', defaultValue: 'Si è verificato un errore. Riprova più tardi.' }),
-        [{ text: 'OK' }]
-      );
-      
-      // Ripristiniamo le variabili globali
-      if (typeof global !== 'undefined') {
-        global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
-        global.__PREVENT_AUTO_NAVIGATION__ = false;
-      }
-    }
-  };
-  
-  const hideSubscriptionScreen = () => {
-    console.log('[hideSubscriptionScreen] Chiusura schermata subscription non più necessaria con navigazione router');
-    // Questa funzione non è più necessaria con la navigazione router, ma la manteniamo
-    // per retrocompatibilità. Il router gestirà la chiusura della schermata.
-  };
-  
-  // Show upgrade prompt function
+  // Mostra il prompt di upgrade
   const showUpgradePrompt = (reason?: string, source?: string) => {
-    console.log(`[PurchaseContext] Richiesta di mostrare upgrade prompt: ragione=${reason}, fonte=${source}`);
-    
-    // Controlla se siamo già sulla schermata di abbonamento
-    const lastPathSegment = getLastPathSegment();
-    if (lastPathSegment === 'subscription-offer') {
-      console.log('[PurchaseContext] Già sulla schermata abbonamento, ignoro richiesta');
-      return;
-    }
-    
     try {
-      console.log('[PurchaseContext] Navigazione diretta alla schermata premium');
+      let message = t('upgradeBenefits', { ns: 'purchases' });
       
-      // Usiamo una navigazione diretta e sincronizzata
-      router.navigate({
-        pathname: '/onboarding/subscription-offer',
-        params: { 
-          source: source || 'direct', 
-          fromWizard: 'false',
-          ts: Date.now().toString() // evita cache di navigazione
-        }
-      });
-    } catch (error) {
-      console.error('[PurchaseContext] Errore nella navigazione alla schermata premium:', error);
-      // Fallback in caso di errore
+      if (reason === 'session_limit') {
+        message = t('sessionLimitReached', { ns: 'purchases' });
+      } else if (reason === 'export') {
+        message = t('exportPremiumFeature', { ns: 'purchases' });
+      } else if (reason === 'stats') {
+        message = t('statsPremiumFeature', { ns: 'purchases' });
+      }
+      
+      // Mostra l'alert
       Alert.alert(
-        t('errorTitle', { ns: 'purchases', defaultValue: 'Errore' }),
-        t('errorGeneric', { ns: 'purchases', defaultValue: 'Si è verificato un errore. Riprova più tardi.' })
-      );
-    }
-  };
-  
-  // In PurchaseProvider, aggiungo questo useEffect per controllare lo stato simulato all'avvio
-  useEffect(() => {
-    const checkSimulatedPremium = async () => {
-      try {
-        if (__DEV__) {
-          const debugSimulatePremium = await AsyncStorage.getItem('DEBUG_SIMULATE_PREMIUM');
-          if (debugSimulatePremium === 'true') {
-            console.log('[PurchaseContext] Debug simulate premium attivo, imposto state premium');
-            setState({
-              ...state,
-              isLoading: false,
-              isPremium: true,
-              isAdFree: true,
-              remainingFreeSessions: -1, // -1 means unlimited sessions for premium
-            });
+        t('upgradeTitle', { ns: 'purchases' }),
+        message,
+        [
+          {
+            text: t('notNow', { ns: 'common' }),
+            style: 'cancel'
+          },
+          {
+            text: t('learnMore', { ns: 'purchases' }),
+            onPress: () => {
+              // Mostra la finestra di abbonamento
+              showSubscriptionScreen();
+            }
           }
-        }
-      } catch (error) {
-        console.error('[PurchaseContext] Errore nel controllo modalità simulazione:', error);
-      }
-    };
-    
-    checkSimulatedPremium();
-  }, []);
-  
-  // Implementazione sicura di getLastPathSegment senza usare hooks
-  const getLastPathSegment = () => {
-    try {
-      // In React Native, use a safer approach without depending on window
-      // This will store the last known route segment
-      const currentPath = global.__CURRENT_PATHNAME__ || '';
-      
-      if (!currentPath) return '';
-      
-      const pathSegments = currentPath.split('/');
-      return pathSegments[pathSegments.length - 1];
+        ]
+      );
     } catch (error) {
-      console.error('[getLastPathSegment] Errore:', error);
-      return '';
+      console.error('Error showing upgrade prompt:', error);
     }
   };
   
-  // This will be called from screens to update current path
-  const updateCurrentPath = (path: string) => {
-    if (typeof global !== 'undefined') {
-      global.__CURRENT_PATHNAME__ = path;
-    }
-  };
-  
-  // Add a function to toggle the simulated premium state
-  const toggleSimulatePremium = async (value: boolean) => {
+  // Funzione per attivare/disattivare la modalità premium simulata (per testing)
+  const toggleSimulatePremium = async (value: boolean): Promise<boolean> => {
     try {
-      console.log(`[PurchaseContext] Toggling premium simulation to: ${value}`);
+      // Salva il valore
+      await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, value ? 'true' : 'false');
       
-      if (value) {
-        await AsyncStorage.setItem('SIMULATE_PREMIUM', 'true');
-        setState(prev => ({
-          ...prev,
-          isPremium: true,
-          isAdFree: true,
-          remainingFreeSessions: -1, // -1 means unlimited sessions for premium
-          isLoading: false
-        }));
-        console.log('[PurchaseContext] SIMULATION: Premium mode enabled');
-        
-        // Force reload app state
-        router.setParams({ premium: 'true', ts: Date.now().toString() });
-      } else {
-        await AsyncStorage.removeItem('SIMULATE_PREMIUM');
-        setState(prev => ({
-          ...prev,
-          isPremium: false,
-          remainingFreeSessions: FREE_LIMITS.SESSIONS_PER_WEEK,
-          isLoading: false
-        }));
-        console.log('[PurchaseContext] SIMULATION: Premium mode disabled');
-        
-        // Force reload app state
-        router.setParams({ premium: 'false', ts: Date.now().toString() });
-      }
+      // Imposta anche lo stato di simulazione nel servizio
+      await purchaseService.setMockPremiumStatus(value);
       
-      // Notify the change through an event for components that need to react
-      if (Platform.OS === 'web') {
-        window.dispatchEvent(new Event('premiumStatusChanged'));
-      } else {
-        // For React Native we'd typically use a more native approach
-        // but for simplicity we'll just rely on the state change
-      }
+      // Aggiorna lo stato
+      safeSetState({
+        isPremium: value,
+        isAdFree: value
+      });
       
       return true;
     } catch (error) {
-      console.error('[PurchaseContext] Error toggling simulate premium:', error);
+      console.error('Error toggling simulated premium status:', error);
       return false;
     }
   };
   
-  // Valore del contesto
-  const contextValue: PurchaseContextType = {
-    isInitialized,
-    isLoading: state.isLoading,
-    isPremium: state.isPremium,
-    isAdFree: state.isAdFree,
-    products: state.products,
-    subscriptions: state.subscriptions,
-    remainingFreeSessions: state.remainingFreeSessions,
-    isSubscriptionModalVisible: false,
-    
-    initializePurchases,
-    getPremiumFeatures,
-    purchaseSubscription,
-    purchaseRemoveAds,
-    restorePurchases,
-    checkCanCreateSession,
-    incrementSessionCounter,
-    showUpgradePrompt,
-    showSubscriptionScreen,
-    hideSubscriptionScreen,
-    updateCurrentPath,
-    toggleSimulatePremium,
+  // Aggiorna il percorso corrente
+  const updateCurrentPath = (path: string) => {
+    setCurrentPath(path);
+    AsyncStorage.setItem(STORAGE_KEYS.CURRENT_PATH, path).catch(error => {
+      console.error('Error saving current path:', error);
+    });
   };
-  
+
   return (
-    <PurchaseContext.Provider value={contextValue}>
+    <PurchaseContext.Provider
+      value={{
+        isInitialized,
+        isLoading: state.isLoading,
+        isPremium: state.isPremium,
+        isAdFree: state.isAdFree,
+        products: state.products,
+        subscriptions: state.subscriptions,
+        remainingFreeSessions: state.remainingFreeSessions,
+        isSubscriptionModalVisible,
+        
+        initializePurchases,
+        getPremiumFeatures,
+        purchaseSubscription,
+        purchaseRemoveAds,
+        restorePurchases,
+        checkCanCreateSession,
+        incrementSessionCounter,
+        showUpgradePrompt,
+        showSubscriptionScreen,
+        hideSubscriptionScreen,
+        updateCurrentPath,
+        toggleSimulatePremium,
+      }}
+    >
       {children}
     </PurchaseContext.Provider>
   );

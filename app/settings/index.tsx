@@ -1,17 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
-import { Text, List, Divider, useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Linking, Switch, ActivityIndicator, StatusBar } from 'react-native';
+import { Text, Divider } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import i18next from '../i18n';
-import { saveLanguageToStorage, LANGUAGE_STORAGE_KEY } from '../i18n';
+import i18next, { changeLanguage, SUPPORTED_LANGUAGES } from '../i18n';
+import { LANGUAGE_STORAGE_KEY } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import NavigationContext from '../contexts/NavigationContext';
-import { useTheme as useAppTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
+import AppHeader from '../components/AppHeader';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  withSequence,
+  withDelay,
+  Easing
+} from 'react-native-reanimated';
+import { router, useNavigation } from 'expo-router';
+import { ReactNode } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { usePurchase } from '../contexts/PurchaseContext';
 
 // Storage keys
 const STORAGE_KEY = {
@@ -21,65 +35,121 @@ const STORAGE_KEY = {
   DEV_MODE_COUNT: 'bacchus_dev_mode_count'
 };
 
-// Custom SafeSwitch component to replace PaperSwitch
-const SafeSwitch = ({ value, onValueChange, trackColor = {}, thumbColor = {}, disabled = false, accessibilityLabel = '' }) => {
-  const theme = useTheme();
-  const isDark = theme.dark;
-  
-  // Default colors if not provided
-  const defaultTrackColor = {
-    true: isDark ? '#82ccff' : '#1a73e8',
-    false: isDark ? '#486c94' : '#e5e5e5',
-    ...trackColor
-  };
-  
-  const defaultThumbColor = {
-    true: '#ffffff',
-    false: '#f4f3f4',
-    ...thumbColor
-  };
+// Define types for the auth context results
+interface AuthResult {
+  success: boolean;
+  error?: string;
+}
+
+// Define SettingsItem props interface
+interface SettingsItemProps {
+  icon: ReactNode;
+  title: string;
+  subtitle?: string;
+  onPress: (() => void) | null;
+  rightComponent?: ReactNode;
+  lastItem?: boolean;
+}
+
+// Componente per gli elementi del menu
+const SettingsItem = ({ icon, title, subtitle, onPress, rightComponent, lastItem = false }: SettingsItemProps) => {
+  const { currentTheme } = useTheme();
+  const colors = currentTheme.COLORS;
   
   return (
+    <>
     <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() => !disabled && onValueChange(!value)}
-      disabled={disabled}
       style={[
-        styles.switchTrack,
-        {
-          backgroundColor: value ? defaultTrackColor.true : defaultTrackColor.false,
-          opacity: disabled ? 0.4 : 1
-        }
-      ]}
-      accessibilityRole="switch"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ checked: value }}
-    >
-      <View
-        style={[
-          styles.switchThumb,
-          {
-            backgroundColor: value ? defaultThumbColor.true : defaultThumbColor.false,
-            transform: [{ translateX: value ? 18 : 0 }]
+          styles.menuItem, 
+          { 
+            borderBottomColor: lastItem ? 'transparent' : colors.border,
+            borderBottomWidth: lastItem ? 0 : 0.5,
           }
-        ]}
-      />
-    </TouchableOpacity>
+        ]} 
+        onPress={onPress}
+        disabled={!onPress}
+      >
+        <View style={styles.menuItemLeft}>
+          {icon && (
+            <View style={[styles.menuItemIcon, { backgroundColor: colors.cardBackground }]}>
+              {icon}
+            </View>
+          )}
+          <View style={styles.menuItemTextContainer}>
+            <Text style={[styles.menuItemTitle, { color: colors.text }]}>{title}</Text>
+            {subtitle && <Text style={[styles.menuItemSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
+          </View>
+        </View>
+        <View style={styles.menuItemRight}>
+          {rightComponent || (
+            onPress && <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          )}
+        </View>
+      </TouchableOpacity>
+    </>
+  );
+};
+
+// Define SettingsSection props interface
+interface SettingsSectionProps {
+  title?: string;
+  children: ReactNode;
+}
+
+// Componente per le sezioni di impostazioni
+const SettingsSection = ({ title, children }: SettingsSectionProps) => {
+  const { currentTheme } = useTheme();
+  const colors = currentTheme.COLORS;
+  
+  return (
+    <View style={styles.section}>
+      {title && (
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+          {title}
+        </Text>
+      )}
+      <View style={[
+        styles.sectionContent, 
+        { 
+          backgroundColor: colors.cardBackground, 
+          borderColor: colors.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.1,
+              shadowRadius: 3,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        }
+      ]}>
+        {children}
+      </View>
+    </View>
   );
 };
 
 export default function SettingsScreen() {
+  // Inizializza la navigazione per gestire meglio lo swipe back
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  
+  // Animation values
+  const contentOpacity = useSharedValue(0);
+  const contentTranslateY = useSharedValue(20);
+  
   // Theme and translation
-  const theme = useTheme();
-  const { colors } = theme;
+  const { currentTheme, isDarkMode, toggleDarkMode } = useTheme();
+  const colors = currentTheme.COLORS;
   const { t, i18n } = useTranslation(['common', 'settings']);
   
   // Auth and navigation contexts
   const auth = useAuth();
   const navigationContext = useContext(NavigationContext);
   const setBlockNavigation = navigationContext?.setBlockNavigation;
-  const { isDarkMode, toggleDarkMode } = useAppTheme();
-  const isDark = theme.dark;
   
   // Extract auth properties with defaults
   const isLoggedIn = auth?.isAuthenticated || false;
@@ -88,43 +158,80 @@ export default function SettingsScreen() {
   
   // Get app version from Constants
   const appVersion = Constants?.expoConfig?.version || '1.0.0';
-  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '170';
+  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '448';
   
   // State
   const [language, setLanguage] = useState('it');
   const [offlineMode, setOfflineMode] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showDeveloperOptions, setShowDeveloperOptions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Load saved settings on component mount
+  // Animated styles
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: contentOpacity.value,
+      transform: [{ translateY: contentTranslateY.value }]
+    };
+  });
+  
+  // Assicurati che il gesto di swipe back sia abilitato quando il componente viene montato
   useEffect(() => {
+    // Supporta lo swipe back su iOS
+    if (Platform.OS === 'ios' && navigation) {
+      navigation.setOptions({
+        gestureEnabled: true,
+        gestureDirection: 'horizontal'
+      });
+    }
+    
     loadSettings();
-  }, []);
+    
+    // Start animations
+    contentOpacity.value = withTiming(1, { duration: 500 });
+    contentTranslateY.value = withTiming(0, { duration: 500 });
+  }, [navigation]);
   
   // Function to load settings from storage
   const loadSettings = async () => {
     try {
+      setIsLoading(true);
+      
       // Load language
-      const storedLanguage = await AsyncStorage.getItem(STORAGE_KEY.LANGUAGE);
+      const storedLanguage = await AsyncStorage.getItem(STORAGE_KEY.LANGUAGE).catch(() => null);
       if (storedLanguage) {
         setLanguage(storedLanguage);
       }
       
       // Load offline mode
-      const storedOfflineMode = await AsyncStorage.getItem(STORAGE_KEY.OFFLINE_MODE);
+      const storedOfflineMode = await AsyncStorage.getItem(STORAGE_KEY.OFFLINE_MODE).catch(() => null);
       if (storedOfflineMode) {
         setOfflineMode(storedOfflineMode === 'true');
       }
       
-      // Load premium status
+      // Load premium status in modo sicuro con try/catch
+      try {
       const storedIsPremium = await AsyncStorage.getItem(STORAGE_KEY.IS_PREMIUM);
-      if (storedIsPremium) {
+        if (storedIsPremium !== null) {
         setIsPremium(storedIsPremium === 'true');
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento dello stato premium:', error);
+        // Default a false in caso di errore
+        setIsPremium(false);
       }
       
-      // Check for developer mode
-      const devModeCount = await AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT) || '0';
-      setShowDeveloperOptions(parseInt(devModeCount, 10) >= 7);
+      // Check for developer mode con try/catch
+      try {
+        const devModeCount = await AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT);
+        const count = devModeCount ? parseInt(devModeCount, 10) : 0;
+        setShowDeveloperOptions(count >= 7);
+      } catch (error) {
+        console.error('Errore nel caricamento del contatore DevMode:', error);
+        setShowDeveloperOptions(false);
+      }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading settings:', error);
       
@@ -133,6 +240,7 @@ export default function SettingsScreen() {
       setOfflineMode(false);
       setIsPremium(false);
       setShowDeveloperOptions(false);
+      setIsLoading(false);
     }
   };
   
@@ -141,89 +249,52 @@ export default function SettingsScreen() {
     if (!newLanguage || newLanguage === language) return;
     
     try {
+      setIsLoading(true);
+      
       // Aggiorniamo prima lo stato locale per feedback immediato all'utente
       setLanguage(newLanguage);
       
-      // Blocca UI durante l'operazione
-      if (setBlockNavigation) {
-        setBlockNavigation(true);
-      }
+      // Cambio lingua con le funzioni migliorate del sistema i18n
+      const success = await changeLanguage(newLanguage).catch(() => false);
       
-      // Salviamo in AsyncStorage
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY.LANGUAGE, newLanguage);
-        console.log(`🌐 [Settings] Lingua salvata in STORAGE_KEY.LANGUAGE: ${newLanguage}`);
-      } catch (storageError) {
-        console.error('🌐 [Settings] Errore salvataggio in AsyncStorage:', storageError);
-      }
-      
-      // Utilizziamo la funzione condivisa per salvare la lingua
-      let saveSuccess = false;
-      try {
-        if (saveLanguageToStorage) {
-          saveSuccess = await saveLanguageToStorage(newLanguage);
-          console.log(`🌐 [Settings] saveLanguageToStorage risultato: ${saveSuccess}`);
-        }
-      } catch (saveLangError) {
-        console.error('🌐 [Settings] Errore in saveLanguageToStorage:', saveLangError);
-      }
-      
-      // Cambiamo la lingua utilizzando i18n in un blocco try/catch separato con timeout di sicurezza
-      try {
-        // Impostiamo un timeout di sicurezza per evitare blocchi
-        const changeLanguagePromise = new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            console.error('🌐 [Settings] TIMEOUT: changeLanguage bloccato, forzando continuazione');
-            resolve(); // Forza il proseguimento anche in caso di timeout
-          }, 3000);
-          
-          i18n.changeLanguage(newLanguage).then(() => {
-            clearTimeout(timeout);
-            resolve();
-          }).catch(error => {
-            clearTimeout(timeout);
-            console.error('🌐 [Settings] Errore in i18n.changeLanguage:', error);
-            reject(error);
-          });
-        });
-        
-        // Attendi il cambio lingua con protezione timeout
-        await changeLanguagePromise.catch(() => {
-          console.log('🌐 [Settings] Continuando nonostante errori in changeLanguage');
-        });
-      } catch (langError) {
-        console.error('🌐 [Settings] Errore in i18n.changeLanguage:', langError);
-        // Anche se c'è un errore nel cambio lingua, non interrompiamo il flusso
-      } finally {
-        // Assicurati di sbloccare la navigazione
-        if (setBlockNavigation) {
-          setBlockNavigation(false);
+      if (success) {
+        setTimeout(() => {
+          try {
+            // Use proper translation key with fallback
+            Alert.alert(
+              t('languageChanged', { ns: 'settings', defaultValue: 'Language changed successfully' }),
+              '',
+              [{ text: 'OK' }]
+            );
+          } catch (alertError) {
+            console.error('Error showing language change alert:', alertError);
+          }
+        }, 300);
+      } else {
+        try {
+          Alert.alert(
+            t('error', { ns: 'common', defaultValue: 'Error' }),
+            t('languageChangeError', { ns: 'settings', defaultValue: 'Error changing language' })
+          );
+        } catch (alertError) {
+          console.error('Error showing language error alert:', alertError);
         }
       }
-      
-      // Mostra una conferma con un timeout per dare tempo al sistema di applicare il cambio lingua
-      setTimeout(() => {
-        // Utilizziamo chiavi di default per evitare problemi se le traduzioni non sono ancora pronte
-        Alert.alert(
-          newLanguage === 'it' ? 'Lingua cambiata con successo' : 'Language changed successfully',
-          '',
-          [{ text: 'OK' }]
-        );
-      }, 300);
     } catch (error) {
       console.error('Error changing language:', error);
       // Ripristiniamo lo stato locale alla lingua precedente in caso di errore
       setLanguage(language);
       
-      // Sblocca UI se necessario
-      if (setBlockNavigation) {
-        setBlockNavigation(false);
-      }
-      
+      try {
       Alert.alert(
-        t('error', { ns: 'common', defaultValue: 'Error' }),
-        t('languageChangeError', { ns: 'settings', defaultValue: 'Error changing language' })
+          t('error', { ns: 'common', defaultValue: 'Error' }),
+          t('languageChangeError', { ns: 'settings', defaultValue: 'Error changing language' })
       );
+      } catch (alertError) {
+        console.error('Error showing language error alert:', alertError);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -248,7 +319,7 @@ export default function SettingsScreen() {
       setOfflineMode(offlineMode);
       Alert.alert(
         t('error', { ns: 'common', defaultValue: 'Error' }),
-        t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
+        t('offlineModeToggleError', { ns: 'settings', defaultValue: 'Error toggling offline mode' })
       );
     }
   };
@@ -256,723 +327,542 @@ export default function SettingsScreen() {
   // Function to handle dark mode toggle
   const handleDarkModeToggle = async () => {
     try {
-      await toggleDarkMode();
+      toggleDarkMode();
     } catch (error) {
       console.error('Error toggling dark mode:', error);
       Alert.alert(
         t('error', { ns: 'common', defaultValue: 'Error' }),
-        t('themeChangeError', { ns: 'settings', defaultValue: 'Error changing theme' })
+        t('darkModeToggleError', { ns: 'settings', defaultValue: 'Error toggling dark mode' })
       );
     }
   };
   
   // Function to handle logout
   const handleLogout = async () => {
-    if (!auth || !signOut) {
-      console.error('Auth context or signOut function not available');
-      return;
-    }
-    
     try {
+      setIsLoading(true);
+      
+      // Conferma prima di effettuare il logout
       Alert.alert(
         t('logout', { ns: 'common', defaultValue: 'Logout' }),
         t('logoutConfirm', { ns: 'settings', defaultValue: 'Are you sure you want to logout?' }),
         [
           {
             text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
-            style: 'cancel',
+            style: 'cancel'
           },
           {
             text: t('logout', { ns: 'common', defaultValue: 'Logout' }),
             style: 'destructive',
             onPress: async () => {
               try {
-                if (setBlockNavigation) {
-                  setBlockNavigation(true);
-                }
-                
+                // Effettua il logout
                 const result = await signOut();
                 
-                if (setBlockNavigation) {
-                  setBlockNavigation(false);
-                }
-                
-                if (!result.success) {
+                if (result.success) {
+                  console.log('Logout successful');
+                  
+                  // Naviga alla schermata di login
+                  setTimeout(() => {
+                    router.push('/auth/login');
+                  }, 500);
+                } else {
+                  const errorMessage = 'error' in result ? result.error : 'Unknown error';
+                  console.error('Logout failed:', errorMessage);
                   Alert.alert(
                     t('error', { ns: 'common', defaultValue: 'Error' }),
-                    t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred.' })
+                    t('logoutError', { ns: 'settings', defaultValue: 'Error logging out' })
                   );
                 }
               } catch (error) {
-                if (setBlockNavigation) {
-                  setBlockNavigation(false);
-                }
                 console.error('Logout error:', error);
                 Alert.alert(
                   t('error', { ns: 'common', defaultValue: 'Error' }),
-                  t('errorGeneric', { ns: 'common', defaultValue: 'An error occurred. Please try again.' })
+                  t('logoutError', { ns: 'settings', defaultValue: 'Error logging out' })
                 );
+              } finally {
+                setIsLoading(false);
               }
             }
-          },
+          }
         ]
       );
     } catch (error) {
-      console.error('Logout dialog error:', error);
+      console.error('Logout error:', error);
+      setIsLoading(false);
     }
   };
   
   // Function to handle account deletion
   const handleDeleteAccount = () => {
+    // Since deleteAccount might not exist in AuthContextType, we handle it safely
+    if (!auth || !('deleteAccount' in auth) || typeof auth['deleteAccount'] !== 'function') {
+      Alert.alert(
+        t('error', { ns: 'common', defaultValue: 'Error' }),
+        t('accountDeletionError', { ns: 'settings', defaultValue: 'Cannot delete account at this time' })
+      );
+      return;
+    }
+    
     Alert.alert(
       t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' }),
-      t('deleteAccountConfirm', { ns: 'settings', defaultValue: 'Are you sure you want to delete your account? This action cannot be undone.' }),
+      t('deleteAccountConfirmation', { ns: 'settings', defaultValue: 'Are you sure you want to delete your account? This action cannot be undone.' }),
       [
         {
           text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
-          style: 'cancel',
+          style: 'cancel'
         },
         {
-          text: t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' }),
+          text: t('delete', { ns: 'common', defaultValue: 'Delete' }),
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement account deletion
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              
+              // Use indexing to safely access the method
+              const deleteAccountFn = auth['deleteAccount'] as () => Promise<AuthResult>;
+              const result = await deleteAccountFn();
+              
+              if (result.success) {
+                console.log('Account deleted successfully');
+                // La navigazione viene gestita dentro la funzione deleteAccount
+              } else {
+                const errorMessage = 'error' in result ? result.error : 'Unknown error';
+                console.error('Account deletion failed:', errorMessage);
             Alert.alert(
-              t('info', { ns: 'common', defaultValue: 'Information' }),
-              t('comingSoon', { ns: 'common', defaultValue: 'Coming Soon' })
-            );
+                  t('error', { ns: 'common', defaultValue: 'Error' }),
+                  t('accountDeletionError', { ns: 'settings', defaultValue: 'Error deleting account' })
+                );
+                setIsLoading(false);
+              }
+            } catch (error) {
+              console.error('Account deletion error:', error);
+              Alert.alert(
+                t('error', { ns: 'common', defaultValue: 'Error' }),
+                t('accountDeletionError', { ns: 'settings', defaultValue: 'Error deleting account' })
+              );
+              setIsLoading(false);
+            }
           }
-        },
+        }
       ]
     );
   };
   
-  // Toggle premium status (for developer testing)
   const togglePremiumStatus = async () => {
     try {
-      const newStatus = !isPremium;
-      setIsPremium(newStatus);
-      await AsyncStorage.setItem(STORAGE_KEY.IS_PREMIUM, newStatus.toString());
+      const newValue = !isPremium;
+      setIsPremium(newValue);
+      await AsyncStorage.setItem(STORAGE_KEY.IS_PREMIUM, newValue.toString());
+      
+      // Mostra un messaggio di conferma
       Alert.alert(
-        t('developerMode', { ns: 'settings', defaultValue: 'Developer Mode' }),
-        newStatus 
-          ? t('premiumEnabled', { ns: 'settings', defaultValue: 'Premium features enabled for testing' })
-          : t('premiumDisabled', { ns: 'settings', defaultValue: 'Premium features disabled' })
+        newValue 
+          ? t('premiumEnabled', { ns: 'settings', defaultValue: 'Premium enabled for testing' })
+          : t('premiumDisabled', { ns: 'settings', defaultValue: 'Premium disabled' }),
+        '',
+        [{ text: 'OK' }]
       );
     } catch (error) {
       console.error('Error toggling premium status:', error);
+      // Riporta lo stato al valore originale in caso di errore
+      setIsPremium(isPremium);
     }
   };
 
-  // Render enhanced settings screen with better UX/UI
+  const handleOpenPrivacyPolicy = () => {
+    // Apri il link alla privacy policy
+    Linking.openURL('https://www.bacchusapp.com/privacy-policy');
+  };
+
+  const handleOpenTerms = () => {
+    // Apri il link ai termini di servizio
+    Linking.openURL('https://www.bacchusapp.com/terms');
+  };
+
+  const handleContactSupport = () => {
+    // Apri l'email per il supporto
+    Linking.openURL('mailto:support@bacchusapp.com?subject=Support%20Request');
+  };
+
   return (
-    <SafeAreaView 
-      style={[
-        styles.container, 
-        { backgroundColor: isDark ? '#05111d' : '#f5f7fa' }
-      ]} 
-      edges={['top']}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#103366' }]}>
-          {t('settings', { ns: 'common', defaultValue: 'Settings' })}
-        </Text>
-      </View>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={colors.headerBackground || colors.background}
+      />
       
-      <ScrollView 
+      <AppHeader
+        title={t('settings', { ns: 'common' })}
+        isMainScreen={false}
+      />
+      
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+      ) : (
+        <Animated.ScrollView 
         style={styles.scrollView}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { paddingBottom: insets.bottom > 0 ? insets.bottom : 24 }
+          ]}
         showsVerticalScrollIndicator={false}
-      >
-        {/* Appearance Section */}
-        <View style={[
-          styles.sectionContainer, 
-          { 
-            backgroundColor: isDark ? '#0c2348' : '#FFFFFF',
-            borderColor: isDark ? '#1a3969' : '#e6eaf0',
-          }
-        ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-            {t('appearance', { ns: 'settings', defaultValue: 'Appearance' })}
-          </Text>
-          
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="language-outline" size={24} color={isDark ? '#82ccff' : '#1a73e8'} style={styles.settingIcon} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('language', { ns: 'settings', defaultValue: 'Language' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-                  {t('selectLanguage', { ns: 'settings', defaultValue: 'Select language' })}
+          scrollEventThrottle={16}
+        >
+          <Animated.View style={contentAnimatedStyle}>
+            
+            {/* Premium Features Section - Temporaneamente disabilitato per prevenire crash */}
+            <View style={[styles.section, { 
+              backgroundColor: colors.cardElevated,
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 20
+            }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="star-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 16 }}>
+                  {t('premiumFeatures', { ns: 'purchases', defaultValue: 'Funzionalità Premium' })}
                 </Text>
               </View>
+              <Text style={{ color: colors.textSecondary, marginTop: 8, fontSize: 14 }}>
+                {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Passa a Premium per sbloccare le funzionalità avanzate.' })}
+              </Text>
             </View>
-            <View style={styles.languageSelector}>
-              <TouchableOpacity 
-                style={[
-                  styles.languageButton, 
-                  language === 'it' && 
-                  (isDark ? styles.selectedLanguageButtonDark : styles.selectedLanguageButton)
-                ]}
-                onPress={() => handleLanguageChange('it')}
-                accessibilityLabel="Italiano"
-                accessibilityRole="button"
-              >
-                <Text style={[
-                  styles.languageButtonText, 
-                  { color: language === 'it' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#a7c0e0' : '#757575') }
-                ]}>
-                  🇮🇹
-                </Text>
-              </TouchableOpacity>
+            
+            {/* Account Section */}
+            {isLoggedIn && (
+              <SettingsSection title={t('account', { ns: 'settings', defaultValue: 'Account' })}>
+                <SettingsItem
+                  icon={<Ionicons name="person-outline" size={20} color={colors.primary} />}
+                  title={t('accountDetails', { ns: 'settings', defaultValue: 'Account Details' })}
+                  subtitle={user?.email || ''}
+                  onPress={null}
+                  lastItem={true}
+                />
+              </SettingsSection>
+            )}
+            
+            {/* Preferences Section */}
+            <SettingsSection title={t('preferences', { ns: 'common', defaultValue: 'Preferences' })}>
+              {/* Language Selector */}
+              <SettingsItem
+                icon={<Ionicons name="language-outline" size={20} color={colors.primary} />}
+                title={t('language', { ns: 'common', defaultValue: 'Language' })}
+                subtitle={language === 'it' ? 'Italiano' : 'English'}
+                onPress={() => {
+                  Alert.alert(
+                    t('selectLanguage', { ns: 'common', defaultValue: 'Select Language' }),
+                    '',
+                    [
+                      {
+                        text: 'English',
+                        onPress: () => handleLanguageChange('en')
+                      },
+                      {
+                        text: 'Italiano',
+                        onPress: () => handleLanguageChange('it')
+                      },
+                      {
+                        text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
+                        style: 'cancel'
+                      }
+                    ]
+                  );
+                }}
+              />
               
-              <TouchableOpacity 
-                style={[
-                  styles.languageButton, 
-                  language === 'en' && 
-                  (isDark ? styles.selectedLanguageButtonDark : styles.selectedLanguageButton)
-                ]}
-                onPress={() => handleLanguageChange('en')}
-                accessibilityLabel="English"
-                accessibilityRole="button"
-              >
-                <Text style={[
-                  styles.languageButtonText, 
-                  { color: language === 'en' ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#a7c0e0' : '#757575') }
-                ]}>
-                  🇬🇧
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
-          
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={24} color={isDark ? '#82ccff' : '#1a73e8'} style={styles.settingIcon} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-                  {t('darkModeDesc', { ns: 'settings', defaultValue: 'Toggle dark or light appearance' })}
-                </Text>
-              </View>
-            </View>
-            <SafeSwitch
+              {/* Dark Mode Toggle */}
+              <SettingsItem
+                icon={<Ionicons name={isDarkMode ? "moon-outline" : "sunny-outline"} size={20} color={colors.primary} />}
+                title={t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
+                subtitle=""
+                onPress={null}
+                rightComponent={
+                  <Switch
               value={isDarkMode}
               onValueChange={handleDarkModeToggle}
-              trackColor={{ true: isDark ? '#82ccff' : '#1a73e8' }}
-              accessibilityLabel={t('darkMode', { ns: 'settings', defaultValue: 'Dark Mode' })}
-            />
-          </View>
-          
-          <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
-          
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="wifi-outline" size={24} color={isDark ? '#82ccff' : '#1a73e8'} style={styles.settingIcon} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-                  {t('offlineModeDesc', { ns: 'settings', defaultValue: 'Save data locally only' })}
-                </Text>
-              </View>
-            </View>
-            <SafeSwitch
+                    trackColor={{ false: '#767577', true: colors.primary }}
+                    thumbColor={isDarkMode ? '#f5dd4b' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
+                  />
+                }
+              />
+              
+              {/* Offline Mode Toggle */}
+              <SettingsItem
+                icon={<Ionicons name="cloud-offline-outline" size={20} color={colors.primary} />}
+                title={t('offlineMode', { ns: 'common', defaultValue: 'Offline Mode' })}
+                subtitle=""
+                onPress={null}
+                lastItem={true}
+                rightComponent={
+                  <Switch
               value={offlineMode}
               onValueChange={handleOfflineModeToggle}
-              trackColor={{ true: isDark ? '#82ccff' : '#1a73e8' }}
-              accessibilityLabel={t('offlineMode', { ns: 'settings', defaultValue: 'Offline Mode' })}
-            />
-          </View>
-        </View>
-        
-        {/* Premium Features */}
-        <View style={[
-          styles.sectionContainer, 
-          { 
-            backgroundColor: isDark ? '#0c2348' : '#FFFFFF',
-            borderColor: isDark ? '#1a3969' : '#e6eaf0',
-          }
-        ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-            {t('premiumFeatures', { ns: 'settings', defaultValue: 'Premium Features' })}
-          </Text>
-          
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons 
-                name="star" 
-                size={24} 
-                color={isPremium ? (isDark ? '#FFD700' : '#FFC107') : (isDark ? '#a7c0e0' : '#BDBDBD')} 
-                style={styles.settingIcon}
+                    trackColor={{ false: '#767577', true: colors.primary }}
+                    thumbColor={offlineMode ? '#f5dd4b' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
+                  />
+                }
               />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('premiumActive', { ns: 'settings', defaultValue: 'Premium Active' })}
-                </Text>
-                <Text style={[styles.settingDescription, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-                  {isPremium 
-                    ? t('premiumActiveDesc', { ns: 'settings', defaultValue: 'Your premium subscription is active' })
-                    : t('premiumInactiveDesc', { ns: 'settings', defaultValue: 'Upgrade to premium for extra features' })}
-                </Text>
-              </View>
-            </View>
-            {!isPremium && (
-              <TouchableOpacity 
-                style={[styles.upgradeButton, { backgroundColor: isDark ? '#82ccff' : '#1a73e8' }]}
+            </SettingsSection>
+            
+            {/* Legal Section */}
+            <SettingsSection title={t('legal', { ns: 'settings', defaultValue: 'Legal' })}>
+              <SettingsItem
+                icon={<Ionicons name="document-text-outline" size={20} color={colors.primary} />}
+                title={t('privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}
+                subtitle=""
+                onPress={handleOpenPrivacyPolicy}
+              />
+              
+              <SettingsItem
+                icon={<Ionicons name="newspaper-outline" size={20} color={colors.primary} />}
+                title={t('termsOfService', { ns: 'common', defaultValue: 'Terms of Service' })}
+                subtitle=""
+                onPress={handleOpenTerms}
+                lastItem={true}
+              />
+            </SettingsSection>
+            
+            {/* Support Section */}
+            <SettingsSection title={t('supportAndFeedback', { ns: 'settings', defaultValue: 'Support & Feedback' })}>
+              <SettingsItem
+                icon={<Ionicons name="mail-outline" size={20} color={colors.primary} />}
+                title={t('contactSupport', { ns: 'settings', defaultValue: 'Contact Support' })}
+                subtitle=""
+                onPress={handleContactSupport}
+                lastItem={true}
+              />
+            </SettingsSection>
+            
+            {/* About Section */}
+            <SettingsSection title={t('about', { ns: 'common', defaultValue: 'About' })}>
+              <SettingsItem
+                icon={<Ionicons name="information-circle-outline" size={20} color={colors.primary} />}
+                title={t('version', { ns: 'common', defaultValue: 'Version' })}
+                subtitle={`${appVersion} (${appBuild})`}
                 onPress={() => {
-                  /* TODO: Implementare upgrade */
-                  Alert.alert(t('premium', { ns: 'settings', defaultValue: 'Premium' }), 
-                             t('premiumComingSoon', { ns: 'settings', defaultValue: 'Premium upgrade coming soon' }));
+                  // Incrementa il contatore per modalità sviluppatore
+                  AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT).then(count => {
+                    const newCount = parseInt(count || '0', 10) + 1;
+                    AsyncStorage.setItem(STORAGE_KEY.DEV_MODE_COUNT, newCount.toString()).then(() => {
+                      if (newCount === 7) {
+                        setShowDeveloperOptions(true);
+                        Alert.alert('Developer Mode', 'Developer options enabled!');
+                      }
+                    });
+                  });
                 }}
-                accessibilityLabel={t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Upgrade to Premium' })}
-                accessibilityRole="button"
-              >
-                <Text style={styles.upgradeButtonText}>
-                  {t('upgradeToPremium', { ns: 'common', defaultValue: 'Upgrade to Premium' })}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
-          
-          {/* Premium feature list */}
-          <View style={styles.premiumFeatureList}>
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="infinite" 
-                size={20} 
-                color={isPremium ? (isDark ? '#82ccff' : '#1a73e8') : (isDark ? '#a7c0e0' : '#BDBDBD')}
-                style={styles.premiumFeatureIcon} 
+                lastItem={true}
               />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#a7c0e0' : '#757575') }
-              ]}>
-                {t('unlimitedSessions', { ns: 'settings', defaultValue: 'Unlimited Sessions' })}
-              </Text>
-            </View>
+            </SettingsSection>
             
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="stats-chart" 
-                size={20} 
-                color={isPremium ? (isDark ? '#82ccff' : '#1a73e8') : (isDark ? '#a7c0e0' : '#BDBDBD')}
-                style={styles.premiumFeatureIcon}
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#a7c0e0' : '#757575') }
-              ]}>
-                {t('advancedStatistics', { ns: 'settings', defaultValue: 'Advanced Statistics' })}
-              </Text>
-            </View>
-            
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="document-text" 
-                size={20} 
-                color={isPremium ? (isDark ? '#82ccff' : '#1a73e8') : (isDark ? '#a7c0e0' : '#BDBDBD')}
-                style={styles.premiumFeatureIcon}
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#a7c0e0' : '#757575') }
-              ]}>
-                {t('dataExport', { ns: 'settings', defaultValue: 'Data Export' })}
-              </Text>
-            </View>
-            
-            <View style={styles.premiumFeature}>
-              <Ionicons 
-                name="close-circle" 
-                size={20} 
-                color={isPremium ? (isDark ? '#82ccff' : '#1a73e8') : (isDark ? '#a7c0e0' : '#BDBDBD')}
-                style={styles.premiumFeatureIcon}
-              />
-              <Text style={[
-                styles.premiumFeatureText, 
-                { color: isPremium ? (isDark ? '#FFFFFF' : '#333333') : (isDark ? '#a7c0e0' : '#757575') }
-              ]}>
-                {t('noAds', { ns: 'settings', defaultValue: 'No Advertisements' })}
-              </Text>
-            </View>
-          </View>
-        </View>
-        
-        {/* Account Section */}
-        {isLoggedIn && (
-          <View style={[
-            styles.sectionContainer, 
-            { 
-              backgroundColor: isDark ? '#0c2348' : '#FFFFFF',
-              borderColor: isDark ? '#1a3969' : '#e6eaf0',
-            }
-          ]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-              {t('account', { ns: 'settings', defaultValue: 'Account' })}
-            </Text>
-            
-            {user && (
-              <View style={styles.accountInfo}>
-                <Ionicons name="person" size={40} color={isDark ? '#82ccff' : '#1a73e8'} />
-                <View style={styles.accountTextContainer}>
-                  <Text style={[styles.accountEmail, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                    {user.email}
-                  </Text>
-                  <Text style={[styles.accountStatus, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-                    {t('loggedIn', { ns: 'settings', defaultValue: 'Logged in' })}
-                  </Text>
-                </View>
-              </View>
+            {/* Developer Options (visible solo se attivato) */}
+            {showDeveloperOptions && (
+              <SettingsSection title="Developer Options">
+                <SettingsItem
+                  icon={<Ionicons name="code-outline" size={20} color={colors.primary} />}
+                  title="Toggle Premium Status"
+                  subtitle=""
+                  onPress={togglePremiumStatus}
+                  rightComponent={
+                    <Switch
+                      value={isPremium}
+                      onValueChange={togglePremiumStatus}
+                      trackColor={{ false: '#767577', true: colors.primary }}
+                      thumbColor={isPremium ? '#f5dd4b' : '#f4f3f4'}
+                      ios_backgroundColor="#3e3e3e"
+                    />
+                  }
+                />
+                
+                <SettingsItem
+                  icon={<Ionicons name="refresh-outline" size={20} color={colors.primary} />}
+                  title="Reset App Data"
+                  subtitle=""
+                  onPress={() => {
+                    Alert.alert(
+                      'Reset App Data',
+                      'Are you sure you want to reset all app data? This action cannot be undone.',
+                      [
+                        {
+                          text: 'Cancel',
+                          style: 'cancel'
+                        },
+                        {
+                          text: 'Reset',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await AsyncStorage.clear();
+                              Alert.alert('Success', 'App data reset successfully. Please restart the app.');
+                            } catch (error) {
+                              console.error('Error resetting app data:', error);
+                              Alert.alert('Error', 'Failed to reset app data');
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                  lastItem={true}
+                />
+              </SettingsSection>
             )}
             
-            <View style={styles.accountButtonsContainer}>
+            {/* Action Buttons */}
+            {isLoggedIn && (
+              <View style={styles.actionButtonsContainer}>
               <TouchableOpacity 
-                style={[styles.accountButton, { borderColor: isDark ? '#1a3969' : '#e6eaf0' }]}
+                  style={[styles.logoutButton, { backgroundColor: colors.danger }]}
                 onPress={handleLogout}
-                accessibilityLabel={t('logout', { ns: 'common', defaultValue: 'Logout' })}
-                accessibilityRole="button"
-              >
-                <Ionicons name="log-out-outline" size={20} color={isDark ? '#82ccff' : '#1a73e8'} />
-                <Text style={[styles.accountButtonText, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('logout', { ns: 'common', defaultValue: 'Logout' })}
-                </Text>
+                >
+                  <LinearGradient
+                    colors={[colors.danger, '#E63946']}
+                    start={[0, 0]}
+                    end={[1, 0]}
+                    style={styles.gradientButton}
+                  >
+                    <Text style={styles.logoutButtonText}>{t('logout', { ns: 'common', defaultValue: 'Logout' })}</Text>
+                  </LinearGradient>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.accountButton, styles.dangerButton, { borderColor: isDark ? '#541515' : '#ffebee' }]}
+                  style={[styles.deleteAccountButton, { borderColor: colors.danger }]}
                 onPress={handleDeleteAccount}
-                accessibilityLabel={t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' })}
-                accessibilityRole="button"
               >
-                <Ionicons name="trash-outline" size={20} color={isDark ? '#ff5252' : '#f44336'} />
-                <Text style={[styles.accountButtonText, { color: isDark ? '#ff5252' : '#f44336' }]}>
-                  {t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' })}
-                </Text>
+                  <Text style={[styles.deleteAccountButtonText, { color: colors.danger }]}>{t('deleteAccount', { ns: 'common', defaultValue: 'Delete Account' })}</Text>
               </TouchableOpacity>
-            </View>
           </View>
         )}
         
-        {/* Developer Options */}
-        {showDeveloperOptions && (
-          <View style={[
-            styles.sectionContainer, 
-            { 
-              backgroundColor: isDark ? '#0c2348' : '#FFFFFF',
-              borderColor: isDark ? '#1a3969' : '#e6eaf0',
-            }
-          ]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-              {t('developerOptions', { ns: 'settings', defaultValue: 'Developer Options' })}
+            {/* Legal Info */}
+            <View style={styles.legalInfoContainer}>
+              <Text style={[styles.legalText, { color: colors.textSecondary }]}>
+                {t('appName', { ns: 'common', defaultValue: 'Bacchus' })} © {new Date().getFullYear()}
             </Text>
             
-            <TouchableOpacity 
-              style={styles.devOption}
-              onPress={togglePremiumStatus}
-              accessibilityLabel={t('togglePremium', { ns: 'settings', defaultValue: 'Toggle Premium Status' })}
-              accessibilityRole="button"
-            >
-              <Ionicons name="construct" size={24} color={isDark ? '#82ccff' : '#1a73e8'} style={styles.devOptionIcon} />
-              <View style={styles.devOptionTextContainer}>
-                <Text style={[styles.devOptionTitle, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-                  {t('togglePremium', { ns: 'settings', defaultValue: 'Toggle Premium Status' })}
-                </Text>
-                <Text style={[styles.devOptionDescription, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-                  {isPremium 
-                    ? t('disablePremium', { ns: 'settings', defaultValue: 'Disable premium features for testing' })
-                    : t('enablePremium', { ns: 'settings', defaultValue: 'Enable premium features for testing' })}
+              <Text style={[styles.legalText, { color: colors.textSecondary, marginBottom: 30 }]}>
+                {t('legalDisclaimer', { ns: 'common', defaultValue: 'This app is for educational purposes only. Do not use to determine if you are able to drive.' })}
                 </Text>
               </View>
-            </TouchableOpacity>
+          </Animated.View>
+        </Animated.ScrollView>
+      )}
           </View>
-        )}
-        
-        {/* About Section */}
-        <View style={[
-          styles.sectionContainer, 
-          { 
-            backgroundColor: isDark ? '#0c2348' : '#FFFFFF',
-            borderColor: isDark ? '#1a3969' : '#e6eaf0',
-          }
-        ]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-            {t('about', { ns: 'settings', defaultValue: 'About' })}
-          </Text>
-          
-          <View style={styles.versionInfo}>
-            <Text style={[styles.versionLabel, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-              {t('version', { ns: 'settings', defaultValue: 'Version' })}
-            </Text>
-            <Text style={[styles.versionNumber, { color: isDark ? '#FFFFFF' : '#333333' }]}>
-              {appVersion} ({appBuild})
-            </Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.legalLink}
-            onPress={() => {
-              /* TODO: Navigate to privacy policy */
-              Alert.alert(t('info', { ns: 'common', defaultValue: 'Information' }), 
-                         t('comingSoon', { ns: 'common', defaultValue: 'Coming Soon' }));
-            }}
-            accessibilityRole="link"
-          >
-            <Ionicons name="shield-checkmark-outline" size={20} color={isDark ? '#82ccff' : '#1a73e8'} />
-            <Text style={[styles.legalLinkText, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-              {t('privacyPolicy', { ns: 'settings', defaultValue: 'Privacy Policy' })}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.legalLink}
-            onPress={() => {
-              /* TODO: Navigate to terms of service */
-              Alert.alert(t('info', { ns: 'common', defaultValue: 'Information' }), 
-                         t('comingSoon', { ns: 'common', defaultValue: 'Coming Soon' }));
-            }}
-            accessibilityRole="link"
-          >
-            <Ionicons name="document-text-outline" size={20} color={isDark ? '#82ccff' : '#1a73e8'} />
-            <Text style={[styles.legalLinkText, { color: isDark ? '#82ccff' : '#1a73e8' }]}>
-              {t('termsOfService', { ns: 'settings', defaultValue: 'Terms of Service' })}
-            </Text>
-          </TouchableOpacity>
-          
-          <View style={styles.credits}>
-            <Text style={[styles.creditsText, { color: isDark ? '#a7c0e0' : '#757575' }]}>
-              © 2023-2025 Bacchus
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
   );
 }
 
-// Enhanced styles for better UX/UI
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
   scrollView: {
     flex: 1,
   },
-  sectionContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  section: {
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    letterSpacing: 0.2,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingIcon: {
-    marginRight: 4,
-  },
-  settingTextContainer: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  settingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    letterSpacing: 0.1,
+    marginBottom: 8,
+    paddingLeft: 8,
   },
-  settingDescription: {
-    fontSize: 14,
-    marginTop: 2,
-    lineHeight: 20,
+  sectionContent: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
   },
-  divider: {
-    height: 1,
-    marginVertical: 8,
-  },
-  languageSelector: {
+  menuItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  languageButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginRight: 12,
   },
-  selectedLanguageButton: {
-    backgroundColor: 'rgba(26, 115, 232, 0.15)',
+  menuItemTextContainer: {
+    flex: 1,
   },
-  selectedLanguageButtonDark: {
-    backgroundColor: 'rgba(130, 204, 255, 0.25)',
+  menuItemTitle: {
+    fontSize: 16,
+    fontWeight: '500',
   },
-  languageButtonText: {
-    fontSize: 20,
+  menuItemSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
   },
-  premiumFeatureList: {
+  menuItemRight: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonsContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  logoutButton: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    width: '100%',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteAccountButton: {
+    marginBottom: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteAccountButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  legalInfoContainer: {
+    alignItems: 'center',
     marginTop: 8,
   },
-  premiumFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  premiumFeatureIcon: {
-    marginRight: 4,
-  },
-  premiumFeatureText: {
-    marginLeft: 12,
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  upgradeButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  upgradeButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  accountInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  accountTextContainer: {
-    marginLeft: 12,
-  },
-  accountEmail: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  accountStatus: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  accountButtonsContainer: {
-    flexDirection: 'column',
-    gap: 12,
-  },
-  accountButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
-  dangerButton: {
-    backgroundColor: 'rgba(244, 67, 54, 0.08)',
-  },
-  accountButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  devOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  devOptionIcon: {
-    marginRight: 4,
-  },
-  devOptionTextContainer: {
-    marginLeft: 12,
-  },
-  devOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  devOptionDescription: {
-    fontSize: 14,
-    marginTop: 2,
-    lineHeight: 20,
-  },
-  versionInfo: {
-    marginBottom: 20,
-  },
-  versionLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  versionNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  legalLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  legalLinkText: {
-    fontSize: 15,
-    fontWeight: '500',
-    marginLeft: 10,
-  },
-  credits: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  creditsText: {
-    fontSize: 14,
-  },
-  switchTrack: {
-    width: 48,
-    height: 26,
-    borderRadius: 16,
-    padding: 3,
-    justifyContent: 'center',
-  },
-  switchThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
+  legalText: {
+    textAlign: 'center',
+    fontSize: 12,
+    marginTop: 4,
   },
 }); 

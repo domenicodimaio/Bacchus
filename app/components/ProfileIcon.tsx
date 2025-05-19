@@ -28,6 +28,7 @@ const ProfileIcon: React.FC<ProfileIconProps> = ({ size = 34, showModal = false,
   const { profile } = useUserProfile();
   const { user, logout } = useAuth();
   const [isModalVisible, setIsModalVisible] = useState(showModal);
+  const [showMenu, setShowMenu] = useState(false);
 
   // Converti il profilo in ExtendedUserProfile
   const extendedProfile = profile ? extendProfile(profile) : null;
@@ -65,36 +66,37 @@ const ProfileIcon: React.FC<ProfileIconProps> = ({ size = 34, showModal = false,
     router.push('/settings');
   };
   
-  // Logout dall'account
-  const handleLogout = async () => {
-    Alert.alert(
-      t('logout', { ns: 'auth', defaultValue: 'Logout' }),
-      t('confirmLogout', { ns: 'auth', defaultValue: 'Are you sure you want to logout?' }),
-      [
-        {
-          text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
-          style: 'cancel'
-        },
-        {
-          text: t('logout', { ns: 'auth', defaultValue: 'Logout' }),
-          style: 'destructive',
-          onPress: async () => {
-            handleCloseModal();
-            try {
-              await logout();
-              // Reindirizza al login dopo il logout
-              router.replace('/auth/login');
-            } catch (error) {
-              console.error('Logout error:', error);
-              Alert.alert(
-                t('error', { ns: 'common', defaultValue: 'Error' }),
-                t('logoutError', { ns: 'auth', defaultValue: 'An error occurred during logout' })
-              );
+  // Gestisce il logout
+  const handleLogout = () => {
+    // Chiudi il menu prima di mostrare l'alert
+    setShowMenu(false);
+    
+    // Conferma prima di effettuare il logout
+    setTimeout(() => {
+      Alert.alert(
+        t('logout', { ns: 'auth', defaultValue: 'Logout' }),
+        t('confirmLogout', { ns: 'auth', defaultValue: 'Are you sure you want to log out?' }),
+        [
+          { text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }), style: 'cancel' },
+          {
+            text: t('logout', { ns: 'auth', defaultValue: 'Logout' }),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await logout();
+                // Il reindirizzamento sarà gestito dal contesto di autenticazione
+              } catch (error) {
+                console.error('Logout error:', error);
+                Alert.alert(
+                  t('error', { ns: 'common', defaultValue: 'Error' }),
+                  t('logoutFailed', { ns: 'auth', defaultValue: 'Logout failed' })
+                );
+              }
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }, 300);
   };
 
   // Renderizza l'icona del profilo corrente

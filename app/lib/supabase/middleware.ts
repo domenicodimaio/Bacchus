@@ -5,7 +5,7 @@
  * and protect routes that require authentication.
  */
 import { router } from 'expo-router';
-import { supabase, getCurrentUser } from './client';
+import supabase from './client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Key for storing authentication state
@@ -17,14 +17,14 @@ const AUTH_STATE_KEY = 'supabase_auth_state';
  */
 export const requireAuth = async (redirectTo = '/login') => {
   try {
-    const user = await getCurrentUser();
+    const { data, error } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (error || !data.user) {
       router.replace(redirectTo as any);
       return null;
     }
     
-    return user;
+    return data.user;
   } catch (error) {
     console.error('Auth check failed:', error);
     router.replace(redirectTo as any);
@@ -38,9 +38,9 @@ export const requireAuth = async (redirectTo = '/login') => {
  */
 export const requireGuest = async (redirectTo = '/session') => {
   try {
-    const user = await getCurrentUser();
+    const { data, error } = await supabase.auth.getUser();
     
-    if (user) {
+    if (!error && data.user) {
       router.replace(redirectTo as any);
       return false;
     }

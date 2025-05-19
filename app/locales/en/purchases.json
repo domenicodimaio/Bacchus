@@ -47,7 +47,6 @@
   "notPremium": "You are not a premium user",
   "continue": "Continue",
   "subscriptionsTitle": "Subscriptions",
-  
   "upgradeToExperience": "Unlock the Full Experience",
   "chooseSubscription": "Choose the plan that works best for you to access all premium features",
   "startFreeTrial": "3-DAY FREE TRIAL",
@@ -66,7 +65,6 @@
   "purchase.success": "Purchase successful",
   "purchase.failed": "Purchase failed",
   "retry": "Retry",
-  
   "canCreateUnlimitedSessions": "Unlimited Sessions",
   "hasDetailedStatistics": "Detailed Statistics",
   "canExportData": "Data Export",
@@ -81,5 +79,20 @@
   "enjoyPremiumFeatures": "You are enjoying the following premium benefits:",
   "viewDetails": "View details",
   "premiumFeaturesList": "• Unlimited sessions\n• Detailed statistics\n• Data export\n• No advertisements",
-  "skipAndContinue": "Skip and continue with free version"
-} 
+  "skipAndContinue": "Skip and continue with free version",
+  "premiumFeatures": "Premium Features",
+  "upgradeToUnlock": "Upgrade to Premium to unlock:",
+  "getPremium": "Get Premium",
+  "testPremium": "Test Premium",
+  "disablePremiumTest": "Disable Premium Test",
+  "premiumRequired": "Premium Required",
+  "unlimitedSessionsDesc": "Create as many sessions as you want without weekly limits",
+  "exportDataDesc": "Export your data in CSV or PDF format",
+  "detailedStatsDesc": "Get advanced and detailed statistics about your consumption",
+  "personalizedMetabolismDesc": "Personalized alcohol metabolism calculation",
+  "subscription": {
+    "terms": "Iscrivendoti accetti i nostri Termini di servizio e la Privacy Policy"
+  },
+  "viewPlans": "Vedi piani",
+  "upgradeMessage": "Per accedere a questa funzionalità è necessario un abbonamento premium."
+}

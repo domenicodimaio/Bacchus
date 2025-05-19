@@ -863,12 +863,18 @@ export async function endSession(): Promise<boolean> {
 // Aggiorna il tasso alcolemico della sessione attiva
 export function updateSessionBAC(): Session | null {
   try {
-    if (!activeSession || !activeSession.profile) {
+    if (!activeSession) {
       console.log('updateSessionBAC: Nessuna sessione attiva');
       return null;
     }
+    
+    // Verifica fondamentale: se la sessione non ha un profilo valido, corregi o esci
+    if (!activeSession.profile) {
+      console.error('updateSessionBAC: Sessione senza profilo valido');
+      return null;
+    }
 
-    // Funzione di supporto per parse delle date
+    // Funzione di supporto per parse delle date sicuro
     const safeParseDate = (dateValue: any): Date => {
       if (!dateValue) return new Date();
       
@@ -883,9 +889,16 @@ export function updateSessionBAC(): Session | null {
     };
 
     const now = new Date();
-    const { gender, weightKg } = activeSession.profile;
-    const drinks = activeSession.drinks || [];
-    const foods = activeSession.foods || [];
+    // Verifica profilo e usa valori predefiniti sicuri se mancano dati essenziali
+    const gender = activeSession.profile.gender || 'male'; // Default a male se non specificato
+    const weightKg = typeof activeSession.profile.weightKg === 'number' && activeSession.profile.weightKg > 0 
+      ? activeSession.profile.weightKg 
+      : 70; // Peso predefinito 70kg
+    
+    // Verifica che drinks esista o inizializza come array vuoto
+    const drinks = Array.isArray(activeSession.drinks) ? activeSession.drinks : [];
+    // Verifica che foods esista o inizializza come array vuoto
+    const foods = Array.isArray(activeSession.foods) ? activeSession.foods : [];
 
     if (drinks.length === 0) {
       // Se non ci sono bevande, il BAC è 0
@@ -893,46 +906,72 @@ export function updateSessionBAC(): Session | null {
       activeSession.soberTime = '0h 0m';
       activeSession.timeToSober = 0;
       activeSession.status = 'safe';
+      
+      // Salva la sessione aggiornata
+      saveSessionLocally(activeSession, 'active').catch(error => {
+        console.error('Errore nel salvataggio della sessione:', error);
+      });
+      
       return activeSession;
     }
 
-    // Prepara i drink per il calcolo del BAC
+    // Prepara i drink per il calcolo del BAC con validazione robusta
     const drinksForBac = drinks.map(drink => {
-      // Assicurati che tutti i valori siano numeri
-      let alcoholGrams: number;
-      
-      if (typeof drink.alcoholGrams === 'string') {
-        alcoholGrams = parseFloat(drink.alcoholGrams);
-      } else {
-        alcoholGrams = drink.alcoholGrams as number || 0;
-      }
-      
-      // Se i grammi sono troppo bassi (probabilmente un errore), ricalcola
-      if (alcoholGrams < 0.1) {
-        const volume = parseFloat(drink.volume);
-        const alcoholPercentage = typeof drink.alcoholPercentage === 'string' 
-          ? parseFloat(drink.alcoholPercentage) 
-          : drink.alcoholPercentage as number;
+      try {
+        // Assicurati che tutti i valori siano numeri
+        let alcoholGrams: number;
         
-        // Formula: volume (ml) * percentuale (%) * 0.789 (densità alcol) / 100
-        alcoholGrams = (volume * alcoholPercentage * 0.789) / 100;
+        if (typeof drink.alcoholGrams === 'string') {
+          alcoholGrams = parseFloat(drink.alcoholGrams) || 0;
+        } else {
+          alcoholGrams = typeof drink.alcoholGrams === 'number' ? drink.alcoholGrams : 0;
+        }
+        
+        // Se i grammi sono troppo bassi (probabilmente un errore), ricalcola
+        if (alcoholGrams < 0.1) {
+          try {
+            const volume = typeof drink.volume === 'string' ? parseFloat(drink.volume) || 0 : 0;
+            const alcoholPercentage = typeof drink.alcoholPercentage === 'string' 
+              ? parseFloat(drink.alcoholPercentage) || 0
+              : typeof drink.alcoholPercentage === 'number' ? drink.alcoholPercentage : 0;
+            
+            // Formula: volume (ml) * percentuale (%) * 0.789 (densità alcol) / 100
+            alcoholGrams = (volume * alcoholPercentage * 0.789) / 100;
+          } catch (e) {
+            console.error('Errore nel ricalcolo dei grammi di alcol:', e);
+            alcoholGrams = 0;
+          }
+        }
+        
+        // Assicurati che il valore non sia NaN
+        alcoholGrams = !isNaN(alcoholGrams) ? alcoholGrams : 0;
+        
+        const drinkTime = safeParseDate(drink.time || drink.timeConsumed || new Date());
+        const timeSinceDrink = (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60);
+        
+        return {
+          alcoholGrams: Math.max(0, alcoholGrams), // Assicurati che sia sempre >= 0
+          hoursSinceDrink: Math.max(0, timeSinceDrink), // Assicurati che sia sempre >= 0
+          time: drinkTime
+        };
+      } catch (e) {
+        console.error('Errore nella preparazione dei dati della bevanda:', e);
+        // In caso di errore, restituisci un drink sicuro che non influenzerà il BAC
+        return {
+          alcoholGrams: 0,
+          hoursSinceDrink: 0,
+          time: new Date()
+        };
       }
-      
-      const drinkTime = safeParseDate(drink.time);
-      const timeSinceDrink = (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60);
-      
-      console.log(`updateSessionBAC: Bevanda ${drink.name}, grammi alcol: ${alcoholGrams}, tempo trascorso: ${timeSinceDrink.toFixed(2)}h`);
-      
-      return {
-        alcoholGrams: alcoholGrams,
-        hoursSinceDrink: timeSinceDrink,
-        time: drinkTime
-      };
     });
     
-    // Calcola il BAC totale
-    let totalAlcoholGrams = drinksForBac.reduce((total, drink) => total + drink.alcoholGrams, 0);
-    console.log(`updateSessionBAC: Totale grammi alcol: ${totalAlcoholGrams}`);
+    // Calcola il BAC totale con validazione
+    let totalAlcoholGrams = 0;
+    try {
+      totalAlcoholGrams = drinksForBac.reduce((total, drink) => total + drink.alcoholGrams, 0);
+    } catch (e) {
+      console.error('Errore nel calcolo del totale di grammi di alcol:', e);
+    }
     
     // Usa la formula di Widmark per calcolare il BAC
     // Fattore r (distribuzione dell'alcol nel corpo)
@@ -944,37 +983,58 @@ export function updateSessionBAC(): Session | null {
     // r = fattore di distribuzione (L/kg)
     // W = peso in kg
     // 10 = fattore di conversione per ottenere g/L
-    const initialBAC = totalAlcoholGrams / (r * weightKg);
+    let initialBAC = totalAlcoholGrams / (r * weightKg);
+    
+    // Assicurati che il valore non sia NaN o Infinity
+    if (isNaN(initialBAC) || !isFinite(initialBAC)) {
+      console.error('BAC calcolato non valido, impostazione predefinita a 0');
+      initialBAC = 0;
+    }
     
     // Calcola il fattore di assorbimento in base ai cibi consumati
     let foodAbsorptionFactor = 1.0; // Default: nessun effetto del cibo (fattore 1.0)
     
     if (foods && foods.length > 0) {
-      // Ordina i cibi per orario di consumo (dal più recente)
-      const sortedFoods = [...foods].sort((a, b) => {
-        const timeA = safeParseDate(a.time || a.timeConsumed).getTime();
-        const timeB = safeParseDate(b.time || b.timeConsumed).getTime();
-        return timeB - timeA; // Ordine decrescente (più recente prima)
-      });
-      
-      // Prendi il cibo più recente
-      const mostRecentFood = sortedFoods[0];
-      if (mostRecentFood) {
-        const foodTime = safeParseDate(mostRecentFood.time || mostRecentFood.timeConsumed);
-        const hoursSinceFood = (now.getTime() - foodTime.getTime()) / (1000 * 60 * 60);
+      try {
+        // Ordina i cibi per orario di consumo (dal più recente)
+        const sortedFoods = [...foods].sort((a, b) => {
+          try {
+            const timeA = safeParseDate(a.time || a.timeConsumed).getTime();
+            const timeB = safeParseDate(b.time || b.timeConsumed).getTime();
+            return timeB - timeA; // Ordine decrescente (più recente prima)
+          } catch (e) {
+            console.error('Errore nell\'ordinamento dei cibi:', e);
+            return 0;
+          }
+        });
         
-        // L'effetto del cibo diminuisce nel tempo (massimo 4 ore)
-        if (hoursSinceFood <= 4) {
-          // L'effetto del cibo è massimo subito dopo averlo consumato e diminuisce gradualmente
-          const effectStrength = Math.max(0, 1 - (hoursSinceFood / 4));
+        // Prendi il cibo più recente
+        const mostRecentFood = sortedFoods[0];
+        if (mostRecentFood) {
+          const foodTime = safeParseDate(mostRecentFood.time || mostRecentFood.timeConsumed);
+          const hoursSinceFood = (now.getTime() - foodTime.getTime()) / (1000 * 60 * 60);
           
-          // Applica il fattore di assorbimento corretto
-          // I valori tipici sono tra 0.3 (pasto abbondante) e 0.8 (snack leggero)
-          // Più basso è il fattore, più forte è l'effetto di riduzione del BAC
-          foodAbsorptionFactor = 1.0 - ((1.0 - mostRecentFood.absorptionFactor) * effectStrength);
-          
-          console.log(`updateSessionBAC: Cibo recente (${hoursSinceFood.toFixed(2)}h fa): ${mostRecentFood.name}, fattore: ${mostRecentFood.absorptionFactor}, effetto: ${foodAbsorptionFactor.toFixed(2)}`);
+          // L'effetto del cibo diminuisce nel tempo (massimo 4 ore)
+          if (hoursSinceFood <= 4) {
+            // L'effetto del cibo è massimo subito dopo averlo consumato e diminuisce gradualmente
+            const effectStrength = Math.max(0, 1 - (hoursSinceFood / 4));
+            
+            // Controlla che absorptionFactor sia un numero valido
+            const absorptionFactor = typeof mostRecentFood.absorptionFactor === 'number' && 
+                                      !isNaN(mostRecentFood.absorptionFactor) ? 
+                                      mostRecentFood.absorptionFactor : 0.95;
+            
+            // Limita l'intervallo del fattore di assorbimento
+            const safeAbsorptionFactor = Math.min(1, Math.max(0.3, absorptionFactor));
+            
+            // Applica il fattore di assorbimento corretto
+            foodAbsorptionFactor = 1.0 - ((1.0 - safeAbsorptionFactor) * effectStrength);
+          }
         }
+      } catch (e) {
+        console.error('Errore nel calcolo dell\'effetto del cibo:', e);
+        // In caso di errore, usa il valore predefinito
+        foodAbsorptionFactor = 1.0;
       }
     }
     
@@ -985,24 +1045,38 @@ export function updateSessionBAC(): Session | null {
     // Per ogni drink, considera quanto alcol è stato metabolizzato dal momento dell'assunzione
     const metabolismRate = 0.015; // g/L all'ora
     
-    drinksForBac.forEach(drink => {
-      const metabolizedAmount = Math.min(drink.alcoholGrams / (r * weightKg), metabolismRate * drink.hoursSinceDrink);
-      calculatedBAC -= metabolizedAmount;
-    });
+    try {
+      drinksForBac.forEach(drink => {
+        const metabolizedAmount = Math.min(
+          drink.alcoholGrams / (r * weightKg), 
+          metabolismRate * drink.hoursSinceDrink
+        );
+        calculatedBAC -= metabolizedAmount;
+      });
+    } catch (e) {
+      console.error('Errore nel calcolo della metabolizzazione dell\'alcol:', e);
+    }
     
     // Assicurati che il BAC non sia negativo
     calculatedBAC = Math.max(0, calculatedBAC);
     
+    // Verifica che il BAC sia un numero valido
+    if (isNaN(calculatedBAC) || !isFinite(calculatedBAC)) {
+      console.error('BAC finale calcolato non valido, impostazione predefinita a 0');
+      calculatedBAC = 0;
+    }
+    
+    // Limitazione di sicurezza: il BAC non può essere superiore a 0.5 (valore pericolosamente alto)
+    calculatedBAC = Math.min(calculatedBAC, 0.5);
+    
     // Arrotonda a 2 decimali
     calculatedBAC = Math.round(calculatedBAC * 100) / 100;
-    
-    console.log(`updateSessionBAC: BAC calcolato: ${calculatedBAC}, con fattore cibo: ${foodAbsorptionFactor.toFixed(2)}`);
     
     // Aggiorna il BAC della sessione
     activeSession.currentBAC = calculatedBAC;
     
     // Aggiorna il BAC time point attuale se esiste
-    if (activeSession.bacTimePoints && activeSession.bacTimePoints.length > 0) {
+    if (Array.isArray(activeSession.bacTimePoints) && activeSession.bacTimePoints.length > 0) {
       activeSession.bacTimePoints[activeSession.bacTimePoints.length - 1] = calculatedBAC;
     }
     
@@ -1031,10 +1105,16 @@ export function updateSessionBAC(): Session | null {
       activeSession.status = 'critical';
     }
     
+    // Salva la sessione aggiornata in background
+    saveSessionLocally(activeSession, 'active').catch(error => {
+      console.error('Errore nel salvataggio della sessione:', error);
+    });
+    
     return activeSession;
   } catch (error) {
     console.error('Error updating session BAC:', error);
-    return null;
+    // In caso di errore catastrofico, restituisci la sessione come è, senza aggiornamenti
+    return activeSession;
   }
 }
 
@@ -1538,6 +1618,66 @@ export async function ensureSessionIntegrity(): Promise<boolean> {
     if (activeSession) {
       console.log('Sessione attiva trovata:', activeSession.id);
       
+      // Verifica che la sessione abbia un profilo valido
+      if (!activeSession.profile || !activeSession.profile.weightKg) {
+        console.log('Riparazione: la sessione attiva ha un profilo mancante o non valido');
+        
+        // Importiamo direttamente per evitare dipendenze circolari
+        const profileService = require('./profile.service').default;
+        
+        // Ottieni i profili disponibili
+        const profiles = currentUserId 
+          ? await profileService.getProfiles(true) 
+          : await profileService.getGuestProfiles();
+        
+        if (profiles && profiles.length > 0) {
+          // Prova a sostituire il profilo mancante con uno valido
+          const validProfile = profiles.find(p => p.weightKg > 0) || profiles[0];
+          
+          console.log('Sostituzione del profilo mancante con:', validProfile.name);
+          activeSession.profile = validProfile;
+          
+          // Ricalcola BAC e altre proprietà derivate
+          updateSessionBAC();
+          
+          await saveSessionLocally(activeSession, 'active');
+          sessionsFixed = true;
+        } else {
+          // Se non ci sono profili validi, termina la sessione
+          console.log('Nessun profilo valido trovato, terminazione sessione non valida');
+          activeSession = null;
+          await AsyncStorage.removeItem(getActiveSessionKey(currentUserId));
+          sessionsFixed = true;
+        }
+      }
+      
+      // Assicurati che drinks e foods siano array validi
+      if (!Array.isArray(activeSession.drinks)) {
+        console.log('Riparazione: drinks non è un array valido');
+        activeSession.drinks = [];
+        sessionsFixed = true;
+      }
+      
+      if (!Array.isArray(activeSession.foods)) {
+        console.log('Riparazione: foods non è un array valido');
+        activeSession.foods = [];
+        sessionsFixed = true;
+      }
+      
+      // Verifica che currentBAC esista e sia un numero
+      if (typeof activeSession.currentBAC !== 'number' || isNaN(activeSession.currentBAC)) {
+        console.log('Riparazione: currentBAC non valido, impostazione a 0');
+        activeSession.currentBAC = 0;
+        sessionsFixed = true;
+      }
+      
+      // Verifica che lo status sia valido
+      if (!activeSession.status || !['safe', 'caution', 'danger'].includes(activeSession.status)) {
+        console.log('Riparazione: status non valido, impostazione a "safe"');
+        activeSession.status = 'safe';
+        sessionsFixed = true;
+      }
+      
       // Se l'utente è autenticato...
       if (currentUserId) {
         // ...ma la sessione non ha user_id o ha un user_id diverso
@@ -1565,6 +1705,11 @@ export async function ensureSessionIntegrity(): Promise<boolean> {
           await AsyncStorage.removeItem(getActiveSessionKey(null));
           sessionsFixed = true;
         }
+      }
+      
+      // Se la sessione è stata riparata e ancora esiste, salvala
+      if (sessionsFixed && activeSession) {
+        await saveSessionLocally(activeSession, 'active');
       }
     }
     

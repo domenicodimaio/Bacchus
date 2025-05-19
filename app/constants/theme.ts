@@ -90,6 +90,9 @@ export const DARK_THEME = {
     warningDark: '#FF8000',
     warningNeon: 'rgba(255, 192, 0, 0.9)',
     
+    // Colore per funzionalità premium
+    premium: '#FFD700', // Oro
+    
     // Sfondi - aggiornati per essere più scuri e simili a Quotidiano
     background: '#14233B', // Blu scuro come Quotidiano
     surface: '#1E2E45',    // Leggermente più chiaro per elementi sovrapposti
@@ -221,6 +224,9 @@ export const LIGHT_THEME = {
     warningLight: '#FFB74D', // Arancione più chiaro
     warningDark: '#E67700', // Arancione più scuro
     warningNeon: 'rgba(255, 140, 0, 0.7)', // Effetto neon più visibile
+    
+    // Colore per funzionalità premium
+    premium: '#D4AF37', // Oro più morbido per tema chiaro
     
     // Sfondi - più eleganti e moderni
     background: '#F5F9FC', // Azzurrino chiaro più elegante

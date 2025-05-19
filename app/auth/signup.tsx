@@ -30,6 +30,17 @@ const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
+// Funzione per validare la complessità della password
+const isValidPassword = (password: string): boolean => {
+  // Verifica che la password abbia almeno 6 caratteri, una maiuscola, una minuscola e un numero
+  const hasMinLength = password.length >= 6;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  
+  return hasMinLength && hasUppercase && hasLowercase && hasNumber;
+};
+
 export default function SignupScreen() {
   const { t } = useTranslation(['auth', 'common']);
   const { currentTheme } = useTheme();
@@ -87,9 +98,9 @@ export default function SignupScreen() {
         return;
       }
 
-      // Controlla se le password sono abbastanza sicure
-      if (password.length < 6) {
-        Alert.alert('Errore', 'La password deve essere di almeno 6 caratteri.');
+      // Controlla se le password rispettano i requisiti di sicurezza
+      if (!isValidPassword(password)) {
+        Alert.alert('Errore', 'La password deve contenere almeno 6 caratteri, una lettera maiuscola, una minuscola e un numero.');
         setIsLoading(false);
         return;
       }
@@ -98,26 +109,33 @@ export default function SignupScreen() {
       const { success, error } = await register(email, password, name || email.split('@')[0]);
 
       if (success) {
-        // CRITICAL FIX: Block any navigation system from showing other screens
-        // These values MUST be set BEFORE any navigation to prevent race conditions
+        // CRITICAL FIX: Imposta i flag globali per assicurarsi che il wizard venga mostrato
         if (typeof global !== 'undefined') {
-          // Block the dashboard and any other screens from showing
-          global.__BLOCK_ALL_SCREENS__ = true;
+          global.__BLOCK_ALL_SCREENS__ = false; // Non blocchiamo tutte le schermate
           global.__WIZARD_AFTER_REGISTRATION__ = true;
           global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
+          global.__WIZARD_START_TIME__ = Date.now();
           
-          console.log("🔴 Account created, blocking all other screens and going directly to wizard");
+          console.log("🔴 Set __LOGIN_REDIRECT_IN_PROGRESS__ and __WIZARD_AFTER_REGISTRATION__ to true");
           
-          // Unblock after enough time for the wizard to appear
+          // Rimuoviamo la flag dopo alcuni secondi per sicurezza
           setTimeout(() => {
-            // Keep the wizard flag but allow other screen changes after wizard is visible
-            global.__BLOCK_ALL_SCREENS__ = false;
-          }, 5000);
+            if (typeof global !== 'undefined') {
+              global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+              console.log("🔴 Reset __LOGIN_REDIRECT_IN_PROGRESS__ to false after timeout");
+            }
+          }, 10000); // Extended timeout for safety
         }
         
-        // IMMEDIATE navigation - don't use a timeout which creates a race condition
-        // The router.replace call must happen IMMEDIATELY after setting the flags
-        router.replace('/onboarding/profile-wizard');
+        setIsLoading(false);
+        console.log("🔴 Registration successful, preparing to redirect to wizard in 2.5 seconds");
+        
+        // Breve attesa per permettere lo stato dell'app di aggiornarsi
+        setTimeout(() => {
+          // Reindirizzamento al wizard
+          console.log("🔴 Now redirecting to profile wizard after registration");
+          router.replace('/onboarding/profile-wizard');
+        }, 2500); // Increased delay from 1500ms to 2500ms
       } else {
         Alert.alert('Errore', error || 'Si è verificato un errore durante la registrazione.');
       }
@@ -185,24 +203,28 @@ export default function SignupScreen() {
       if (result.success) {
         console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
         
-        // CRITICAL FIX: Block any navigation system from showing other screens
-        // These values MUST be set BEFORE any navigation to prevent race conditions
+        // CRITICAL FIX: Imposta i flag globali per assicurarsi che il wizard venga mostrato
         if (typeof global !== 'undefined') {
-          // Block the dashboard and any other screens from showing
-          global.__BLOCK_ALL_SCREENS__ = true;
+          global.__BLOCK_ALL_SCREENS__ = false; // Non blocchiamo tutte le schermate
           global.__WIZARD_AFTER_REGISTRATION__ = true;
           global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
           global.__WIZARD_START_TIME__ = Date.now();
           
-          // Unblock after enough time for the wizard to appear
+          console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
+          
+          // Per sicurezza, imposta un timer che reimposta i flag se qualcosa va storto
           setTimeout(() => {
-            // Keep the wizard flag but allow other screen changes after wizard is visible
-            global.__BLOCK_ALL_SCREENS__ = false;
-          }, 5000);
+            if (typeof global !== 'undefined') {
+              global.__BLOCK_ALL_SCREENS__ = false;
+            }
+          }, 10000);
         }
         
-        // IMMEDIATE navigation - don't use a timeout which creates a race condition
-        router.replace('/onboarding/profile-wizard');
+        // Breve attesa per permettere lo stato dell'app di aggiornarsi
+        setTimeout(() => {
+          // Reindirizzamento al wizard
+          router.replace('/onboarding/profile-wizard');
+        }, 1500);
       } else {
         console.error('Apple signup error:', result.error);
         Alert.alert('Errore', `Si è verificato un errore durante la registrazione con Apple: ${result.error}`);
@@ -228,30 +250,7 @@ export default function SignupScreen() {
     }
   };
 
-  // Funzione per accedere come ospite
-  const handleGuestAccess = async () => {
-    console.log('SIGNUP: Accesso come ospite richiesto');
-    
-    try {
-      // Prima puliamo le sessioni esistenti
-      await authService.switchToGuestMode();
-      
-      console.log('SIGNUP: Reindirizzamento a /onboarding/profile-wizard con parametro guest=true');
-      
-      router.push({
-        pathname: '/onboarding/profile-wizard',
-        params: { guest: 'true' }
-      });
-    } catch (error) {
-      console.error('Errore durante il passaggio alla modalità ospite:', error);
-      Alert.alert(
-        'Errore',
-        'Si è verificato un errore durante il passaggio alla modalità ospite'
-      );
-    }
-  };
-
-  // Nascondi la tastiera quando si tocca lo sfondo
+  // Funzione per nascondere la tastiera
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
@@ -459,17 +458,6 @@ export default function SignupScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
-              {/* Pulsante ospite */}
-              <TouchableOpacity 
-                style={[styles.guestButton, { borderColor: colors.border }]}
-                onPress={handleGuestAccess}
-              >
-                <Ionicons name="person-outline" size={20} color={colors.text} />
-                <Text style={[styles.guestButtonText, { color: colors.text }]}>
-                  {t('continueAsGuest', { ns: 'auth' })}
-                </Text>
-              </TouchableOpacity>
             </View>
             
             {/* Footer con link di login */}
@@ -604,19 +592,6 @@ const styles = StyleSheet.create({
   socialButtonText: {
     fontSize: 16,
     fontWeight: '500',
-  },
-  guestButton: {
-    flexDirection: 'row',
-    height: 50,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    marginBottom: 5,
-  },
-  guestButtonText: {
-    fontSize: 16,
-    marginLeft: 10,
   },
   footerContainer: {
     flexDirection: 'row',

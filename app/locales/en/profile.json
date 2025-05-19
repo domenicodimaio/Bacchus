@@ -8,7 +8,6 @@
   "setAsDefault": "Set as Default",
   "defaultProfile": "Default Profile",
   "noActiveProfile": "No active profile",
-  
   "profileDetails": "Profile Details",
   "name": "Name",
   "weight": "Weight",
@@ -17,12 +16,10 @@
   "gender": "Gender",
   "drinkingFrequency": "Drinking Frequency",
   "personalInfo": "Personal Information",
-  
   "profileCreated": "Profile created successfully",
   "profileUpdated": "Profile updated successfully",
   "profileDeleted": "Profile deleted successfully",
   "profileSetAsDefault": "Profile set as default",
-  
   "switchProfile": "Switch Profile",
   "activeSessions": "Active Sessions",
   "active": "Active",
@@ -35,25 +32,21 @@
   "removeSessionConfirmation": "Are you sure you want to remove this session?",
   "defaultProfileSet": "Default Profile Set",
   "defaultProfileMessage": "This profile will be automatically selected when you log in",
-  
   "genderOptions": {
     "male": "Male",
     "female": "Female",
     "other": "Other"
   },
-  
   "frequencyOptions": {
     "rarely": "Rarely",
     "occasionally": "Occasionally",
     "frequently": "Frequently"
   },
-  
   "formPlaceholders": {
     "enterName": "Enter name",
     "enterWeight": "Enter weight in kg",
     "enterAge": "Enter age"
   },
-  
   "validation": {
     "nameRequired": "Name is required",
     "weightRequired": "Weight is required",
@@ -63,7 +56,6 @@
     "genderRequired": "Gender is required",
     "frequencyRequired": "Drinking frequency is required"
   },
-  
   "noProfiles": "No profiles found",
   "createFirstProfile": "Create your first profile",
   "accountSettings": "Account Settings",
@@ -77,7 +69,6 @@
   "deleteAccount": "Delete Account",
   "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
   "accountDeleted": "Your account has been deleted successfully.",
-  
   "yourName": "Your Name",
   "yourGender": "Your Gender",
   "yourWeight": "Your Weight",
@@ -89,7 +80,6 @@
   "genderRequired": "Gender is required",
   "weightRequired": "Weight is required",
   "errorUpdatingProfile": "Error updating profile",
-  
   "profileImage": "Profile Image",
   "profileImageExplanation": "Choose an image for your profile (optional)",
   "useEmoji": "Use Emoji",
@@ -115,5 +105,60 @@
   "deleteSelectedSessionsConfirmation": "Are you sure you want to delete the selected sessions?",
   "error": "Error",
   "profileUpdateError": "Error updating profile",
-  "welcomeToApp": "Welcome to Bacchus"
-} 
+  "welcomeToApp": "Welcome to Bacchus",
+  "male": "Uomo",
+  "female": "Donna",
+  "setupProfilePrompt": "Configura il tuo profilo per iniziare a monitorare il tuo consumo di alcol in modo sicuro.",
+  "howToCallYou": "Come ti chiami?",
+  "nameExplanation": "Inserisci il tuo nome o un nickname che preferisci usare nell'app.",
+  "enterName": "Inserisci il tuo nome",
+  "selectGender": "Seleziona il tuo genere",
+  "genderExplanation": "Questo è importante per calcolare con precisione i livelli di alcol nel sangue.",
+  "weightExplanation": "Il peso è un fattore importante nel calcolo del tasso alcolemico.",
+  "drinkingHabits": "Abitudini di consumo",
+  "habitsExplanation": "Con quale frequenza consumi bevande alcoliche?",
+  "rarely": "Raramente",
+  "occasionally": "Occasionalmente",
+  "regularly": "Regolarmente",
+  "frequently": "Frequentemente",
+  "allSet": "Tutto pronto!",
+  "next": "Avanti",
+  "back": "Indietro",
+  "getStarted": "Inizia",
+  "addProfile": "Aggiungi profilo",
+  "selectDefault": "Imposta come predefinito",
+  "deleteSelectedProfiles": "Elimina Profilo Selezionato",
+  "deleteSelectedProfilesConfirmation": "Sei sicuro di voler eliminare il profilo selezionato?",
+  "selectProfiles": "Seleziona Profilo",
+  "welcome": "Benvenuto",
+  "profileEmoji": "Avatar del profilo",
+  "emojiStepTitle": "Scegli un emoji per il tuo profilo",
+  "emojiStepDescription": "Questo è un dettaglio personale e non è obbligatorio",
+  "genderStepTitle": "Qual è il tuo genere?",
+  "genderStepDescription": "Questa informazione è necessaria per il corretto calcolo del tuo tasso alcolemico",
+  "weightStepTitle": "Qual è il tuo peso?",
+  "weightStepDescription": "Il peso influisce sul calcolo del tasso alcolemico",
+  "ageStepTitle": "Quanti anni hai?",
+  "ageStepDescription": "L'età è un fattore importante nel calcolo del tasso alcolemico",
+  "nameStepTitle": "Come ti chiami?",
+  "nameStepDescription": "Inserisci il tuo nome o un nickname che vuoi usare nell'app",
+  "heightStepTitle": "Qual è la tua altezza?",
+  "heightStepDescription": "L'altezza è un fattore che può influenzare il calcolo",
+  "drinkingHabitsStepTitle": "Come bevi?",
+  "drinkingHabitsStepDescription": "Questa informazione è necessaria per il corretto calcolo del tasso alcolemico",
+  "welcomeStepTitle": "Benvenuto in Bacchus",
+  "welcomeStepDescription": "Configura il tuo profilo per iniziare a monitorare il tuo consumo di alcol",
+  "complete": "Completa",
+  "goToDashboard": "Vai alla dashboard",
+  "continue": "Continua",
+  "profileCreationError": "Errore nella creazione del profilo",
+  "unexpectedError": "Si è verificato un errore imprevisto",
+  "exit": "Esci",
+  "wizardMandatory": "Configurazione profilo richiesta",
+  "wizardMandatoryExplanation": "Devi completare la configurazione del profilo per continuare.",
+  "exitWizard": "Uscire dal Wizard?",
+  "exitWizardConfirmation": "Sei sicuro di voler uscire? I tuoi progressi andranno persi.",
+  "removeEmoji": "Rimuovi Emoji",
+  "namePlaceholder": "Es. Mario",
+  "cancel": "Annulla"
+}

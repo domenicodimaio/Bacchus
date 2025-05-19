@@ -10,6 +10,12 @@
   "expectedSoberTime": "Expected Sober Time",
   "legalLimit": "Legal Limit",
   "sessionTitle": "Session",
+  "session": "Session",
+  "sessions": "Sessions",
+  "errorSavingSession": "Error saving session",
+  "sessionSaved": "Session saved",
+  "endSessionTitle": "End session",
+  "endSessionConfirmation": "Are you sure you want to end this session?",
   "drinkLog": "Drink Log",
   "foodLog": "Food Log",
   "noActiveDrinks": "No drinks recorded",
@@ -45,22 +51,18 @@
   "now": "Now",
   "notAvailable": "Not Available",
   "noSessionsFound": "No sessions found",
-
   "bacSafe": "Safe",
   "bacCaution": "Caution",
   "bacWarning": "Warning",
   "bacDanger": "Danger",
   "bacCritical": "Critical",
-  
   "sessionSummary": "Session Summary",
   "maxBAC": "Maximum BAC",
   "totalDrinks": "Total Drinks",
   "sessionStarted": "Session Started",
   "sessionEnded": "Session Ended",
-  
   "simpleMode": "Simple Mode",
   "advancedMode": "Advanced Mode",
-  
   "selectDrinkType": "Select drink type",
   "selectDrinkSize": "Select drink size",
   "selectFoodType": "Select food type",
@@ -68,39 +70,33 @@
   "selectSpecificDrink": "Select specific drink",
   "confirmDrink": "Confirm Drink",
   "manualValuesUsed": "Custom values will be used for this drink",
-  
   "drinkCategories": {
     "beer": "Beer",
     "wine": "Wine",
     "cocktail": "Cocktail",
     "spirits": "Spirits"
   },
-  
   "drinkTypes": {
     "beer": "Beer",
     "wine": "Wine",
     "spirits": "Spirits",
     "cocktail": "Cocktail",
     "other": "Other",
-    
     "beerLager": "Lager Beer",
     "beerAle": "Ale/IPA Beer",
     "beerStout": "Stout/Porter Beer",
     "beerWeiss": "Wheat Beer",
     "beerStrong": "Strong Ale",
-    
     "wineWhite": "White Wine",
     "wineRed": "Red Wine",
     "wineRose": "Rosé Wine",
     "wineSparkling": "Sparkling Wine",
     "wineDessert": "Dessert Wine",
-    
     "cocktailAperitivo": "Aperitif",
     "cocktailClassic": "Classic Cocktail",
     "cocktailSour": "Sour Cocktail",
     "cocktailTropical": "Tropical Cocktail",
     "cocktailLong": "Long Drink",
-    
     "spiritWhiskey": "Whiskey/Bourbon",
     "spiritVodka": "Vodka",
     "spiritRum": "Rum",
@@ -108,26 +104,22 @@
     "spiritTequila": "Tequila/Mezcal",
     "spiritLiqueur": "Liqueur"
   },
-  
   "drinkDescriptions": {
     "beerLager": "Bottom-fermented beer, light and refreshing",
     "beerAle": "Top-fermented beer, more aromatic and hoppy",
     "beerStout": "Dark beer with roasted notes of coffee or chocolate",
     "beerWeiss": "Wheat beer, fruity and refreshing",
     "beerStrong": "High alcohol content beer",
-    
     "wineWhite": "Wine from white grapes, typically lighter and fresher",
     "wineRed": "Wine from red grapes, generally full-bodied",
     "wineRose": "Rosé wine, fresh and versatile",
     "wineSparkling": "Wine with bubbles, sparkling or fizzy",
     "wineDessert": "Sweet wine, served with dessert or for sipping",
-    
     "cocktailAperitivo": "Light drinks for aperitif, often wine or bitter-based",
     "cocktailClassic": "Traditional cocktails, strong with few ingredients",
     "cocktailSour": "Drinks based on lemon juice and spirits",
     "cocktailTropical": "Fruity cocktails mainly with rum or other spirits",
     "cocktailLong": "Tall drinks, often prepared with mixers and ice",
-    
     "spiritWhiskey": "Grain distillate aged in barrels",
     "spiritVodka": "Neutral grain or potato distillate",
     "spiritRum": "Distillate from sugar cane molasses",
@@ -135,27 +127,24 @@
     "spiritTequila": "Blue agave distillate",
     "spiritLiqueur": "Sweetened and flavored distillate"
   },
-  
   "drinkSizes": {
     "small": "Small",
     "medium": "Medium",
     "large": "Large"
   },
-  
   "foodTypes": {
     "lightSnack": "Light Snack",
     "smallMeal": "Small Meal",
     "fullMeal": "Full Meal",
     "heavyMeal": "Heavy Meal",
-    "custom": "Custom"
+    "custom": "Custom",
+    "emptyStomach": "Stomaco vuoto"
   },
-  
   "foodAmounts": {
     "small": "Small",
     "medium": "Medium",
     "large": "Large"
   },
-  
   "bacStatus": {
     "safe": "Safe - Minimal impairment",
     "mild": "Mild euphoria, relaxation",
@@ -181,7 +170,6 @@
     "criticalDesc": "BAC above 1.5 g/L - High health risk",
     "zeroDesc": "BAC near zero"
   },
-  
   "formLabels": {
     "drinkName": "Drink Name",
     "drinkType": "Drink Type",
@@ -191,15 +179,14 @@
     "foodName": "Food Name",
     "foodType": "Food Type",
     "amount": "Amount",
-    "alcoholGrams": "Alcohol in grams"
+    "alcoholGrams": "Alcohol in grams",
+    "drinkDetails": "Dettagli Bevanda"
   },
-  
   "alcoholReductionEffect": "Alcohol reduction effect",
   "foodAbsorptionExplanation": "Food consumption can reduce alcohol absorption",
   "consumption": "Consumption",
   "drinks": "Drinks",
   "foods": "Foods",
-  
   "foodTiming": {
     "before": "Before drinking",
     "beforeDescription": "Food consumed before drinking",
@@ -208,15 +195,12 @@
     "after": "After drinking",
     "afterDescription": "Food consumed after drinking"
   },
-  
   "showSessionDetails": "Show Session Details",
   "hideSessionDetails": "Hide Session Details",
-  
   "addDrinkSuccess": "Drink added successfully",
   "addFoodSuccess": "Food added successfully",
   "endSessionConfirm": "Are you sure you want to end this session?",
   "sessionEndedSuccess": "Session ended successfully",
-  
   "sessionHistory": "Session History",
   "noSessionsYet": "No sessions recorded yet",
   "deleteSessionTitle": "Delete Session",
@@ -236,5 +220,49 @@
   "selectBeverage": "Choose drink",
   "adjustDetails": "Customize details",
   "next": "Next",
-  "back": "Back"
-} 
+  "back": "Back",
+  "noDrinks": "Nessuna bevanda registrata",
+  "noFood": "Nessun cibo registrato",
+  "sessionSavedToHistory": "Sessione salvata nella cronologia",
+  "errorEndingSession": "Errore durante la chiusura della sessione",
+  "refresh": "Aggiorna",
+  "reductionEffect": "Effetto di riduzione",
+  "loading": "Caricamento...",
+  "startNewSession": "Inizia Nuova Sessione",
+  "noConsumptionYet": "Nessun consumo registrato finora",
+  "stato": "Stato",
+  "stateSafe": "Sicuro",
+  "stateCaution": "Attenzione",
+  "stateWarning": "Pericolo",
+  "stateDanger": "Alto Rischio",
+  "start": "Inizio",
+  "estimatedEnd": "Fine Stimata",
+  "errorAddingDrink": "Errore nell'aggiungere la bevanda",
+  "errorLoadingSession": "Errore nel caricamento della sessione",
+  "drinkAdded": "Bevanda aggiunta con successo",
+  "deleteItem": "Elimina elemento",
+  "deleteItemConfirmation": "Sei sicuro di voler eliminare questo elemento?",
+  "consumptionTime": "Orario di Consumo",
+  "whenDidYouDrink": "Quando hai bevuto?",
+  "customDrink": "Bevanda Personalizzata",
+  "Cocktail": "Cocktail",
+  "Beer": "Birra",
+  "Wine": "Vino",
+  "Spirits": "Superalcolici",
+  "Other": "Altro",
+  "legal": {
+    "safe": "Legale per guidare (conducenti standard).",
+    "caution": "Legale per guidare ma consigliamo prudenza.",
+    "warning": "NON legale per guidare.",
+    "danger": "NON legale per guidare, alto rischio.",
+    "critical": "NON legale per guidare, rischio estremamente elevato."
+  },
+  "messages": {
+    "sessionEnded": "Sessione terminata",
+    "sessionEndedDetails": "La tua sessione è stata salvata nella cronologia",
+    "itemDeleted": "Elemento eliminato",
+    "confirmEndSession": "Sei sicuro di voler terminare questa sessione?"
+  },
+  "timeToLegalDriving": "Ritorno sotto 0.5 (limite legale)",
+  "completelyClean": "Ritorno a 0.00"
+}

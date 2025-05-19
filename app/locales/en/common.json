@@ -86,7 +86,7 @@
   "passwordResetSuccess": "Password reset successfully",
   "loggedInSuccessfully": "Logged in successfully",
   "loggedOutSuccessfully": "Logged out successfully",
-  "offlineMode": "Offline Mode",
+  "offlineMode": "You are now offline",
   "offlineModeEnabled": "Offline mode enabled",
   "offlineModeDisabled": "Offline mode disabled",
   "dataSync": "Data Synchronization",
@@ -100,7 +100,8 @@
   "bacDisclaimerMessage": "The Blood Alcohol Content (BAC) values shown are estimates only and may vary based on numerous individual factors. Do not rely on these values to determine if you are safe to drive.",
   "neverDrinkAndDrive": "Never drink and drive.",
   "deleteAccount": "Delete Account",
-  
+  "exit": "Exit",
+  "legalDisclaimer": "This app is for educational purposes only. Do not use to determine if you are fit to drive.",
   "noActiveSession": "No Active Session",
   "trackYourDrinks": "Track your drinks to monitor your BAC",
   "startSession": "Start Session",
@@ -108,8 +109,6 @@
   "continueText": "Continue",
   "or": "or",
   "selectProfile": "Select Profile",
-  "comingSoon": "Coming Soon",
-  "offlineMode": "You are now offline",
   "onlineMode": "You are back online",
   "cannotSyncOffline": "Cannot synchronize while offline",
   "syncComplete": "Synchronization completed",
@@ -125,7 +124,6 @@
   "errorExporting": "Error exporting data",
   "unexpectedError": "An unexpected error occurred",
   "signUp": "SIGN UP",
-  "logout": "Logout",
   "continueAsGuest": "Continue as Guest",
   "yourStatistics": "Your Statistics",
   "upgradeToPremium": "Upgrade to Premium",
@@ -136,5 +134,14 @@
     "session": "Session",
     "history": "History",
     "profiles": "Profiles"
-  }
-} 
+  },
+  "selectLanguage": "Seleziona lingua",
+  "version": "Versione",
+  "preferences": "Preferenze",
+  "mode": "Modalità",
+  "size": "Dimensione",
+  "switchToTabs": "Passa alla navigazione a schede",
+  "close": "Chiudi",
+  "info": "Informazioni",
+  "email": "Email"
+}

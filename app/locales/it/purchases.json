@@ -49,7 +49,6 @@
   "notPremium": "Non sei un utente premium",
   "continue": "Continua",
   "subscriptionsTitle": "Abbonamenti",
-  
   "upgradeToExperience": "Sblocca l'esperienza completa",
   "chooseSubscription": "Scegli il piano che preferisci per accedere a tutte le funzionalità premium",
   "startFreeTrial": "PROVA GRATUITA DI 3 GIORNI",
@@ -68,7 +67,6 @@
   "purchase.success": "Acquisto completato con successo",
   "purchase.failed": "Acquisto non riuscito",
   "retry": "Riprova",
-  
   "canCreateUnlimitedSessions": "Sessioni illimitate",
   "hasDetailedStatistics": "Statistiche dettagliate",
   "canExportData": "Esportazione dati",
@@ -85,5 +83,17 @@
   "upgradeMessage": "Per accedere a questa funzionalità è necessario un abbonamento premium.",
   "viewDetails": "Vedi dettagli",
   "premiumFeaturesList": "• Sessioni illimitate\n• Statistiche dettagliate\n• Esportazione dati\n• Nessuna pubblicità",
-  "skipAndContinue": "Salta e continua con la versione gratuita"
-} 
+  "skipAndContinue": "Salta e continua con la versione gratuita",
+  "premiumFeatures": "Funzionalità Premium",
+  "upgradeToUnlock": "Passa a Premium per sbloccare:",
+  "getPremium": "Ottieni Premium",
+  "testPremium": "Prova Premium",
+  "disablePremiumTest": "Disattiva Prova Premium",
+  "unlimitedSessionsDesc": "Crea quante sessioni vuoi senza limiti settimanali",
+  "exportDataDesc": "Esporta i tuoi dati in formato CSV o PDF",
+  "detailedStatsDesc": "Ottieni statistiche avanzate e dettagliate sul tuo consumo",
+  "personalizedMetabolismDesc": "Calcolo personalizzato del metabolismo dell'alcol",
+  "subscription": {
+    "terms": "Iscrivendoti accetti i nostri Termini di servizio e la Privacy Policy"
+  }
+}

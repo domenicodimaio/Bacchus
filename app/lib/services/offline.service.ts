@@ -7,6 +7,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import { useEffect, useState } from 'react';
 
 // Chiavi per lo storage
 const OFFLINE_QUEUE_KEY = 'bacchus_offline_queue';
@@ -29,9 +30,12 @@ export interface QueuedOperation {
   timestamp: number;
 }
 
-// Stato della connessione
-let isConnected = true;
-let isInitialized = false;
+// Variabile globale per lo stato corrente della connessione
+let connectionState = {
+  isConnected: true,
+  offlineMode: false,
+  networkType: 'unknown',
+};
 
 // Coda delle operazioni offline
 let operationQueue: QueuedOperation[] = [];
@@ -44,8 +48,6 @@ const syncCallbacks: SyncCallback[] = [];
  * Inizializza il servizio offline
  */
 export const initOfflineService = async (): Promise<void> => {
-  if (isInitialized) return;
-  
   try {
     // Carica la coda delle operazioni
     const queueData = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
@@ -58,37 +60,48 @@ export const initOfflineService = async (): Promise<void> => {
       const newConnectionStatus = !!state.isConnected;
       
       // Se la connessione è stata ripristinata
-      if (!isConnected && newConnectionStatus) {
+      if (!connectionState.isConnected && newConnectionStatus) {
         synchronizeData();
       }
       
-      isConnected = newConnectionStatus;
+      connectionState.isConnected = newConnectionStatus;
       
       // Salva lo stato offline
-      AsyncStorage.setItem(OFFLINE_MODE_KEY, JSON.stringify(!isConnected));
+      AsyncStorage.setItem(OFFLINE_MODE_KEY, JSON.stringify(!connectionState.isConnected));
     });
     
     // Controlla lo stato iniziale della connessione
-    const connectionState = await NetInfo.fetch();
-    isConnected = !!connectionState.isConnected;
+    const netInfoState = await NetInfo.fetch();
+    connectionState.isConnected = !!netInfoState.isConnected;
     
-    isInitialized = true;
-    console.log('Offline service initialized, connection status:', isConnected);
+    // Imposta la modalità offline solo se non c'è connessione
+    connectionState.offlineMode = !connectionState.isConnected;
+    console.log('Offline service initialized, connection status:', connectionState.isConnected);
   } catch (error) {
     console.error('Error initializing offline service:', error);
   }
 };
 
 /**
- * Verifica se il dispositivo è attualmente offline
+ * Verifica se il dispositivo è offline
+ * @returns {Promise<boolean>} true se il dispositivo è offline o in modalità offline forzata
  */
 export const isOffline = async (): Promise<boolean> => {
   try {
-    const connectionState = await NetInfo.fetch();
+    // Controlla se la modalità offline è stata forzata dall'utente
+    const offlineModeStr = await AsyncStorage.getItem(OFFLINE_MODE_KEY);
+    const forcedOfflineMode = offlineModeStr === 'true';
+    
+    // Se la modalità offline è stata forzata, restituisci true indipendentemente dalla connessione
+    if (forcedOfflineMode) {
+      return true;
+    }
+    
+    // Altrimenti, verifica lo stato attuale della connessione
     return !connectionState.isConnected;
   } catch (error) {
-    console.error('Error checking connection status:', error);
-    return false;
+    console.error('Errore nel controllo dello stato offline:', error);
+    return !connectionState.isConnected; // Usa lo stato corrente come fallback
   }
 };
 

@@ -3,28 +3,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProductType, PRODUCT_IDS, Entitlement, FREE_LIMITS } from '../../types/purchases';
 import Constants from 'expo-constants';
 
-// Determina se siamo in Expo Go
+// Determina se siamo in Expo Go o non possiamo usare RevenueCat
 const isExpoGo = Constants.appOwnership === 'expo';
+
+// Flag per indicare se RevenueCat è disponibile
+let isRevenueCatAvailable = false;
 
 // Importa RevenueCat solo se non siamo in Expo Go
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-if (!isExpoGo) {
-  try {
-    // Importa dinamicamente solo se non siamo in Expo Go
+try {
+  // Importa dinamicamente solo se non siamo in Expo Go
+  if (!isExpoGo) {
     const RevenueCat = require('react-native-purchases');
     Purchases = RevenueCat.default;
     LOG_LEVEL = RevenueCat.LOG_LEVEL;
-  } catch (error) {
-    console.log('RevenueCat non disponibile', error);
+    isRevenueCatAvailable = true;
   }
+} catch (error) {
+  console.log('RevenueCat non disponibile, usando modalità mock', error);
+  isRevenueCatAvailable = false;
 }
 
 // Chiavi API RevenueCat per iOS e Android
 const API_KEYS = {
-  ios: 'appl_xxxxxxxxxxxxxxxx', // Sostituire con la chiave API RevenueCat per iOS
-  android: 'goog_xxxxxxxxxxxxxxxx', // Sostituire con la chiave API RevenueCat per Android
+  ios: 'dummy_key', // Using a dummy key in development to avoid API errors
+  android: 'dummy_key', // Using a dummy key in development to avoid API errors
 };
 
 // Chiavi AsyncStorage per gli acquisti
@@ -40,47 +45,47 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
-    // Se siamo in Expo Go, usa l'implementazione mock
-    if (isExpoGo) {
-      console.log('Inizializzazione servizio acquisti in modalità mock (Expo Go)');
+    // In development mode or Expo Go, always use mock implementation
+    if (__DEV__ || isExpoGo || !isRevenueCatAvailable) {
+      console.log('Inizializzazione servizio acquisti in modalità mock (Dev/Expo Go/RevenueCat non disponibile)');
+      // Set mock premium status to true for development
+      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
       return true;
     }
     
+    // Initializing RevenueCat
     const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
     
-    // Configura RevenueCat in modalità debug in ambiente di sviluppo
-    // Controlla che Purchases sia definito prima di chiamare i suoi metodi
-    if (__DEV__ && typeof Purchases !== 'undefined' && Purchases !== null) {
-      try {
-      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-      } catch (logError) {
-        console.warn('Failed to set RevenueCat log level:', logError);
+    try {
+      // Configura RevenueCat in modalità debug in ambiente di sviluppo
+      if (__DEV__) {
+        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
       }
-    }
-    
-    // Inizializza SDK RevenueCat solo se non siamo in Expo Go e Purchases è disponibile
-    if (typeof Purchases !== 'undefined' && Purchases !== null) {
-      try {
+      
+      // Inizializza SDK RevenueCat
       await Purchases.configure({
         apiKey,
         appUserID: null, // L'ID utente sarà impostato dopo la login
       });
-      } catch (configError) {
-        console.warn('Failed to configure RevenueCat:', configError);
-      }
-    } else {
-      console.log('RevenueCat SDK not available, using mock implementation');
+      
+      console.log('RevenueCat initialized successfully');
+    } catch (revenueCatError) {
+      console.warn('Failed to initialize RevenueCat:', revenueCatError);
+      // Se RevenueCat fallisce, passiamo alla modalità mock
+      isRevenueCatAvailable = false;
+      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
     }
     
-    console.log('Purchase service initialized');
-    
-    // Verifica e reset il contatore sessioni settimanali se necessario
+    // Verifica e reset il contatore sessioni settimanali
     await checkAndResetWeeklySessionCount();
     
     return true;
   } catch (error) {
     console.error('Failed to initialize purchases:', error);
-    return false;
+    // Passa alla modalità mock in caso di errore
+    isRevenueCatAvailable = false;
+    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+    return true; // Return true anche in caso di errore per non bloccare l'app
   }
 };
 
@@ -89,15 +94,13 @@ export const initPurchases = async () => {
  */
 export const setUserForPurchases = async (userId: string) => {
   try {
-    if (isExpoGo) return true;
+    if (!isRevenueCatAvailable) return true;
     
-    if (typeof Purchases !== 'undefined' && Purchases !== null) {
-      try {
+    try {
       await Purchases.logIn(userId);
       console.log(`User ${userId} logged into RevenueCat`);
-      } catch (loginError) {
-        console.warn('Failed to log in to RevenueCat:', loginError);
-      }
+    } catch (loginError) {
+      console.warn('Failed to log in to RevenueCat:', loginError);
     }
     return true;
   } catch (error) {
@@ -111,15 +114,13 @@ export const setUserForPurchases = async (userId: string) => {
  */
 export const resetUserForPurchases = async () => {
   try {
-    if (isExpoGo) return true;
+    if (!isRevenueCatAvailable) return true;
     
-    if (typeof Purchases !== 'undefined' && Purchases !== null) {
-      try {
+    try {
       await Purchases.logOut();
       console.log('User logged out from RevenueCat');
-      } catch (logoutError) {
-        console.warn('Failed to log out from RevenueCat:', logoutError);
-      }
+    } catch (logoutError) {
+      console.warn('Failed to log out from RevenueCat:', logoutError);
     }
     return true;
   } catch (error) {

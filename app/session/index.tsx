@@ -88,8 +88,14 @@ export const navigateToSession = async () => {
       
       // Usa un piccolo delay per permettere alla UI di aggiornarsi
       setTimeout(() => {
-        // Usa navigate per evitare sostituzioni nel navigation stack
-        router.navigate('/session');
+        try {
+          // Usa navigate per evitare sostituzioni nel navigation stack
+          router.navigate('/session');
+        } catch (navError) {
+          console.error('Errore durante la navigazione alla sessione:', navError);
+          // Fallback alla dashboard in caso di errore
+          router.navigate('/dashboard');
+        }
       }, 100);
       
       return true;
@@ -98,7 +104,13 @@ export const navigateToSession = async () => {
       
       // Ritorna alla dashboard se non c'è una sessione attiva
       setTimeout(() => {
-        router.replace('/dashboard');
+        try {
+          router.replace('/dashboard');
+        } catch (navError) {
+          console.error('Errore durante la navigazione alla dashboard:', navError);
+          // Tenta un approccio alternativo in caso di errore
+          router.navigate('/');
+        }
       }, 100);
       
       return false;
@@ -108,7 +120,13 @@ export const navigateToSession = async () => {
     
     // In caso di errore, torna alla dashboard
     setTimeout(() => {
-      router.replace('/dashboard');
+      try {
+        router.replace('/dashboard');
+      } catch (navError) {
+        console.error('Errore durante il fallback alla dashboard:', navError);
+        // Ultima spiaggia
+        router.navigate('/');
+      }
     }, 100);
     
     return false;
@@ -436,31 +454,74 @@ function SessionScreen() {
     try {
       setLoading(true);
       
+      // Verifica che il servizio delle sessioni sia inizializzato
+      await sessionService.initSessionService();
+      
       // Ottieni la sessione attiva
-      const activeSession = await sessionService.getActiveSession();
+      const activeSession = await sessionService.updateSessionBAC();
       
       if (activeSession) {
-        // Aggiorna lo stato con la sessione attiva
-        setSession(activeSession);
+        // Validazione critica: verifica che i dati essenziali siano presenti
+        if (!activeSession.profile || !activeSession.profile.weightKg) {
+          console.error('Errore: Sessione invalida - dati profilo mancanti');
+          
+          // Mostra un errore adeguato
+          showToast({
+            type: 'error',
+            message: t('errorLoadingSession', { 
+              ns: 'session',
+              defaultValue: 'Errore nel caricamento della sessione'
+            }),
+          });
+          
+          // Prova a correggere la sessione prima di arrenderti
+          const fixedSession = await sessionService.ensureSessionIntegrity();
+          if (fixedSession) {
+            console.log('Sessione riparata, riprovo');
+            setTimeout(() => handleRefreshData(), 500);
+            return;
+          }
+          
+          // Se la riparazione fallisce, vai alla dashboard
+          setSession(null);
+          router.replace('/dashboard');
+          return;
+        }
+        
+        // Struttura difensiva: assicura che tutti i campi cruciali esistano
+        const safeSession = {
+          ...activeSession,
+          drinks: Array.isArray(activeSession.drinks) ? activeSession.drinks : [],
+          foods: Array.isArray(activeSession.foods) ? activeSession.foods : [],
+          currentBAC: typeof activeSession.currentBAC === 'number' ? activeSession.currentBAC : 0,
+          status: activeSession.status || 'safe',
+          soberTime: activeSession.soberTime || '0h 0m',
+          timeToSober: activeSession.timeToSober || 0
+        };
+        
+        // Aggiorna lo stato con la sessione attiva validata
+        setSession(safeSession);
       } else {
         // Invece di reindirizzare alla dashboard, imposta session a null
         setSession(null);
-        
-        // Rimuoviamo il reindirizzamento alla dashboard
-        // router.replace('/dashboard');
       }
-      
-      // Imposta loading a false in ogni caso
-      setLoading(false);
     } catch (error) {
       console.error('Error refreshing data:', error);
-      // Imposta loading a false anche in caso di errore
-      setLoading(false);
       
+      // Mostra un errore adeguato
       showToast({
         type: 'error',
-        message: t('errorLoadingSession', { ns: 'session' }),
+        message: t('errorLoadingSession', { 
+          ns: 'session',
+          defaultValue: 'Errore nel caricamento della sessione'
+        }),
       });
+      
+      // Imposta session a null per mostrare il NoActiveSessionView
+      setSession(null);
+    } finally {
+      // Imposta loading a false in ogni caso
+      setLoading(false);
     }
   };
 
@@ -886,11 +947,31 @@ function SessionScreen() {
           color={colors.textSecondary} 
         />
         <Text style={[styles.noSessionTitle, { color: colors.text }]}>
-          {t('noActiveSession', { ns: 'session', defaultValue: 'No Active Session' })}
+          {t('noActiveSession', { ns: 'session', defaultValue: 'Nessuna Sessione Attiva' })}
         </Text>
         <Text style={[styles.noSessionDescription, { color: colors.textSecondary }]}>
-          {t('startSessionDescription', { ns: 'session', defaultValue: 'Start a new drinking session from the dashboard to track your BAC levels.' })}
+          {t('startSessionDescription', { ns: 'session', defaultValue: 'Inizia una nuova sessione dalla dashboard per monitorare il tuo tasso alcolemico.' })}
         </Text>
+        
+        <TouchableOpacity 
+          style={[styles.dashboardButton, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            try {
+              // Usa replace invece di navigate per evitare di aggiungere la schermata allo stack
+              router.replace('/dashboard');
+            } catch (error) {
+              console.error('Errore nel navigare alla dashboard:', error);
+              // Fallback in caso di errore di navigazione
+              setTimeout(() => {
+                router.navigate('/');
+              }, 100);
+            }
+          }}
+        >
+          <Text style={styles.dashboardButtonText}>
+            {t('goToDashboard', { ns: 'session', defaultValue: 'Vai alla Dashboard' })}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1498,6 +1579,21 @@ const styles = StyleSheet.create({
       fontSize: 16,
       fontWeight: '600',
     },
+    dashboardButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    dashboardButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
   // Renderizza lo stato di caricamento
@@ -1518,7 +1614,18 @@ const styles = StyleSheet.create({
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         
-        <AppHeader title={t('sessionTitle', { ns: 'session' })} />
+        <AppHeader 
+          title={t('sessionTitle', { ns: 'session', defaultValue: 'Sessione' })} 
+          onBackPress={() => {
+            try {
+              router.replace('/dashboard');
+            } catch (error) {
+              console.error('Errore durante la navigazione alla dashboard:', error);
+              router.navigate('/');
+            }
+          }}
+        />
+        
         <View style={styles.mainContent}>
           <NoActiveSessionView />
         </View>

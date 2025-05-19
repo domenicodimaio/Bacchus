@@ -40,8 +40,8 @@ export default function UserProfile({ minimal = false }: UserProfileProps) {
   const handleLogout = async () => {
     try {
       Alert.alert(
-        t('confirmLogout', { ns: 'auth', defaultValue: 'Confirm Logout' }),
-        t('confirmLogoutMessage', { ns: 'auth', defaultValue: 'Are you sure you want to log out?' }),
+        t('logout', { ns: 'auth', defaultValue: 'Logout' }),
+        t('confirmLogout', { ns: 'auth', defaultValue: 'Are you sure you want to log out?' }),
         [
           { text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }), style: 'cancel' },
           {

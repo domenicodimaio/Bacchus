@@ -1,11 +1,9 @@
-import 'dotenv/config';
-
 export default {
   expo: {
     name: 'Bacchus',
-    slug: 'bacchus',
-    owner: "domenicodimaio9595",
-    version: '1.2.1',
+    slug: 'Bacchus',
+    owner: "dome.dima95",
+    version: '1.2.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -19,8 +17,8 @@ export default {
     ],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.domenicodimaio.bacchus',
-      buildNumber: '196',
+      bundleIdentifier: 'com.bacchusapp.app',
+      buildNumber: '448',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
@@ -30,11 +28,21 @@ export default {
         NSCalendarsUsageDescription: "This app needs your calendar to track events.",
         NSCameraUsageDescription: "This app uses your camera for user profile pictures.",
         NSPhotoLibraryUsageDescription: "This app needs access to your photos for user profile pictures.",
+        CFBundleURLTypes: [
+          {
+            CFBundleURLSchemes: [
+              "bacchus",
+              "com.bacchusapp.app",
+            ],
+          },
+        ],
+        "com.apple.developer.applesignin": ["Default"],
       },
       associatedDomains: ['applinks:bacchus.app']
     },
     android: {
       package: 'com.bacchusapp.app',
+      versionCode: 448,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
@@ -44,13 +52,37 @@ export default {
         "android.permission.VIBRATE",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.POST_NOTIFICATIONS"
-      ]
+      ],
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "bacchus",
+            },
+            {
+              scheme: "com.bacchusapp.app",
+            },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
     },
     web: {
       bundler: 'metro',
       favicon: './assets/icon.png'
     },
-    plugins: ['expo-router'],
+    plugins: [
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            useFrameworks: 'static',
+          },
+        },
+      ],
+    ],
     scheme: 'bacchus',
     experiments: {
       typedRoutes: true
@@ -62,9 +94,10 @@ export default {
     runtimeVersion: "1.0.0",
     extra: {
       supabaseUrl: 'https://egdpjqdsugbcoroclgys.supabase.co',
-      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTg5MjM0MzksImV4cCI6MjAxNDQ5OTQzOX0.hGyWUlOCmpRyRg-OdWVy6S-vLXgI2iq36OEjMZ4TbnA',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NTg0MTUsImV4cCI6MjA1ODAzNDQxNX0.VNZ0L4a7yixOk3oATyAz-bCDsohhuNE5ohQdV363xWM',
+      bundleIdentifier: 'com.bacchusapp.app',
       eas: {
-        projectId: "86fcd93e-98de-4626-ab02-186714a724d4"
+        projectId: "c53e831d-54d4-4fc8-aa16-7fd3360d2116"
       }
     }
   }
