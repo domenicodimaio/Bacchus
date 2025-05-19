@@ -1,5 +1,33 @@
 # Changelog
 
+## [Build 448] - 2024-09-XX
+### Miglioramenti
+- 🔧 Correzione problemi di traduzione nelle schermate dell'app
+- 🛠️ Migliorato il sistema di caricamento delle traduzioni per evitare testi mancanti
+- 🐛 Risolti vari problemi di crash nella schermata Impostazioni
+- 🧩 Migliorata la stabilità e la robustezza del sistema di gestione temi
+- 🔄 Ottimizzata l'inizializzazione dell'app per evitare schermate vuote o flash
+- 💾 Sistema di caricamento risorse migliorato per evitare crash durante la navigazione
+
+### Cambiamenti strutturali
+- 🚫 Rimossa completamente la modalità ospite dall'app
+- 🔒 Accesso all'app possibile solo con autenticazione completa
+- 🧹 Pulizia del codice da riferimenti non più necessari
+- 🔨 Risolti errori di bundling in ambiente di produzione
+
+### Build
+- ⬆️ Numero build aggiornato a 448 (da 445)
+- 📝 Creato script per aggiornamento automatico del numero di build `update-build-number.sh`
+
+### Correzioni di bug
+- 🐛 Risolto il problema dell'API key di Supabase
+- 🔧 Corretto l'errore che mostrava il vecchio wizard dopo la registrazione di un nuovo account
+- 🛠️ Migliorate le performance delle animazioni
+- 🚀 Incrementata la stabilità nell'utilizzo delle API di Supabase
+- 💬 Corrette traduzioni mancanti in session, dashboard e impostazioni
+- 🧠 Risolti problemi di rendering durante il primo avvio dell'app
+- 🔄 Corretto errore di bundling in ErrorBoundary.tsx sostituendo i require dinamici con import statici
+
 ## [Build 445] - 2024-09-XX
 ### Miglioramenti
 - 🔧 Correzione problemi di traduzione nelle schermate dell'app
