@@ -33,6 +33,16 @@ const ensureErrorMessages = () => {
       return;
     }
     
+    // Define static translations for error handling
+    const errorTranslations = {
+      it: {
+        common: require('../locales/it/common.json')
+      },
+      en: {
+        common: require('../locales/en/common.json')
+      }
+    };
+    
     // Assicurati che almeno il namespace 'common' sia caricato in entrambe le lingue
     for (const lang of SUPPORTED_LANGUAGES) {
       try {
@@ -41,8 +51,7 @@ const ensureErrorMessages = () => {
           console.log(`ErrorBoundary: caricamento forzato namespace common in ${lang}`);
           
           // Carica direttamente il bundle per i messaggi di errore
-          const data = require(`../locales/${lang}/common.json`);
-          i18n.addResourceBundle(lang, 'common', data, true, true);
+          i18n.addResourceBundle(lang, 'common', errorTranslations[lang].common, true, true);
         }
       } catch (error) {
         console.error(`ErrorBoundary: errore caricamento traduzioni ${lang}:`, error);
