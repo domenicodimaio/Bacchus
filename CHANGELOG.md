@@ -1,6 +1,6 @@
 # Changelog
 
-## [Build 300] - 2024-09-XX
+## [Build 445] - 2024-09-XX
 ### Miglioramenti
 - 🔧 Correzione problemi di traduzione nelle schermate dell'app
 - 🛠️ Migliorato il sistema di caricamento delle traduzioni per evitare testi mancanti
@@ -9,8 +9,14 @@
 - 🔄 Ottimizzata l'inizializzazione dell'app per evitare schermate vuote o flash
 - 💾 Sistema di caricamento risorse migliorato per evitare crash durante la navigazione
 
+### Cambiamenti strutturali
+- 🚫 Rimossa completamente la modalità ospite dall'app
+- 🔒 Accesso all'app possibile solo con autenticazione completa
+- 🧹 Pulizia del codice da riferimenti non più necessari
+- 🔨 Risolti errori di bundling in ambiente di produzione
+
 ### Build
-- ⬆️ Numero build aggiornato a 300 (da 196)
+- ⬆️ Numero build aggiornato a 445 (da 300)
 - 📝 Creato script per aggiornamento automatico del numero di build `update-build-number.sh`
 
 ### Correzioni di bug
@@ -21,7 +27,7 @@
 - 💬 Corrette traduzioni mancanti in session, dashboard e impostazioni
 - 🧠 Risolti problemi di rendering durante il primo avvio dell'app
 
-## [Build 196] - 2024-08-XX
+## [Build 300] - 2024-08-XX
 ### Miglioramenti
 - Aggiunta modalità ospite
 - Aggiunto supporto multilingua (Italiano e Inglese)
