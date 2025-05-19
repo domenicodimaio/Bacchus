@@ -22,7 +22,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import * as authService from '../lib/services/auth.service';
+import supabase from '../lib/supabase/client';
 import appleAuth from '@invertase/react-native-apple-authentication';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 // Funzione per validare il formato dell'email
 const isValidEmail = (email: string): boolean => {
@@ -168,34 +170,112 @@ export default function SignupScreen() {
   const handleAppleSignup = async () => {
     try {
       setIsLoading(true);
+      console.log('🍎 Registrazione con Apple - Inizio processo');
       
-      // Verifica se Apple Sign In è disponibile sul dispositivo
-      if (!appleAuth.isSupported || Platform.OS !== 'ios') {
-      Alert.alert(
-          'Non supportato',
-          'La registrazione con Apple non è supportata su questo dispositivo.'
-        );
-        setIsLoading(false);
-        return;
+      // Verifica se siamo su iOS - in tal caso usiamo l'autenticazione nativa
+      if (Platform.OS === 'ios') {
+        console.log('🍎 Registrazione con Apple - Utilizzo autenticazione nativa iOS');
+        try {
+          // Verifica se Apple Authentication è disponibile
+          const isAvailable = await AppleAuthentication.isAvailableAsync();
+          
+          if (!isAvailable) {
+            console.log('🍎 Registrazione con Apple - Servizio non disponibile su questo dispositivo');
+            Alert.alert(
+              'Non supportato',
+              'La registrazione con Apple non è supportata su questo dispositivo.'
+            );
+            setIsLoading(false);
+            return;
+          }
+          
+          // Usa l'API di autenticazione nativa di Apple
+          const credential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+              AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+          });
+          
+          console.log('🍎 Registrazione con Apple - Autenticazione nativa completata');
+          
+          if (credential && credential.identityToken) {
+            // CRITICAL FIX: Reset navigation flags
+            if (typeof global !== 'undefined') {
+              global.__WIZARD_AFTER_REGISTRATION__ = false;
+              global.__BLOCK_ALL_SCREENS__ = false;
+              global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+            }
+            
+            // Usa il token di identità per autenticarsi con Supabase
+            const { data, error } = await supabase.auth.signInWithIdToken({
+              provider: 'apple',
+              token: credential.identityToken,
+            });
+            
+            if (error) {
+              console.error('🍎 Errore durante l\'autenticazione con Supabase:', error);
+              Alert.alert(
+                'Errore',
+                error.message || 'Si è verificato un errore durante la registrazione con Apple'
+              );
+              setIsLoading(false);
+              return;
+            }
+            
+            console.log('🍎 Registrazione con Apple - Autenticazione Supabase completata');
+            
+            // Imposta i flag per il wizard
+            if (typeof global !== 'undefined') {
+              global.__BLOCK_ALL_SCREENS__ = false;
+              global.__WIZARD_AFTER_REGISTRATION__ = true;
+              global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
+              global.__WIZARD_START_TIME__ = Date.now();
+              
+              console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
+              
+              setTimeout(() => {
+                if (typeof global !== 'undefined') {
+                  global.__BLOCK_ALL_SCREENS__ = false;
+                }
+              }, 10000);
+            }
+            
+            // Breve attesa e reindirizzamento al wizard
+            setTimeout(() => {
+              router.replace('/onboarding/profile-wizard');
+            }, 1500);
+            
+            return;
+          } else {
+            console.error('🍎 Token di identità mancante');
+            Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('🍎 Errore durante l\'autenticazione con Apple:', error);
+          
+          // Clean all flags to prevent issues
+          if (typeof global !== 'undefined') {
+            global.__WIZARD_AFTER_REGISTRATION__ = false;
+            global.__BLOCK_ALL_SCREENS__ = false;
+            global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+          }
+          
+          // Gestisci cancellazione utente
+          if (error.code === 'ERR_CANCELED') {
+            console.log('User canceled Apple Sign in');
+          } else {
+            Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
+          }
+          setIsLoading(false);
+          return;
+        }
       }
       
-      // Richiedi le credenziali a Apple
-      const appleAuthRequestResponse = await appleAuth.performRequest({
-        requestedOperation: appleAuth.Operation.LOGIN,
-        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
-      });
-      
-      // Assicurati che il token di identità sia disponibile
-      if (!appleAuthRequestResponse.identityToken) {
-        throw new Error('Apple Sign-In non è riuscito - nessun identity token restituito');
-      }
-      
-      // CRITICAL FIX: Reset all navigation flags before setting new ones
-      if (typeof global !== 'undefined') {
-        global.__WIZARD_AFTER_REGISTRATION__ = false;
-        global.__BLOCK_ALL_SCREENS__ = false;
-        global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-      }
+      // Per piattaforme non iOS, usa il flusso OAuth standard
+      console.log('🍎 Registrazione con Apple - Utilizzo flusso OAuth standard');
       
       // Usa il loginWithProvider dall'AuthContext per inviare le credenziali a Supabase
       const result = await loginWithProvider('apple');
@@ -205,12 +285,10 @@ export default function SignupScreen() {
         
         // CRITICAL FIX: Imposta i flag globali per assicurarsi che il wizard venga mostrato
         if (typeof global !== 'undefined') {
-          global.__BLOCK_ALL_SCREENS__ = false; // Non blocchiamo tutte le schermate
+          global.__BLOCK_ALL_SCREENS__ = false;
           global.__WIZARD_AFTER_REGISTRATION__ = true;
           global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
           global.__WIZARD_START_TIME__ = Date.now();
-          
-          console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
           
           // Per sicurezza, imposta un timer che reimposta i flag se qualcosa va storto
           setTimeout(() => {
@@ -239,12 +317,7 @@ export default function SignupScreen() {
         global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
       }
       
-      // Gestisci i diversi tipi di errore
-      if (error.code === appleAuth.Error.CANCELED) {
-        console.log('User canceled Apple Sign in');
-      } else {
       Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
-      }
     } finally {
       setIsLoading(false);
     }

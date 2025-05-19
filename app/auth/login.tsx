@@ -25,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SUPABASE_AUTH_TOKEN_KEY } from '../lib/supabase/client';
+import supabase, { SUPABASE_AUTH_TOKEN_KEY } from '../lib/supabase/client';
 import * as authService from '../lib/services/auth.service';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -323,26 +323,10 @@ export default function LoginScreen() {
       
       // Verifica se il servizio Apple Sign In è disponibile (solo su iOS)
       if (Platform.OS === 'ios') {
-        console.log('🍎 Login con Apple - Controllo disponibilità servizio su iOS');
+        console.log('🍎 Login con Apple - Utilizzo autenticazione nativa iOS');
         try {
-          // Prima verifica con expo-apple-authentication che è più affidabile
-          let isAvailable = false;
-          
-          try {
-            isAvailable = await AppleAuthentication.isAvailableAsync();
-          } catch (appleAuthCheckError) {
-            console.warn('🍎 Errore controllo AppleAuthentication:', appleAuthCheckError);
-          }
-          
-          // Fallback a invertase/react-native-apple-authentication
-          if (!isAvailable) {
-            try {
-              const isSupported = await appleAuth.isSupported;
-              isAvailable = !!isSupported;
-            } catch (invertaseCheckError) {
-              console.warn('🍎 Errore controllo invertase/appleAuth:', invertaseCheckError);
-            }
-          }
+          // Prima verifica se Apple Authentication è disponibile
+          let isAvailable = await AppleAuthentication.isAvailableAsync();
           
           if (!isAvailable) {
             console.log('🍎 Login con Apple - Servizio non disponibile su questo dispositivo');
@@ -353,18 +337,66 @@ export default function LoginScreen() {
             setIsLoading(false);
             return;
           }
-          console.log('🍎 Login con Apple - Servizio disponibile su iOS');
-        } catch (checkError) {
-          console.error('🍎 Errore nel controllo disponibilità Apple Auth:', checkError);
+          
+          // Usa l'API di autenticazione nativa di Apple
+          const credential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+              AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+          });
+          
+          console.log('🍎 Login con Apple - Autenticazione nativa completata');
+          
+          if (credential && credential.identityToken) {
+            // Usa il token di identità per autenticarsi con Supabase
+            const { data, error } = await supabase.auth.signInWithIdToken({
+              provider: 'apple',
+              token: credential.identityToken,
+            });
+            
+            if (error) {
+              console.error('🍎 Errore durante l\'autenticazione con Supabase:', error);
+              Alert.alert(
+                t('error', { ns: 'common' }),
+                error.message || t('loginError', { ns: 'auth' })
+              );
+              setIsLoading(false);
+              return;
+            }
+            
+            console.log('🍎 Login con Apple - Autenticazione Supabase completata');
+            // Autenticazione completata con successo
+            router.replace('/dashboard');
+            return;
+          } else {
+            console.error('🍎 Login con Apple - Token di identità mancante');
+            Alert.alert(
+              t('error', { ns: 'common' }),
+              t('loginError', { ns: 'auth' })
+            );
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // L'utente potrebbe aver annullato il login o si è verificato un errore
+          if (error.code === 'ERR_CANCELED') {
+            console.log('🍎 Login con Apple - Autenticazione annullata dall\'utente');
+          } else {
+            console.error('🍎 Errore durante l\'autenticazione con Apple:', error);
+            Alert.alert(
+              t('error', { ns: 'common' }),
+              t('loginErrorUnexpected', { ns: 'auth' })
+            );
+          }
+          setIsLoading(false);
+          return;
         }
       }
       
-      console.log('🍎 Login con Apple - Chiamata al servizio di autenticazione');
+      console.log('🍎 Login con Apple - Utilizzando flusso OAuth per piattaforma non iOS');
       
-      // Usa la configurazione centralizzata
-      const configOptions = config.getOAuthConfig('apple');
-      console.log('🍎 Login con Apple - Opzioni configurazione:', configOptions);
-      
+      // Per piattaforme non iOS, usa il flusso OAuth standard
       const result = await authService.signInWithProvider('apple');
       
       if (result.success) {
