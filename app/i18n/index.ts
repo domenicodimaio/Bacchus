@@ -5,124 +5,209 @@
  */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import * as SecureStore from 'expo-secure-store';
-import * as Application from 'expo-application';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
+import { Platform } from 'react-native';
+import config from '../lib/config';
 
-// Importazione diretta delle risorse di traduzione
-import en_common from '../locales/en/common.json';
-import en_settings from '../locales/en/settings.json';
-import en_session from '../locales/en/session.json';
-import en_auth from '../locales/en/auth.json';
-import en_dashboard from '../locales/en/dashboard.json';
-import en_profile from '../locales/en/profile.json';
-import en_purchases from '../locales/en/purchases.json';
+// CRITICAL FIX: Use require syntax for translation files to ensure they are bundled correctly
+// This is important for production builds especially with Hermes engine
 
-import it_common from '../locales/it/common.json';
-import it_settings from '../locales/it/settings.json';
-import it_session from '../locales/it/session.json';
-import it_auth from '../locales/it/auth.json';
-import it_dashboard from '../locales/it/dashboard.json';
-import it_profile from '../locales/it/profile.json';
-import it_purchases from '../locales/it/purchases.json';
-
-// Per debug
-console.log('🌐 [i18n] Inizializzazione del sistema di traduzione');
-console.log('🌐 [i18n] Lingue disponibili: IT, EN');
-
-// Chiave di storage
-const APP_LANGUAGE = 'APP_LANGUAGE';
-
-// Valore di fallback
-const FALLBACK_LANGUAGE = 'en';
-
-// Risorse di traduzione
+// Define translation resources directly to avoid any loading issues
 const resources = {
   en: {
-    common: en_common,
-    settings: en_settings,
-    session: en_session,
-    auth: en_auth,
-    dashboard: en_dashboard,
-    profile: en_profile,
-    purchases: en_purchases
+    common: require('../locales/en/common.json'),
+    settings: require('../locales/en/settings.json'),
+    session: require('../locales/en/session.json'),
+    auth: require('../locales/en/auth.json'),
+    dashboard: require('../locales/en/dashboard.json'),
+    profile: require('../locales/en/profile.json'),
+    purchases: require('../locales/en/purchases.json')
   },
   it: {
-    common: it_common,
-    settings: it_settings,
-    session: it_session,
-    auth: it_auth,
-    dashboard: it_dashboard,
-    profile: it_profile,
-    purchases: it_purchases
+    common: require('../locales/it/common.json'),
+    settings: require('../locales/it/settings.json'),
+    session: require('../locales/it/session.json'),
+    auth: require('../locales/it/auth.json'),
+    dashboard: require('../locales/it/dashboard.json'),
+    profile: require('../locales/it/profile.json'),
+    purchases: require('../locales/it/purchases.json')
   }
 };
 
-// Stampa per debug il numero di chiavi caricate
-console.log('🌐 [i18n] Chiavi caricate:');
-console.log('🌐 [i18n] en:', Object.keys(resources.en).length, 'namespaces');
-console.log('🌐 [i18n] it:', Object.keys(resources.it).length, 'namespaces');
+// Chiave di storage
+export const LANGUAGE_STORAGE_KEY = 'APP_LANGUAGE';
 
-// Inizializzazione di i18next in modo semplificato senza operazioni asincrone
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: FALLBACK_LANGUAGE,
-    defaultNS: 'common',
-    interpolation: {
-      escapeValue: false,
-    },
-    react: {
-      useSuspense: false, // Disabilita suspense per evitare problemi
-    },
-  });
+// Lingue supportate
+export const SUPPORTED_LANGUAGES = ['it', 'en'];
 
-// Carica la lingua dalle impostazioni salvate
-export const loadLanguageFromStorage = async (): Promise<string> => {
+// Lista di tutti i namespace
+export const ALL_NAMESPACES = ['common', 'settings', 'session', 'auth', 'dashboard', 'profile', 'purchases'];
+
+// Ottieni la lingua del dispositivo
+const getDeviceLanguage = () => {
   try {
-    // Prova a caricare la lingua salvata
-    const savedLanguage = await SecureStore.getItemAsync(APP_LANGUAGE);
+    const locale = Localization.locale || 'en';
+    const languageCode = locale.split('-')[0].toLowerCase();
     
-    // Se esiste, utilizzala
-    if (savedLanguage) {
-      await changeLanguage(savedLanguage);
-      return savedLanguage;
+    // Se la lingua del dispositivo è supportata, usala
+    if (SUPPORTED_LANGUAGES.includes(languageCode)) {
+      return languageCode;
     }
     
-    // Altrimenti, usa la lingua predefinita
-    await changeLanguage(FALLBACK_LANGUAGE);
-    return FALLBACK_LANGUAGE;
+    // Altrimenti usa l'italiano come fallback (lingua primaria dell'app)
+    return 'it';
   } catch (error) {
-    console.error('Errore nel caricamento della lingua:', error);
-    return FALLBACK_LANGUAGE;
+    console.error('🌐 [i18n] Errore nel determinare la lingua del dispositivo:', error);
+    return 'it';
   }
 };
 
-// Cambia la lingua attiva
-export const changeLanguage = async (lng: string): Promise<void> => {
+// Valore di fallback - usiamo italiano come lingua principale dell'app
+const FALLBACK_LANGUAGE = 'it';
+
+// Precarica tutti i namespace per assicurarsi che siano disponibili immediatamente
+const preloadAllNamespaces = async () => {
+  const lng = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY) || getDeviceLanguage();
+  
+  // Forza il caricamento di tutti i namespace per entrambe le lingue
+  for (const ns of ALL_NAMESPACES) {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      try {
+        console.log(`🌐 [i18n] Precaricamento namespace: ${lang}:${ns}`);
+        i18n.addResourceBundle(lang, ns, resources[lang][ns], true, true);
+      } catch (error) {
+        console.error(`🌐 [i18n] Errore nel precaricare il namespace ${lang}:${ns}:`, error);
+      }
+    }
+  }
+  
+  return true;
+};
+
+// Initialize i18n with the bundled resources
+async function initializeI18n() {
   try {
-    // Verifica che la lingua richiesta sia supportata
-    if (!resources[lng]) {
-      console.warn(`Lingua '${lng}' non supportata, uso fallback: ${FALLBACK_LANGUAGE}`);
-      lng = FALLBACK_LANGUAGE;
+    console.log('🌐 [i18n] Initializing i18n...');
+    
+    // Try to get stored language preference
+    let storedLanguage: string | null = null;
+    try {
+      storedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    } catch (error) {
+      console.error('🌐 [i18n] Error getting stored language:', error);
     }
     
-    // Applica la lingua
+    // Use device language if no stored preference
+    const initialLanguage = storedLanguage || getDeviceLanguage();
+    console.log('🌐 [i18n] Initial language:', initialLanguage);
+    
+    await i18n
+      .use(initReactI18next)
+      .init({
+        resources,
+        lng: initialLanguage,
+        fallbackLng: FALLBACK_LANGUAGE,
+        compatibilityJSON: 'v4',
+        interpolation: {
+          escapeValue: false
+        },
+        react: {
+          useSuspense: false,
+        },
+        returnNull: false,
+        returnEmptyString: false,
+        missingKeyHandler: (lng, ns, key) => {
+          console.warn(`🌐 [i18n] Missing translation - lng: ${lng}, ns: ${ns}, key: ${key}`);
+        },
+        appendNamespaceToCIMode: true,
+        debug: __DEV__ // Abilita il debug solo in modalità sviluppo
+      });
+    
+    // Precarica tutti i namespace immediatamente dopo l'inizializzazione
+    await preloadAllNamespaces();
+    
+    console.log('🌐 [i18n] Initialized successfully with language:', i18n.language);
+    return true;
+  } catch (error) {
+    console.error('🌐 [i18n] Error initializing i18n:', error);
+    return false;
+  }
+}
+
+// Execute initialization immediately
+initializeI18n().catch(error => {
+  console.error('🌐 [i18n] Fatal error initializing i18n:', error);
+});
+
+// Function to change language
+export const changeLanguage = async (lng: string): Promise<boolean> => {
+  try {
+    if (!SUPPORTED_LANGUAGES.includes(lng)) {
+      console.error('🌐 [i18n] Trying to set unsupported language:', lng);
+      return false;
+    }
+    
     await i18n.changeLanguage(lng);
+    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lng);
+    console.log('🌐 [i18n] Language changed to:', lng);
     
-    // Salva la lingua nelle impostazioni
-    await SecureStore.setItemAsync(APP_LANGUAGE, lng);
+    // Ricarica tutti i namespace dopo il cambio lingua
+    await preloadAllNamespaces();
     
-    console.log(`🌐 [i18n] Lingua impostata: ${lng}`);
-    return;
+    return true;
   } catch (error) {
-    console.error('Errore nel cambio lingua:', error);
-    // In caso di errore, assicurati che l'app continui a funzionare
-    i18n.changeLanguage(FALLBACK_LANGUAGE).catch(() => {});
+    console.error('🌐 [i18n] Error changing language:', error);
+    return false;
   }
 };
 
-// Esporta i18n come default
+// Get current language
+export const getCurrentLanguage = (): string => {
+  return i18n.language || FALLBACK_LANGUAGE;
+};
+
+// Function to get a translation with fallback
+export const t = (key: string, namespace: string = 'common', defaultValue: string = ''): string => {
+  try {
+    if (!i18n.isInitialized) {
+      console.warn('🌐 [i18n] i18n not initialized yet, using fallback value');
+      return defaultValue || key;
+    }
+    
+    const translation = i18n.t(key, { ns: namespace, defaultValue });
+    
+    // If translation is missing, return the fallback string
+    if (!translation || translation === key) {
+      return defaultValue || key;
+    }
+    
+    return translation;
+  } catch (error) {
+    console.error('🌐 [i18n] Error getting translation:', error);
+    return defaultValue || key;
+  }
+};
+
+// Function to verify if all translations are loaded and available
+export const verifyTranslations = (): boolean => {
+  try {
+    const currentLng = i18n.language || FALLBACK_LANGUAGE;
+    
+    // Verifica se tutti i namespace sono caricati
+    for (const ns of ALL_NAMESPACES) {
+      const hasNamespace = i18n.hasResourceBundle(currentLng, ns);
+      if (!hasNamespace) {
+        console.warn(`🌐 [i18n] Missing resource bundle: ${currentLng}:${ns}`);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('🌐 [i18n] Error verifying translations:', error);
+    return false;
+  }
+};
+
 export default i18n; 

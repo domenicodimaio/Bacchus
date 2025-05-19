@@ -1,92 +1,124 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { Appearance } from 'react-native';
+import { LIGHT_THEME, DARK_THEME } from '../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DARK_THEME, LIGHT_THEME } from '../constants/theme';
 
-export type ThemeType = 'dark' | 'light' | 'system';
-export const THEME_STORAGE_KEY = '@bacchus_theme';
+// Chiave di storage per il tema
+const THEME_STORAGE_KEY = 'APP_THEME';
 
-type ThemeContextType = {
-  theme: ThemeType;
-  currentTheme: typeof DARK_THEME | typeof LIGHT_THEME;
-  setTheme: (theme: ThemeType) => Promise<void>;
+// Interfaccia del contesto del tema
+interface ThemeContextProps {
   isDarkMode: boolean;
+  currentTheme: typeof LIGHT_THEME | typeof DARK_THEME;
   toggleDarkMode: () => Promise<void>;
-};
+  setDarkMode: (value: boolean) => Promise<void>;
+  isThemeReady: boolean;
+}
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
-  currentTheme: DARK_THEME,
-  setTheme: async () => {},
-  isDarkMode: true,
+// Creazione del contesto del tema con valori di default
+const ThemeContext = createContext<ThemeContextProps>({
+  isDarkMode: false,
+  currentTheme: LIGHT_THEME,
   toggleDarkMode: async () => {},
+  setDarkMode: async () => {},
+  isThemeReady: false,
 });
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const colorScheme = useColorScheme();
-  const [theme, setThemeState] = useState<ThemeType>('dark');
+// Provider di contesto del tema
+export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Stato del tema
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isThemeReady, setIsThemeReady] = useState<boolean>(false);
   
-  // Determina se è attiva la dark mode basandosi sulle impostazioni
-  const isDarkMode = theme === 'system' 
-    ? colorScheme === 'dark' 
-    : theme === 'dark';
-
-  // Il tema attuale basato sulla modalità
+  // Determina il tema corrente in base al valore di isDarkMode
   const currentTheme = isDarkMode ? DARK_THEME : LIGHT_THEME;
 
+  // Carica il tema dalle preferenze salvate o dal sistema
   useEffect(() => {
-    // Carica il tema salvato all'avvio
     const loadTheme = async () => {
       try {
+        // Tenta di caricare il tema dalle preferenze salvate
         const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system')) {
-          setThemeState(savedTheme as ThemeType);
+        
+        if (savedTheme !== null) {
+          // Se esiste una preferenza salvata, usala
+          setIsDarkMode(savedTheme === 'dark');
+        } else {
+          // Altrimenti usa le preferenze di sistema
+          const colorScheme = Appearance.getColorScheme();
+          setIsDarkMode(colorScheme === 'dark');
+          
+          // Salva la preferenza iniziale
+          await AsyncStorage.setItem(THEME_STORAGE_KEY, colorScheme || 'light');
         }
+        
+        // Imposta il tema come pronto
+        setIsThemeReady(true);
       } catch (error) {
-        console.error('Errore nel caricare il tema:', error);
+        console.error('Errore nel caricamento del tema:', error);
+        
+        // In caso di errore, usa un valore di default e imposta comunque come pronto
+        setIsDarkMode(false);
+        setIsThemeReady(true);
       }
     };
 
     loadTheme();
   }, []);
+  
+  // Listener per i cambiamenti del tema di sistema
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      // Se non c'è una preferenza salvata, aggiorna il tema in base al sistema
+      AsyncStorage.getItem(THEME_STORAGE_KEY).then((savedTheme) => {
+        if (savedTheme === null) {
+          setIsDarkMode(colorScheme === 'dark');
+        }
+      });
+    });
 
-  // Funzione per cambiare tema
-  const setTheme = async (newTheme: ThemeType) => {
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Funzione per cambiare il tema
+  const toggleDarkMode = async () => {
     try {
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
-      setThemeState(newTheme);
+      const newValue = !isDarkMode;
+      setIsDarkMode(newValue);
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, newValue ? 'dark' : 'light');
     } catch (error) {
-      console.error('Errore nel salvare il tema:', error);
+      console.error('Errore nel cambio del tema:', error);
     }
   };
   
-  // Funzione per alternare tra tema chiaro e scuro
-  const toggleDarkMode = async () => {
+  // Funzione per impostare direttamente la modalità scura
+  const setDarkMode = async (value: boolean) => {
     try {
-      const newTheme = isDarkMode ? 'light' : 'dark';
-      await setTheme(newTheme);
+      setIsDarkMode(value);
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, value ? 'dark' : 'light');
     } catch (error) {
-      console.error('Errore nel cambiare il tema:', error);
+      console.error('Errore nell\'impostazione del tema:', error);
     }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, currentTheme, setTheme, isDarkMode, toggleDarkMode }}>
-      {children}
+    <ThemeContext.Provider
+      value={{
+        isDarkMode,
+        currentTheme,
+        toggleDarkMode,
+        setDarkMode,
+        isThemeReady,
+      }}
+    >
+      {isThemeReady ? children : null}
     </ThemeContext.Provider>
   );
 };
 
 // Hook personalizzato per utilizzare il tema
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-};
+export const useTheme = () => useContext(ThemeContext);
 
-// Esportiamo un componente vuoto come default per soddisfare Expo Router
-export default function ThemeContextExport() {
-  return null;
-} 
+export default ThemeContext; 

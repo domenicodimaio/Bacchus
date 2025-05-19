@@ -1,9 +1,9 @@
 // Polyfill diretto per crypto.getRandomValues
 import 'react-native-get-random-values';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, ReactNode } from 'react';
 import { Stack, useRouter, usePathname } from 'expo-router';
-import { View, StyleSheet, LogBox } from 'react-native';
+import { View, StyleSheet, LogBox, Text, Platform, TouchableOpacity, NativeModules } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ import { OfflineProvider } from './contexts/OfflineContext';
 import { ActiveProfilesProvider, useUserProfile } from './contexts/ProfileContext';
 import { PurchaseProvider } from './contexts/PurchaseContext';
 import { COLORS } from './constants/theme';
-import { validateSupabaseConnection, restoreSession } from './lib/supabase/client';
+import { validateSupabaseConnection } from './lib/supabase/client';
 import * as SplashScreen from 'expo-splash-screen';
 import sessionService from './lib/services/session.service';
 import profileService from './lib/services/profile.service';
@@ -23,6 +23,7 @@ import supabase from './lib/supabase/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authService from './lib/services/auth.service';
 import Toast from 'react-native-toast-message';
+import i18n, { ALL_NAMESPACES, SUPPORTED_LANGUAGES } from './i18n';
 
 // Ignora alcuni warning specifici
 LogBox.ignoreLogs([
@@ -39,80 +40,68 @@ LogBox.ignoreLogs([
 // Chiave per lo storage
 const FIRST_APP_LAUNCH_KEY = 'bacchus_first_app_launch';
 
+// Assicura che le traduzioni siano completamente caricate
+const ensureTranslationsLoaded = async () => {
+  try {
+    console.log('🌐 [i18n] Assicurazione caricamento completo traduzioni');
+    
+    // Controlla se i18n è inizializzato
+    if (!i18n.isInitialized) {
+      console.log('🌐 [i18n] In attesa dell\'inizializzazione...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Forza il caricamento di tutti i namespace per entrambe le lingue
+    for (const lang of SUPPORTED_LANGUAGES) {
+      for (const ns of ALL_NAMESPACES) {
+        try {
+          // Verifica se il namespace è già caricato
+          if (!i18n.hasResourceBundle(lang, ns)) {
+            // Se non è caricato, tenta di caricarlo
+            console.log(`🌐 [i18n] Caricamento forzato: ${lang}:${ns}`);
+            
+            // Aggiungi il bundle manualmente
+            const data = require(`./locales/${lang}/${ns}.json`);
+            i18n.addResourceBundle(lang, ns, data, true, true);
+          }
+        } catch (error) {
+          console.error(`🌐 [i18n] Errore nel caricamento del namespace ${lang}:${ns}:`, error);
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('🌐 [i18n] Errore durante la verifica delle traduzioni:', error);
+    return false;
+  }
+};
+
 // Carica le risorse prima di mostrare l'app
 async function cacheResourcesAsync() {
   try {
-    console.log('🔍🔍🔍 DIAGNOSTICA: Inizio cacheResourcesAsync 🔍🔍🔍');
+    console.log('🔍 DIAGNOSTICA: Inizio cacheResourcesAsync');
     
-    // Verifica se l'utente è autenticato
-    const { data: { session } } = await supabase.auth.getSession();
-    const sessionRestored = session !== null;
+    // Assicura che le traduzioni siano caricate
+    await ensureTranslationsLoaded();
+    console.log('🔍 DIAGNOSTICA: Traduzioni verificate');
     
-    console.log('🔍 DIAGNOSTICA: Sessione ripristinata:', sessionRestored);
-    
-    // Se l'utente è già autenticato all'avvio dell'app
-    if (sessionRestored && session?.user) {
-      try {
-        const user = session.user;
-        console.log('🔍 DIAGNOSTICA: Sessione utente esistente trovata, caricamento completo dei dati utente...');
-        
-        // Per gli utenti autenticati all'avvio, eseguiamo un'inizializzazione completa
-        // Carichiamo i profili dell'utente con refresh forzato
-        await profileService.getProfiles(true);
-        console.log('🔍 DIAGNOSTICA: Profili utente caricati correttamente');
-        
-        // Questo replica esattamente quello che succede al login
-        await sessionService.initSessionService(user.id);
-        
-        console.log('🔍 DIAGNOSTICA: Servizio sessioni inizializzato con ID utente specifico');
-        
-        // IMPORTANTE: Carica esplicitamente la cronologia da localStorage come avviene nel login
-        // Questo passaggio è FONDAMENTALE perché è ciò che succede anche durante il login
-        const userId = user.id;
-        
-        // Prima verifichiamo se ci sono sessioni con AsyncStorage.getAllKeys per diagnosi
-        const allKeys = await AsyncStorage.getAllKeys();
-        const sessionKeys = allKeys.filter(key => key.includes('session'));
-        console.log(`🔍 DIAGNOSTICA: Chiavi di sessione trovate in AsyncStorage: ${sessionKeys.join(', ')}`);
-        
-        // Caricamento forzato della cronologia
-        const { history } = await sessionService.loadSessionsFromLocalStorage(userId);
-        console.log(`🔍 DIAGNOSTICA: Avvio app: caricate ${history?.length || 0} sessioni nella variabile globale`);
-        
-        // SOLUZIONE DEFINITIVA: Aggiorniamo esplicitamente la variabile globale sessionHistory nel service
-        // Questo è il passaggio cruciale che mancava e che causava la cronologia vuota dopo il riavvio dell'app
-        if (history && history.length > 0) {
-          sessionService.setSessionHistory(history);
-          console.log(`🔍 DIAGNOSTICA: Variabile globale sessionHistory aggiornata con ${history.length} sessioni`);
-      
-          // Verifica che getSessionHistory restituisca la cronologia aggiornata
-          const currentHistory = sessionService.getSessionHistory();
-          console.log(`🔍 DIAGNOSTICA: Verifica getSessionHistory: restituisce ${currentHistory.length} sessioni`);
-          
-          // Sincronizza con Supabase per sicurezza
-          await sessionService.syncWithSupabase(userId);
-          console.log("Sincronizzazione con Supabase completata all'avvio");
-        } else {
-          console.log('🔍 DIAGNOSTICA: Nessuna sessione trovata nella cronologia, verifico su Supabase...');
-          // Forza la sincronizzazione con Supabase per recuperare eventuali sessioni remote
-          await sessionService.syncWithSupabase(userId);
-          
-          // Verifica se ora abbiamo sessioni
-          const currentHistory = sessionService.getSessionHistory();
-          console.log(`🔍 DIAGNOSTICA: Verifica getSessionHistory dopo syncWithSupabase: restituisce ${currentHistory.length} sessioni`);
-        }
-      } catch (userError) {
-        console.error('🔍 DIAGNOSTICA: Errore durante il caricamento dati utente:', userError);
-      }
-    } else {
-      // Inizializza normalmente per utenti non autenticati
-    await sessionService.initSessionService();
+    // Verifica basica della sessione
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('🔍 DIAGNOSTICA: Verifica sessione completata');
+    } catch (sessionError) {
+      console.error('🔍 DIAGNOSTICA: Errore verificando la sessione:', sessionError.message);
     }
-      
+    
+    // Inizializzazione minimale
+    await sessionService.initSessionService();
+    console.log('🔍 DIAGNOSTICA: Servizio sessioni inizializzato');
+    
     return true;
   } catch (error) {
     console.error('🔍 DIAGNOSTICA: Errore durante il caching delle risorse:', error);
-    return false;
+    return true; // Return true anche in caso di errore per permettere all'app di continuare
   }
 }
 
@@ -124,6 +113,73 @@ SplashScreen.preventAutoHideAsync().catch((err) => {
 // Schermata mostrata prima che il resto dell'app si carichi
 function InitialLoading() {
   return null;
+}
+
+// Definizione dei tipi per ErrorBoundary
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+// Semplice componente di ErrorBoundary
+class CustomErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#14233B' }}>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+            Si è verificato un errore
+          </Text>
+          <Text style={{ color: 'white', textAlign: 'center', marginBottom: 20 }}>
+            L'applicazione ha riscontrato un problema. Prova a riavviare l'app.
+          </Text>
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity
+              style={{ padding: 12, backgroundColor: '#00F7FF', borderRadius: 8 }}
+              onPress={() => {
+                try {
+                  // Prova a riavviare l'app
+                  if (Platform.OS === 'ios') {
+                    NativeModules.DevSettings?.reload();
+                  } else if (Platform.OS === 'android') {
+                    const { RNReload } = NativeModules;
+                    if (RNReload) {
+                      RNReload.reload();
+                    } else {
+                      NativeModules.DevSettings?.reload();
+                    }
+                  }
+                } catch (err) {
+                  console.error('Failed to reload app:', err);
+                }
+              }}
+            >
+              <Text style={{ color: '#14233B', fontWeight: 'bold' }}>Riavvia</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 export default function RootLayout() {
@@ -153,16 +209,20 @@ export default function RootLayout() {
   }, []);
 
   // Gestisce la transizione dalla splash screen
-  const onLayoutRootView = useCallback(async () => {
-    if (appIsReady) {
-      try {
-        // NON facciamo nulla qui, la splash screen nativa verrà gestita dallo schermo iniziale
-        // Questo consente alla nostra splash screen personalizzata di prendere il controllo
-        console.log('Layout app pronto - la splash screen viene gestita dalla schermata iniziale');
-      } catch (e) {
-        console.warn('Errore nella gestione del layout:', e);
+  useEffect(() => {
+    const hideSplash = async () => {
+      if (appIsReady) {
+        try {
+          // Nascondi la splash screen quando l'app è pronta
+          await SplashScreen.hideAsync();
+          console.log('Splash screen nascosta dal layout');
+        } catch (e) {
+          console.warn('Errore nella gestione splash screen:', e);
+        }
       }
-    }
+    };
+
+    hideSplash();
   }, [appIsReady]);
 
   // Controllo immediato all'avvio dell'app per reindirizzare gli utenti correttamente
@@ -172,103 +232,32 @@ export default function RootLayout() {
     
     async function checkUserStatus() {
       try {
-        // CRITICAL FIX: Block ALL navigation during the post-registration flow
-        if (global.__BLOCK_ALL_SCREENS__ === true) {
-          console.log("🔴 LAYOUT: BLOCKING ALL NAVIGATION during critical account creation flow");
-          
-          // Force profile wizard if needed (safety check)
-          if (!pathname.includes('profile-wizard')) {
-            console.log("🔴 LAYOUT: Forcing redirect to profile-wizard");
-            hasRedirected = true;
-            router.replace('/onboarding/profile-wizard');
-          }
-          
-          // Skip ALL other navigation logic
-          return;
-        }
-        
-        // IMPORTANT: If redirects are being prevented, don't do ANY navigation logic
-        if (global.__PREVENT_ALL_REDIRECTS__ === true) {
-          console.log("LAYOUT: All redirects are being prevented, skipping navigation checks completely");
-          return;
-        }
-        
-        // Check for post-registration wizard flow - SKIP ALL OTHER CHECKS
-        const showWizardAfterRegistration = global.__WIZARD_AFTER_REGISTRATION__ === true;
-        if (showWizardAfterRegistration) {
-          console.log("LAYOUT: Post-registration wizard flow detected, skipping navigation checks");
-          
-          // Only redirect to profile-wizard if not already in onboarding
-          if (!pathname.includes('profile-wizard')) {
-            console.log("LAYOUT: Force redirect to wizard after registration");
-            hasRedirected = true;
-            router.replace('/onboarding/profile-wizard');
-          }
-          
-          // Skip all other navigation logic
-          return;
-        }
-        
-        // Se stiamo già caricando o abbiamo già fatto un redirect, non facciamo nulla
+        // Se abbiamo già eseguito un reindirizzamento, non facciamo nulla
         if (hasRedirected) return;
         
-        // Se stiamo mostrando la schermata di sottoscrizione, non facciamo reindirizzamenti
-        if (typeof global !== 'undefined' && global.__SHOWING_SUBSCRIPTION_SCREEN__) {
-          console.log("[RootLayout] Skip redirection because subscription screen is active");
-          return;
-        }
-        
-        // Se c'è un reindirizzamento post-login già in corso, non effettuare altri reindirizzamenti
-        if (typeof global !== 'undefined' && global.__LOGIN_REDIRECT_IN_PROGRESS__) {
-          console.log("[RootLayout] Skip redirection because login redirect is already in progress");
-          return;
-        }
-        
-        // Verifica che l'utente sia autenticato
+        // Verifica base che l'utente sia autenticato
         const isAuthenticated = await authService.isAuthenticated();
+        console.log('LAYOUT: Stato utente verificato - autenticato:', isAuthenticated);
         
+        // Reindirizzamento semplificato
         if (isAuthenticated) {
-          // Verifica se l'utente ha completato il wizard del profilo
-          const hasCompletedWizard = await authService.hasCompletedProfileWizard();
-          
-          // Percorsi di onboarding
-          const isOnboardingRoute = pathname.startsWith('/onboarding');
-          const isDashboardRoute = pathname.startsWith('/dashboard');
-          
-          // Check if this is a post-registration redirect
-          const isPostRegistration = global.__LOGIN_REDIRECT_IN_PROGRESS__ === true;
-          
-          // If we're in the middle of registration flow, only redirect to wizard if not already there
-          if (isPostRegistration) {
-            console.log("LAYOUT: Post-registration flow detected");
-            
-            // Only redirect to profile-wizard if not already in onboarding
-            if (!isOnboardingRoute && !hasCompletedWizard) {
-              console.log("LAYOUT: Post-registration redirect to wizard");
-              hasRedirected = true;
-              router.replace('/onboarding/profile-wizard');
-              return;
-            }
-            
-            // Do nothing else during post-registration flow
-            return;
-          }
-          
-          // Evita reindirizzamenti inutili se l'utente è già nella pagina corretta
-          // Se l'utente deve completare il wizard, assicurati che vada alla pagina giusta
-          if (!hasCompletedWizard && !isOnboardingRoute) {
-            console.log("LAYOUT: Utente autenticato ma wizard non completato, redirect a /onboarding/profile-wizard");
-            hasRedirected = true; // Imposta il flag prima del redirect
-            router.replace('/onboarding/profile-wizard');
-            return;
-          }
-          
-          // Se l'utente ha già completato il wizard ma sta cercando di accedervi, mandalo alla dashboard
-          if (hasCompletedWizard && isOnboardingRoute && !isDashboardRoute) {
-            console.log("LAYOUT: Utente ha già completato il wizard, redirect alla dashboard");
-            hasRedirected = true; // Imposta il flag prima del redirect
+          // Se l'utente è autenticato ma sta cercando di accedere alla pagina di login, mandalo alla dashboard
+          if (pathname === '/auth/login') {
+            console.log('LAYOUT: Utente già autenticato, redirect alla dashboard');
+            hasRedirected = true;
             router.replace('/dashboard');
-            return;
+          }
+        } else {
+          // Se l'utente non è autenticato e sta cercando di accedere a pagine protette, mandalo al login
+          if (pathname !== '/' && 
+              pathname !== '/auth/login' && 
+              pathname !== '/auth/signup' &&
+              !pathname.includes('/auth/login-diagnostic') && 
+              !pathname.includes('/auth/auth-callback') &&
+              !pathname.includes('/auth/login-callback')) {
+            console.log('LAYOUT: Utente non autenticato, redirect al login');
+            hasRedirected = true;
+            router.replace('/auth/login');
           }
         }
       } catch (error) {
@@ -276,144 +265,43 @@ export default function RootLayout() {
       }
     }
     
-    checkUserStatus();
+    // Attendiamo che l'app sia pronta prima di eseguire il controllo
+    if (appIsReady) {
+      checkUserStatus();
+    }
     
     // Pulisci il flag quando il componente viene smontato
     return () => {
       hasRedirected = false;
     };
-  }, [pathname]);
+  }, [pathname, appIsReady]);
 
   if (!appIsReady) {
     return <InitialLoading />;
   }
 
+  // Semplifica il rendering principale
   return (
-    <GestureHandlerRootView style={styles.container} onLayout={onLayoutRootView}>
-      <ThemeProvider>
-        <SafeAreaProvider>
-          <ToastProvider>
-            <OfflineProvider>
-              <AuthProvider>
-                <ActiveProfilesProvider>
-                  <PurchaseProvider>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        animation: 'fade',
-                        contentStyle: { backgroundColor: COLORS.background },
-                        // Disable swipe gesture globally
-                        gestureEnabled: false,
-                        // Opzione per mostrare la X di chiusura per gli screen modali
-                        presentation: 'card',
-                        animationDuration: 200,
-                      }}
-                    >
-                      <StatusBar style="light" />
-                      <Stack.Screen 
-                        name="index" 
-                        options={{ 
-                          animation: 'fade',
-                        }} 
-                      />
-                      <Stack.Screen 
-                        name="auth/login"
-                        options={{
-                          animation: 'fade',
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="dashboard/index"
-                        options={{
-                          animation: 'fade',
-                          // Disable swipe back for main screen
-                          gestureEnabled: false,
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="session/index"
-                        options={{
-                          animation: 'fade',
-                          // Disable swipe back for main screen
-                          gestureEnabled: false,
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="session/add-drink"
-                        options={{
-                          animation: 'fade',
-                          // Enable gesture for sub-screens
-                          gestureEnabled: true,
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="session/add-food"
-                        options={{
-                          animation: 'fade',
-                          // Enable gesture for sub-screens
-                          gestureEnabled: true,
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="settings/index"
-                        options={{
-                          animation: 'fade',
-                          // Enable swipe back for settings screen
-                          gestureEnabled: true,
-                          gestureDirection: 'horizontal',
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="settings/subscriptions"
-                        options={{
-                          animation: 'fade',
-                          // Enable swipe back for settings screen
-                          gestureEnabled: true,
-                          gestureDirection: 'horizontal',
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="onboarding/subscription-offer"
-                        options={{
-                          animation: 'fade',
-                          // Disable header for premium offer screen
-                          headerShown: false,
-                          gestureEnabled: true,
-                          gestureDirection: 'vertical',
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="onboarding/profile-wizard"
-                        options={{
-                          animation: 'fade',
-                          headerShown: false,
-                          gestureEnabled: false,
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="history/index"
-                        options={{
-                          animation: 'fade',
-                          gestureEnabled: true,
-                        }}
-                      />
-                      <Stack.Screen 
-                        name="profiles/index"
-                        options={{
-                          animation: 'fade',
-                          gestureEnabled: true,
-                        }}
-                      />
-                    </Stack>
-                    <Toast />
-                  </PurchaseProvider>
-                </ActiveProfilesProvider>
-              </AuthProvider>
-            </OfflineProvider>
-          </ToastProvider>
-        </SafeAreaProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
+          <SafeAreaProvider>
+            <PurchaseProvider>
+              <StatusBar style="light" />
+              <CustomErrorBoundary>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    animation: 'fade',
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
+                />
+              </CustomErrorBoundary>
+            </PurchaseProvider>
+          </SafeAreaProvider>
+        </AuthProvider>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
 
