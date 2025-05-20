@@ -351,57 +351,122 @@ export default function LoginScreen() {
           console.log('🍎 Login con Apple - Autenticazione nativa completata');
           
           if (credential && credential.identityToken) {
-            console.log('🍎 Token ottenuto, invio a Supabase con OAuthSignIn invece di idToken');
+            console.log('🍎 Token ottenuto, utilizzo approccio REST diretto');
             
-            // Non possiamo usare signInWithOAuth e passare il token, passiamo direttamente al metodo alternativo
-            console.log('🍎 Passaggio diretto al metodo alternativo con client temporaneo')
-            
-            // Se siamo qui, significa che il metodo precedente non ha funzionato
-            // Prova un'alternativa: crea un client Supabase temporaneo con opzioni custom
-            console.log('🍎 Tentativo alternativo di login con client temporaneo');
-            const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-              auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: false,
-              }
-            });
-            
+            // NUOVA STRATEGIA: Invece di usare l'SDK di Supabase, che ha problemi con l'audience,
+            // utilizziamo direttamente l'API REST di Supabase Auth
             try {
-              // Utilizza il metodo signInWithIdToken con il client temporaneo
-              const { data, error } = await tempClient.auth.signInWithIdToken({
+              // 1. Creiamo i dati per la richiesta REST
+              const requestData = {
+                id_token: credential.identityToken,
                 provider: 'apple',
-                token: credential.identityToken,
+                // Nessun campo audience, lasciamo che Supabase lo gestisca
+              };
+              
+              // 2. Inviamo la richiesta direttamente all'endpoint auth di Supabase
+              console.log('🍎 Invio richiesta diretta a Supabase Auth REST API');
+              const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=id_token`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabaseAnonKey,
+                  'X-Client-Info': 'bacchus-ios-app'
+                },
+                body: JSON.stringify(requestData),
               });
               
-              if (error) {
-                console.error('🍎 Errore durante l\'autenticazione alternativa:', error);
-                Alert.alert(
-                  t('error', { ns: 'common' }),
-                  error.message || t('loginError', { ns: 'auth' })
-                );
-                setIsLoading(false);
-                return;
+              // 3. Analizziamo la risposta
+              if (!authResponse.ok) {
+                // Se c'è un errore, cerchiamo di estrarre il messaggio
+                const errorJson = await authResponse.json().catch(() => ({}));
+                console.error('🍎 Errore API REST Supabase:', errorJson, authResponse.status);
+                
+                // Lanciamo un errore con informazioni dettagliate
+                throw new Error(`Errore: ${authResponse.status} - ${errorJson.message || errorJson.error || 'Risposta non valida dal server'}`);
               }
               
-              console.log('🍎 Login con Apple - Autenticazione alternativa completata');
-              if (data.user) {
-                // Salva la sessione nel client principale
-                await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
+              // 4. Se tutto è andato bene, processiamo la risposta
+              const authData = await authResponse.json();
+              console.log('🍎 Autenticazione REST riuscita');
+              
+              if (authData.access_token && authData.refresh_token) {
+                // 5. Salviamo i token nell'AsyncStorage
+                const session = {
+                  access_token: authData.access_token,
+                  refresh_token: authData.refresh_token,
+                  expires_at: authData.expires_in ? Math.floor(Date.now() / 1000) + authData.expires_in : 0,
+                  token_type: authData.token_type || 'bearer',
+                  provider_token: authData.provider_token,
+                  provider_refresh_token: authData.provider_refresh_token,
+                  user: authData.user
+                };
+                
+                // 6. Salva la sessione in AsyncStorage per sincronizzare con il client Supabase
+                const tokenKey = `sb-${supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'bacchus'}-auth-token`;
+                await AsyncStorage.setItem(tokenKey, JSON.stringify(session));
+                await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(session));
+                
+                // 7. Ora che abbiamo i token, sincronizziamo il client Supabase chiamando getUser
+                try {
+                  await supabase.auth.getUser(authData.access_token);
+                } catch (syncError) {
+                  console.warn('🍎 Errore durante la sincronizzazione del client, ma possiamo procedere:', syncError);
+                }
+                
+                // 8. Login riuscito, redirect alla dashboard
+                console.log('🍎 Login con Apple completato con successo');
                 router.replace('/dashboard');
                 return;
+              } else {
+                console.error('🍎 Token di accesso mancante nella risposta:', authData);
+                throw new Error('Token mancanti nella risposta');
               }
-            } catch (altError) {
-              console.error('🍎 Errore durante l\'autenticazione alternativa:', altError);
+            } catch (restError) {
+              console.error('🍎 Errore durante l\'autenticazione REST:', restError);
+              
+              // Come ultima risorsa, proviamo un'alternativa
+              console.log('🍎 Tentativo di recupero usando metodo alternativo...');
+              
+              // Inviamo le credenziali in modo diverso
+              try {
+                const alternativeResponse = await fetch(`${supabaseUrl}/auth/v1/callback`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': supabaseAnonKey,
+                  },
+                  body: JSON.stringify({
+                    type: 'apple',
+                    token: credential.identityToken,
+                  }),
+                });
+                
+                if (alternativeResponse.ok) {
+                  const alternativeData = await alternativeResponse.json();
+                  console.log('🍎 Metodo alternativo riuscito');
+                  
+                  // Salviamo i dati e procediamo
+                  if (alternativeData.session) {
+                    await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(alternativeData.session));
+                  }
+                  
+                  router.replace('/dashboard');
+                  return;
+                } else {
+                  console.error('🍎 Anche il metodo alternativo è fallito:', await alternativeResponse.text());
+                }
+              } catch (altError) {
+                console.error('🍎 Errore nel metodo alternativo:', altError);
+              }
+              
+              // Tutti i tentativi sono falliti, mostriamo un errore
+              Alert.alert(
+                t('error', { ns: 'common' }),
+                'Si è verificato un errore durante l\'autenticazione. Prova un altro metodo di accesso.'
+              );
+              setIsLoading(false);
+              return;
             }
-            
-            // Se siamo arrivati qui, entrambi i metodi hanno fallito
-            Alert.alert(
-              t('error', { ns: 'common' }),
-              t('loginError', { ns: 'auth' })
-            );
-            setIsLoading(false);
-            return;
           } else {
             console.error('🍎 Login con Apple - Token di identità mancante');
             Alert.alert(

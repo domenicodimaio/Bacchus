@@ -102,78 +102,76 @@ export const signUp = async (email: string, password: string): Promise<AuthRespo
     console.log('[AUTH] Pulizia token di autenticazione precedenti');
     await clearStoredAuthSessions();
     
-    // Importa e inizializza il servizio sessioni
-    console.log('[AUTH] Inizializzazione servizio sessioni');
-    const sessionServiceImport = await import('./session.service');
+    // Creiamo un client temporaneo ottimizzato per il processo di registrazione
+    // Questo client non utilizza AsyncStorage, non salva sessioni ed è configurato solo per questa operazione
+    console.log('[AUTH] Creazione client temporaneo dedicato per registrazione');
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        storage: null,
+        detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          'x-application-name': 'Bacchus-Register',
+        },
+      },
+    });
     
-    // Bypass della validazione della connessione in alcuni casi
-    let skipConnectionValidation = false;
-    try {
-      const bypassValue = process.env.EXPO_PUBLIC_BYPASS_CONNECTION_CHECK;
-      skipConnectionValidation = bypassValue === 'true' || bypassValue === '1';
-    } catch (e) {
-      console.log('[AUTH] Errore nel controllo variabile di bypass:', e);
-    }
+    // NUOVA STRATEGIA: Bypassiamo completamente la validazione della connessione
+    // e procediamo direttamente con la registrazione usando il client temporaneo
+    console.log('[AUTH] Registrazione utente in corso (client dedicato):', email);
     
-    // Verifica connessione a Supabase
-    if (!skipConnectionValidation) {
-      console.log('[AUTH] Verifica connessione a Supabase');
-      const isValidConnection = await validateSupabaseConnection();
-      
-      if (!isValidConnection) {
-        console.error('[AUTH] Errore di connessione a Supabase durante registrazione.');
-        
-        // Tentiamo comunque la registrazione come ultima risorsa
-        console.log('[AUTH] Tentativo di registrazione nonostante l\'errore di connessione');
-        
-        try {
-          // Usa un client temporaneo per questo tentativo
-          const tempClient = createTempClient();
-          const { data: signupData, error: signupError } = await tempClient.auth.signUp({
-            email,
-            password,
-          });
-          
-          if (signupError) {
-            console.error('[AUTH] Fallimento registrazione con client temporaneo:', signupError);
-            return {
-              success: false,
-              error: 'Errore durante la registrazione. Riprova più tardi.'
-            };
-          }
-          
-          if (signupData.user) {
-            console.log('[AUTH] Registrazione riuscita con client temporaneo:', signupData.user.id);
-            return {
-              success: true,
-              user: signupData.user,
-              session: signupData.session,
-              redirectToProfileCreation: true
-            };
-          }
-        } catch (tempClientError) {
-          console.error('[AUTH] Errore fatale con client temporaneo:', tempClientError);
-        }
-        
-        return {
-          success: false, 
-          error: 'Errore di connessione al server. Verifica la tua connessione internet.'
-        };
-      }
-    } else {
-      console.log('[AUTH] Validazione connessione saltata per configurazione');
-    }
-    
-    console.log('[AUTH] Registrazione utente in corso:', email);
-    
-    // Registra utente con Supabase
-    const { data, error } = await supabase.auth.signUp({
+    // Registra utente con il client temporaneo
+    const { data, error } = await tempClient.auth.signUp({
       email,
       password,
     });
     
     if (error) {
-      console.error('[AUTH] Errore registrazione:', error.message);
+      console.error('[AUTH] Errore registrazione con client dedicato:', error.message);
+      
+      // FALLBACK: Se il client temporaneo fallisce, proviamo con il client standard
+      console.log('[AUTH] Tentativo con client standard come fallback');
+      try {
+        const { data: standardData, error: standardError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (standardError) {
+          console.error('[AUTH] Anche il client standard ha fallito:', standardError.message);
+          
+          // Traduzioni dei messaggi di errore più comuni
+          let errorMessage = standardError.message;
+          if (standardError.message.includes('valid email')) {
+            errorMessage = 'Inserisci un indirizzo email valido.';
+          } else if (standardError.message.includes('least 6 characters')) {
+            errorMessage = 'La password deve essere di almeno 6 caratteri.';
+          } else if (standardError.message.includes('already registered')) {
+            errorMessage = 'Email già registrata. Prova ad accedere.';
+          }
+          
+          return {
+            success: false,
+            error: errorMessage
+          };
+        }
+        
+        if (standardData.user) {
+          console.log('[AUTH] Utente registrato con successo (client standard):', standardData.user.id);
+          
+          return {
+            success: true,
+            user: standardData.user,
+            session: standardData.session,
+            redirectToProfileCreation: true
+          };
+        }
+      } catch (standardError) {
+        console.error('[AUTH] Errore fatale con client standard:', standardError);
+      }
       
       // Traduzioni dei messaggi di errore più comuni
       let errorMessage = error.message;
@@ -199,7 +197,20 @@ export const signUp = async (email: string, password: string): Promise<AuthRespo
       };
     }
     
-    console.log('[AUTH] Utente registrato con successo:', data.user.id);
+    console.log('[AUTH] Utente registrato con successo (client dedicato):', data.user.id);
+    
+    // Sincronizza i dati dell'utente registrato con il client principale
+    try {
+      // Per assicurarci che il client principale sia aggiornato, facciamo login con il nuovo utente
+      console.log('[AUTH] Aggiornamento sessione nel client principale');
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+    } catch (syncError) {
+      console.error('[AUTH] Errore durante la sincronizzazione con client principale:', syncError);
+      // Continuiamo comunque perché l'utente è già registrato
+    }
 
     // Redirigi alla schermata corretta
     // L'utente dovrebbe creare il proprio profilo

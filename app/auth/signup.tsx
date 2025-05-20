@@ -26,6 +26,7 @@ import supabase, { supabaseUrl, supabaseAnonKey } from '../lib/supabase/client';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Funzione per validare il formato dell'email
 const isValidEmail = (email: string): boolean => {
@@ -208,56 +209,132 @@ export default function SignupScreen() {
               global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
             }
             
-            // Crea un client temporaneo per utilizzare il token di identità
-            console.log('🍎 Utilizzo client temporaneo per autenticazione con token Apple');
-            const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-              auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: false,
+            // NUOVA STRATEGIA: Utilizziamo direttamente l'API REST di Supabase Auth
+            try {
+              // 1. Creiamo i dati per la richiesta REST
+              const requestData = {
+                id_token: credential.identityToken,
+                provider: 'apple',
+                // Nessun campo audience, lasciamo che Supabase lo gestisca
+              };
+              
+              // 2. Inviamo la richiesta direttamente all'endpoint auth di Supabase
+              console.log('🍎 Invio richiesta diretta a Supabase Auth REST API');
+              const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=id_token`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabaseAnonKey,
+                  'X-Client-Info': 'bacchus-ios-app'
+                },
+                body: JSON.stringify(requestData),
+              });
+              
+              // 3. Analizziamo la risposta
+              if (!authResponse.ok) {
+                // Se c'è un errore, cerchiamo di estrarre il messaggio
+                const errorJson = await authResponse.json().catch(() => ({}));
+                console.error('🍎 Errore API REST Supabase:', errorJson, authResponse.status);
+                
+                // Lanciamo un errore con informazioni dettagliate
+                throw new Error(`Errore: ${authResponse.status} - ${errorJson.message || errorJson.error || 'Risposta non valida dal server'}`);
               }
-            });
-            
-            // Usa il token di identità con il client temporaneo
-            const { data, error } = await tempClient.auth.signInWithIdToken({
-              provider: 'apple',
-              token: credential.identityToken,
-            });
-            
-            if (error) {
-              console.error('🍎 Errore durante l\'autenticazione con Supabase:', error);
-              Alert.alert(
-                'Errore',
-                error.message || 'Si è verificato un errore durante la registrazione con Apple'
-              );
+              
+              // 4. Se tutto è andato bene, processiamo la risposta
+              const authData = await authResponse.json();
+              console.log('🍎 Autenticazione REST riuscita');
+              
+              if (authData.access_token && authData.refresh_token) {
+                // 5. Salviamo i token nell'AsyncStorage
+                const session = {
+                  access_token: authData.access_token,
+                  refresh_token: authData.refresh_token,
+                  expires_at: authData.expires_in ? Math.floor(Date.now() / 1000) + authData.expires_in : 0,
+                  token_type: authData.token_type || 'bearer',
+                  provider_token: authData.provider_token,
+                  provider_refresh_token: authData.provider_refresh_token,
+                  user: authData.user
+                };
+                
+                // 6. Salva la sessione in AsyncStorage
+                const tokenKey = `sb-${supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'bacchus'}-auth-token`;
+                await AsyncStorage.setItem(tokenKey, JSON.stringify(session));
+                
+                // 7. Imposta i flag per il wizard
+                if (typeof global !== 'undefined') {
+                  global.__BLOCK_ALL_SCREENS__ = false;
+                  global.__WIZARD_AFTER_REGISTRATION__ = true;
+                  global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
+                  global.__WIZARD_START_TIME__ = Date.now();
+                  
+                  console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
+                  
+                  setTimeout(() => {
+                    if (typeof global !== 'undefined') {
+                      global.__BLOCK_ALL_SCREENS__ = false;
+                    }
+                  }, 10000);
+                }
+                
+                // 8. Breve attesa e reindirizzamento al wizard
+                setTimeout(() => {
+                  router.replace('/onboarding/profile-wizard');
+                }, 1500);
+                
+                return;
+              } else {
+                console.error('🍎 Token di accesso mancante nella risposta:', authData);
+                throw new Error('Token mancanti nella risposta');
+              }
+            } catch (restError) {
+              console.error('🍎 Errore durante l\'autenticazione REST:', restError);
+              
+              // Come ultima risorsa, proviamo un'alternativa
+              console.log('🍎 Tentativo di recupero usando metodo alternativo...');
+              
+              try {
+                const alternativeResponse = await fetch(`${supabaseUrl}/auth/v1/callback`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': supabaseAnonKey,
+                  },
+                  body: JSON.stringify({
+                    type: 'apple',
+                    token: credential.identityToken,
+                  }),
+                });
+                
+                if (alternativeResponse.ok) {
+                  const alternativeData = await alternativeResponse.json();
+                  console.log('🍎 Metodo alternativo riuscito');
+                  
+                  // Imposta i flag per il wizard
+                  if (typeof global !== 'undefined') {
+                    global.__BLOCK_ALL_SCREENS__ = false;
+                    global.__WIZARD_AFTER_REGISTRATION__ = true;
+                    global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
+                    global.__WIZARD_START_TIME__ = Date.now();
+                  }
+                  
+                  // Reindirizzamento al wizard
+                  setTimeout(() => {
+                    router.replace('/onboarding/profile-wizard');
+                  }, 1500);
+                  
+                  return;
+                } else {
+                  console.error('🍎 Anche il metodo alternativo è fallito:', await alternativeResponse.text());
+                }
+              } catch (altError) {
+                console.error('🍎 Errore nel metodo alternativo:', altError);
+              }
+              
+              // Tutti i tentativi sono falliti
+              Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
               setIsLoading(false);
               return;
             }
-            
-            console.log('🍎 Registrazione con Apple - Autenticazione Supabase completata');
-            
-            // Imposta i flag per il wizard
-            if (typeof global !== 'undefined') {
-              global.__BLOCK_ALL_SCREENS__ = false;
-              global.__WIZARD_AFTER_REGISTRATION__ = true;
-              global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
-              global.__WIZARD_START_TIME__ = Date.now();
-              
-              console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
-              
-              setTimeout(() => {
-                if (typeof global !== 'undefined') {
-                  global.__BLOCK_ALL_SCREENS__ = false;
-                }
-              }, 10000);
-            }
-            
-            // Breve attesa e reindirizzamento al wizard
-            setTimeout(() => {
-              router.replace('/onboarding/profile-wizard');
-            }, 1500);
-            
-            return;
           } else {
             console.error('🍎 Token di identità mancante');
             Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
