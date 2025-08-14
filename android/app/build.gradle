@@ -91,7 +91,7 @@ android {
         applicationId 'com.bacchusapp.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 980
+        versionCode 982
         versionName "1.2.2"
     }
     signingConfigs {
