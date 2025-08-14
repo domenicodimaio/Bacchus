@@ -32,7 +32,7 @@ import authService from '../lib/services/auth.service';
 // Storage keys
 const STORAGE_KEY = {
   LANGUAGE: LANGUAGE_STORAGE_KEY,
-  IS_PREMIUM: 'bacchus_mock_premium', // 🔧 STESSO STORAGE KEY del purchase service
+  IS_PREMIUM: 'SIMULATE_PREMIUM', // 🔧 SINCRONIZZATO con PurchaseContext
   DEV_MODE_COUNT: 'bacchus_dev_mode_count'
 };
 
@@ -433,37 +433,42 @@ export default function SettingsScreen() {
       const newValue = !isPremium;
       console.log('🎯 TOGGLE PREMIUM: Nuovo valore:', newValue);
       
-      // Aggiorna AsyncStorage (stessa chiave del purchase service)
-      await AsyncStorage.setItem(STORAGE_KEY.IS_PREMIUM, newValue.toString());
-      console.log('🎯 TOGGLE PREMIUM: Salvato in AsyncStorage:', newValue.toString());
+      // 🔧 FIX PERSISTENZA: Usa direttamente il PurchaseContext
+      const success = await toggleSimulatePremium(newValue);
       
-      // Aggiorna stato locale
-      setIsPremium(newValue);
-      
-      // Aggiorna anche il PurchaseContext usando la funzione toggleSimulatePremium
-      console.log('🎯 TOGGLE PREMIUM: Aggiornando PurchaseContext...');
-      await toggleSimulatePremium(newValue);
-      
-      // 🔧 FORZA refresh PurchaseContext per aggiornare counter UI
-      if (initializePurchases) {
-        console.log('🎯 TOGGLE PREMIUM: Forzando refresh PurchaseContext...');
-        await initializePurchases(true);
+      if (success) {
+        // Aggiorna stato locale
+        setIsPremium(newValue);
+        
+        // 🔧 FORZA refresh PurchaseContext per aggiornare counter UI
+        if (initializePurchases) {
+          console.log('🎯 TOGGLE PREMIUM: Forzando refresh PurchaseContext...');
+          await initializePurchases(true);
+        }
+        
+        // Mostra un messaggio di conferma
+        Alert.alert(
+          newValue 
+            ? '✅ Premium ATTIVATO (Test)'
+            : '❌ Premium DISATTIVATO',
+          `Session counter: ${newValue ? 'Unlimited' : 'Limited to 2/week'}`,
+          [{ text: 'OK' }]
+        );
+        
+        console.log('🎯 TOGGLE PREMIUM: Completato con successo');
+      } else {
+        throw new Error('Failed to toggle premium status');
       }
-      
-      // Mostra un messaggio di conferma
-      Alert.alert(
-        newValue 
-          ? '✅ Premium ATTIVATO (Test)'
-          : '❌ Premium DISATTIVATO',
-        `Session counter: ${newValue ? 'Unlimited' : 'Limited to 2/week'}`,
-        [{ text: 'OK' }]
-      );
-      
-      console.log('🎯 TOGGLE PREMIUM: Completato con successo');
     } catch (error) {
       console.error('🎯 TOGGLE PREMIUM: ❌ Errore:', error);
       // Riporta lo stato al valore originale in caso di errore
       setIsPremium(isPremium);
+      
+      Alert.alert(
+        '❌ Errore',
+        'Impossibile aggiornare lo stato premium. Riprova.',
+        [{ text: 'OK' }]
+      );
     }
   };
 

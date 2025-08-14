@@ -327,6 +327,9 @@ function SessionScreen() {
               // Aggiorna anche il servizio di sessione per mantenere i dati sincronizzati
               sessionService.addDrink(drinkData);
               
+              // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver aggiunto la bevanda
+              setTimeout(() => handleRefreshData(), 100);
+              
               // Calcola il tempo per tornare sobri
               const hoursToSober = Math.ceil(newBAC / 0.015);
               updatedSession.soberTime = `${hoursToSober}h ${Math.floor((hoursToSober % 1) * 60)}m`;
@@ -429,6 +432,9 @@ function SessionScreen() {
               };
               
               sessionService.addFood(formattedFoodData);
+              
+              // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver aggiunto il cibo
+              setTimeout(() => handleRefreshData(), 100);
               
               // Calcola il tempo per tornare sobri
               const hoursToSober = Math.ceil(newBAC / 0.015);
@@ -770,6 +776,9 @@ function SessionScreen() {
             sessionService.updateSessionBAC();
             sessionService.saveSessionLocally(updatedSession, 'active');
             
+            // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver rimosso la bevanda
+            setTimeout(() => handleRefreshData(), 100);
+            
             return updatedSession;
           });
           
@@ -791,6 +800,9 @@ function SessionScreen() {
             // Crea una copia dei cibi e rimuovi quello selezionato
             const updatedFoods = [...prevSession.foods];
             updatedFoods.splice(foodIndex, 1);
+            
+            // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver rimosso il cibo
+            setTimeout(() => handleRefreshData(), 100);
             
             return {
               ...prevSession,
