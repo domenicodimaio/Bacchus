@@ -54,7 +54,7 @@ function DashboardScreen() {
   const colors = currentTheme.COLORS;
   const { currentProfileId } = useActiveProfiles();
   const { canCreateSession, checkAccess, features } = usePremiumFeatures();
-  const { showSubscriptionScreen } = usePurchase();
+  const { showSubscriptionScreen, remainingFreeSessions } = usePurchase();
   
   // State
   const [activeProfile, setActiveProfile] = useState<ProfileType | null>(null);

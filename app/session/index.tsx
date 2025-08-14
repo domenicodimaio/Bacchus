@@ -985,7 +985,7 @@ function SessionScreen() {
             styles.actionButton,
             { backgroundColor: colors.success }
           ]}
-          onPress={handleRefreshData}
+                      onPress={() => handleRefreshData()}
         >
           <Ionicons name="refresh" size={24} color="white" />
           <Text style={styles.actionButtonText}>
@@ -1773,7 +1773,7 @@ const styles = StyleSheet.create({
         rightComponent={
           <TouchableOpacity 
             style={styles.refreshButton}
-            onPress={handleRefreshData}
+            onPress={() => handleRefreshData()}
           >
             <Ionicons name="refresh" size={24} color={colors.text} />
           </TouchableOpacity>
