@@ -17,8 +17,8 @@ interface ThemeContextProps {
 
 // Creazione del contesto del tema con valori di default
 const ThemeContext = createContext<ThemeContextProps>({
-  isDarkMode: false,
-  currentTheme: LIGHT_THEME,
+  isDarkMode: true,
+  currentTheme: DARK_THEME,
   toggleDarkMode: async () => {},
   setDarkMode: async () => {},
   isThemeReady: false,
@@ -26,8 +26,8 @@ const ThemeContext = createContext<ThemeContextProps>({
 
 // Provider di contesto del tema
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Stato del tema
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  // Stato del tema - default scuro
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isThemeReady, setIsThemeReady] = useState<boolean>(false);
   
   // Determina il tema corrente in base al valore di isDarkMode
@@ -44,12 +44,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           // Se esiste una preferenza salvata, usala
           setIsDarkMode(savedTheme === 'dark');
         } else {
-          // Altrimenti usa le preferenze di sistema
-          const colorScheme = Appearance.getColorScheme();
-          setIsDarkMode(colorScheme === 'dark');
+          // Altrimenti usa il tema scuro come default (invece delle preferenze di sistema)
+          setIsDarkMode(true);
           
-          // Salva la preferenza iniziale
-          await AsyncStorage.setItem(THEME_STORAGE_KEY, colorScheme || 'light');
+          // Salva la preferenza iniziale come scuro
+          await AsyncStorage.setItem(THEME_STORAGE_KEY, 'dark');
         }
         
         // Imposta il tema come pronto
@@ -57,8 +56,8 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       } catch (error) {
         console.error('Errore nel caricamento del tema:', error);
         
-        // In caso di errore, usa un valore di default e imposta comunque come pronto
-        setIsDarkMode(false);
+        // In caso di errore, usa il tema scuro come default
+        setIsDarkMode(true);
         setIsThemeReady(true);
       }
     };

@@ -298,9 +298,9 @@ export default function AddFoodScreen() {
         const foodParam = JSON.stringify(foodData);
         const timestamp = Date.now().toString(); // Timestamp univoco per il parametro
         
-        // Passa alla pagina della sessione con il parametro del cibo
+        // Passa alla pagina della sessione (dentro i tab) con il parametro del cibo
         router.push({
-          pathname: '/session',
+          pathname: '/(tabs)/session',
           params: { newFood: foodParam, timestamp }
         });
       }, 800);

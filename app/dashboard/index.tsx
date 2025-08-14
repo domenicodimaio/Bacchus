@@ -23,7 +23,6 @@ import {
 import sessionService from '../lib/services/session.service';
 import { Session, UserProfile as ProfileType } from '../types/session';
 import * as profileService from '../lib/services/profile.service';
-import CustomTabBar from '../components/CustomTabBar';
 import AppHeader from '../components/AppHeader';
 import { useToast } from '../components/Toast';
 import ProfileIcon from '../components/ProfileIcon';
@@ -103,10 +102,13 @@ function DashboardScreen() {
         const allProfiles = await profileService.getProfiles();
         setProfiles(allProfiles || []);
         
-        // Se non ci sono profili, reindirizza alla creazione profilo
+        // 🔧 FIX CRITICO: Non reindirizzare immediatamente se non ci sono profili
+        // Aspetta che l'AuthContext finisca di caricare prima di decidere
         if (!allProfiles || allProfiles.length === 0) {
-          console.log("[Dashboard] Nessun profilo trovato, reindirizzo a creazione profilo");
-          router.replace('/profiles/create');
+          console.log("[Dashboard] ⚠️ Nessun profilo trovato - potrebbe essere in caricamento");
+          setProfiles([]);
+          setActiveProfile(null);
+          // NON reindirizzare immediatamente - lascia che NavigationHandler gestisca
           return;
         }
         
@@ -296,8 +298,8 @@ function DashboardScreen() {
   // Handle continuing an active session
   const handleContinueSession = () => {
     if (session) {
-      // Naviga alla sessione
-      router.push('/session');
+      // Naviga al tab sessione
+      router.push('/(tabs)/session');
     }
   };
 
@@ -473,8 +475,8 @@ function DashboardScreen() {
               }]}>
                 {features.canCreateUnlimitedSessions 
                   ? t('unlimitedSessions', { ns: 'session', defaultValue: 'Sessioni illimitate' })
-                  : features.remainingSessions > 0 
-                    ? t('remainingSessions', { count: features.remainingSessions, ns: 'purchases', defaultValue: `Sessioni rimanenti: ${features.remainingSessions}` })
+                  : remainingFreeSessions > 0 
+                    ? t('remainingSessions', { count: remainingFreeSessions, ns: 'purchases', defaultValue: `Sessioni rimanenti: ${remainingFreeSessions}` })
                     : t('noMoreSessions', { ns: 'session', defaultValue: 'Nessuna sessione rimanente' })}
               </Text>
             </View>
@@ -540,7 +542,7 @@ function DashboardScreen() {
           <View style={styles.quickLinks}>
             <TouchableOpacity 
               style={[styles.quickLinkButton, { backgroundColor: colors.card }]} 
-              onPress={() => router.push('/profiles')}
+              onPress={() => router.push('/(tabs)/profile')}
             >
               <Ionicons name="person" size={22} color={colors.primary} />
               <Text style={[styles.quickLinkText, { color: colors.text }]}>
@@ -610,8 +612,8 @@ function DashboardScreen() {
               }]}>
                 {features.canCreateUnlimitedSessions 
                   ? t('unlimitedSessions', { ns: 'session', defaultValue: 'Sessioni illimitate' })
-                  : features.remainingSessions > 0 
-                    ? t('remainingSessions', { count: features.remainingSessions, ns: 'purchases', defaultValue: `Sessioni rimanenti: ${features.remainingSessions}` })
+                  : remainingFreeSessions > 0 
+                    ? t('remainingSessions', { count: remainingFreeSessions, ns: 'purchases', defaultValue: `Sessioni rimanenti: ${remainingFreeSessions}` })
                     : t('noMoreSessions', { ns: 'session', defaultValue: 'Nessuna sessione rimanente' })}
               </Text>
               {!features.canCreateUnlimitedSessions && (
@@ -644,7 +646,7 @@ function DashboardScreen() {
           <View style={styles.quickLinks}>
             <TouchableOpacity 
               style={[styles.quickLinkButton, { backgroundColor: colors.card }]} 
-              onPress={() => router.push('/profiles')}
+              onPress={() => router.push('/(tabs)/profile')}
             >
               <Ionicons name="person" size={22} color={colors.primary} />
               <Text style={[styles.quickLinkText, { color: colors.text }]}>
@@ -682,7 +684,6 @@ function DashboardScreen() {
         </Text>
       </View>
       
-      <CustomTabBar />
     </View>
   );
 }

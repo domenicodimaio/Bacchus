@@ -7,7 +7,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import config from '../lib/config';
 
 // CRITICAL FIX: Use require syntax for translation files to ensure they are bundled correctly

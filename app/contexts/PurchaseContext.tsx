@@ -26,7 +26,7 @@ interface PurchaseContextType {
   isSubscriptionModalVisible: boolean;
   
   // Funzioni
-  initializePurchases: () => Promise<boolean>;
+  initializePurchases: (force?: boolean) => Promise<boolean>;
   getPremiumFeatures: () => PremiumFeatures;
   purchaseSubscription: (plan: 'monthly' | 'annual') => Promise<boolean>;
   purchaseRemoveAds: () => Promise<any>;
@@ -38,6 +38,10 @@ interface PurchaseContextType {
   hideSubscriptionScreen: () => void;
   updateCurrentPath: (path: string) => void;
   toggleSimulatePremium: (value: boolean) => Promise<boolean>;
+  
+  // Testing functions (only available in development)
+  enablePremiumTest?: () => Promise<boolean>;
+  disablePremiumTest?: () => Promise<boolean>;
 }
 
 // Valore di default del contesto
@@ -112,11 +116,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
   
   // Inizializza il servizio acquisti
-  const initializePurchases = async () => {
+  const initializePurchases = async (force: boolean = false) => {
     console.log('Initializing purchases...');
     
     try {
-      if (isInitialized) return true;
+      if (isInitialized && !force) return true;
       
       // Check if premium simulation is enabled
       const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
@@ -157,6 +161,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Ottieni il conteggio sessioni rimaste
       const remainingSessions = await purchaseService.getRemainingSessionsCount();
       
+      // 🔧 FIX: Se l'utente è premium, sessioni infinite (-1), altrimenti usa il valore reale
+      const finalRemainingSessions = isPremium ? -1 : Math.max(0, remainingSessions);
+      
+      console.log(`🎯 PURCHASE_CONTEXT INIT: isPremium=${isPremium}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}`);
+      
       // Aggiorna lo stato
       safeSetState({
         isLoading: false,
@@ -164,7 +173,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         isAdFree,
         products: products,
         subscriptions: subscriptions,
-        remainingFreeSessions: remainingSessions < 0 ? FREE_LIMITS.SESSIONS_PER_WEEK : remainingSessions,
+        remainingFreeSessions: finalRemainingSessions,
       });
       
       setIsInitialized(true);
@@ -197,9 +206,31 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Effetto per aggiornare l'utente quando cambia
   useEffect(() => {
     if (isInitialized && user?.id) {
+      console.log(`🎯 USER CHANGED: Updating purchases for user ${user.id}`);
+      
       purchaseService.setUserForPurchases(user.id).catch(error => {
         console.error('Error setting user for purchases:', error);
       });
+      
+      // 🔧 FIX: Ricarica anche il counter sessioni quando cambia utente
+      const reloadSessionCounter = async () => {
+        try {
+          const isPremium = await purchaseService.isPremium();
+          const remainingSessions = await purchaseService.getRemainingSessionsCount();
+          const finalRemainingSessions = isPremium ? -1 : Math.max(0, remainingSessions);
+          
+          console.log(`🎯 USER CHANGED RELOAD: isPremium=${isPremium}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}`);
+          
+          safeSetState({ 
+            isPremium,
+            remainingFreeSessions: finalRemainingSessions 
+          });
+        } catch (error) {
+          console.error('Error reloading session counter for user change:', error);
+        }
+      };
+      
+      reloadSessionCounter();
     }
   }, [user?.id, isInitialized]);
   
@@ -259,15 +290,23 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const incrementSessionCounter = async (): Promise<number> => {
     try {
       // Se l'utente è premium, non conta le sessioni
-      if (state.isPremium) return Infinity;
+      if (state.isPremium) {
+        console.log(`🎯 SESSION COUNTER: Utente premium - sessioni illimitate`);
+        return -1; // -1 = infinite per premium
+      }
       
-      // Incrementa il contatore e ottieni il valore aggiornato
-      const remaining = await purchaseService.incrementSessionCount();
+      // 🔧 FIX: Incrementa il contatore (restituisce sessioni USATE)
+      await purchaseService.incrementSessionCount();
       
-      // Aggiorna lo stato
-      safeSetState({ remainingFreeSessions: remaining });
+      // 🔧 FIX: Ottieni le sessioni RIMANENTI separatamente
+      const remaining = await purchaseService.getRemainingSessionsCount();
       
-      return remaining;
+      // Aggiorna lo stato con le sessioni rimanenti corrette
+      safeSetState({ remainingFreeSessions: Math.max(0, remaining) });
+      
+      console.log(`🎯 SESSION COUNTER: Sessioni rimanenti: ${remaining}`);
+      
+      return Math.max(0, remaining);
     } catch (error) {
       console.error('Error incrementing session counter:', error);
       return state.remainingFreeSessions; // In caso di errore, mantieni il conteggio attuale
@@ -276,7 +315,41 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   // Funzioni di UI per mostrare/nascondere la finestra di abbonamento
   const showSubscriptionScreen = () => {
-    setIsSubscriptionModalVisible(true);
+    try {
+      console.log('PURCHASE_CONTEXT: Showing subscription screen');
+      
+      // Aggiorna la variabile modale per compatibilità
+      setIsSubscriptionModalVisible(true);
+      
+      // Naviga alla schermata subscription-offer in modo sicuro
+      router.push({
+        pathname: '/onboarding/subscription-offer',
+        params: {
+          source: 'purchase_context',
+          ts: Date.now().toString()
+        }
+      } as any);
+      
+    } catch (error) {
+      console.error('PURCHASE_CONTEXT: Error showing subscription screen:', error);
+      
+      // Fallback: almeno mostra l'alert di upgrade
+      Alert.alert(
+        t('premiumRequired', { ns: 'purchases', defaultValue: 'Premium Richiesto' }),
+        t('upgradeMessage', { ns: 'purchases', defaultValue: 'Per accedere a questa funzionalità è necessario un abbonamento premium.' }),
+        [
+          { text: t('notNow', { ns: 'common', defaultValue: 'Non ora' }), style: 'cancel' },
+          { text: t('viewPlans', { ns: 'purchases', defaultValue: 'Vedi piani' }), onPress: () => {
+            // Ultimo tentativo di navigazione diretta
+            try {
+              router.replace('/onboarding/subscription-offer');
+            } catch (navError) {
+              console.error('PURCHASE_CONTEXT: Final navigation attempt failed:', navError);
+            }
+          }}
+        ]
+      );
+    }
   };
   
   const hideSubscriptionScreen = () => {
@@ -286,39 +359,105 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Acquista un abbonamento
   const purchaseSubscription = async (plan: 'monthly' | 'annual'): Promise<boolean> => {
     try {
-      if (state.isLoading) return false;
+      console.log('PURCHASE: Inizio acquisto abbonamento:', plan);
+      
+      if (state.isLoading) {
+        console.log('PURCHASE: Acquisto già in corso, ignoro richiesta');
+        return false;
+      }
+      
+      // Imposta lo stato di caricamento
+      safeSetState({ isLoading: true });
       
       // Trova l'abbonamento corrispondente
       const sub = state.subscriptions.find((p: any) => p.packageType === plan);
       if (!sub) {
-        console.error('Subscription plan not found:', plan);
+        console.error('PURCHASE: Piano abbonamento non trovato:', plan);
+        console.log('PURCHASE: Abbonamenti disponibili:', state.subscriptions.map(s => s.packageType));
+        
+        Alert.alert(
+          t('error', { ns: 'common', defaultValue: 'Errore' }),
+          t('subscriptionNotFound', { ns: 'purchases', defaultValue: 'Piano di abbonamento non trovato. Riprova più tardi.' })
+        );
+        
+        safeSetState({ isLoading: false });
         return false;
       }
       
+      console.log('PURCHASE: Piano trovato:', sub.identifier);
+      
+      // Effettua l'acquisto
       const result = await purchaseService.purchasePackage(sub);
+      console.log('PURCHASE: Risultato acquisto:', result);
       
       if (result.success) {
+        console.log('PURCHASE: Acquisto completato con successo');
+        
         // Aggiorna lo stato
         safeSetState({
           isPremium: true,
           isAdFree: true,
           customerInfo: result.customerInfo,
+          isLoading: false
         });
+        
+        // Salva lo stato premium
         await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, 'true');
+        
+        // Mostra messaggio di successo
+        Alert.alert(
+          t('success', { ns: 'common', defaultValue: 'Successo' }),
+          t('purchaseSuccess', { ns: 'purchases', defaultValue: 'Abbonamento attivato con successo!' })
+        );
+        
         return true;
+      } else {
+        console.error('PURCHASE: Acquisto fallito:', result.error);
+        
+        // Gestisci errori specifici
+        let errorMessage = t('purchaseError', { ns: 'purchases', defaultValue: 'Errore durante l\'acquisto. Riprova.' });
+        
+        if (result.error) {
+          if (result.error.includes('cancelled') || result.error.includes('canceled')) {
+            errorMessage = t('purchaseCancelled', { ns: 'purchases', defaultValue: 'Acquisto annullato.' });
+          } else if (result.error.includes('network') || result.error.includes('connection')) {
+            errorMessage = t('networkError', { ns: 'common', defaultValue: 'Errore di connessione. Verifica la tua connessione internet.' });
+          } else if (result.error.includes('payment')) {
+            errorMessage = t('paymentError', { ns: 'purchases', defaultValue: 'Errore nel pagamento. Verifica il tuo metodo di pagamento.' });
+          }
+        }
+        
+        Alert.alert(
+          t('error', { ns: 'common', defaultValue: 'Errore' }),
+          errorMessage
+        );
+        
+        safeSetState({ isLoading: false });
+        return false;
+      }
+    } catch (error: any) {
+      console.error('PURCHASE: Eccezione durante l\'acquisto:', error);
+      
+      // Gestisci l'errore
+      let errorMessage = t('purchaseError', { ns: 'purchases', defaultValue: 'Errore durante l\'acquisto. Riprova.' });
+      
+      if (error.message) {
+        if (error.message.includes('cancelled') || error.message.includes('canceled')) {
+          errorMessage = t('purchaseCancelled', { ns: 'purchases', defaultValue: 'Acquisto annullato.' });
+        } else if (error.message.includes('network') || error.message.includes('connection')) {
+          errorMessage = t('networkError', { ns: 'common', defaultValue: 'Errore di connessione. Verifica la tua connessione internet.' });
+        }
       }
       
-      return false;
-    } catch (error) {
-      console.error('Failed to purchase subscription:', error);
-      
-      // Mostra l'errore all'utente
-      try {
-        Alert.alert(t('error', { ns: 'common' }), t('purchaseError'));
-      } catch (alertError) {
-        console.error('Error showing alert:', alertError);
+      // Mostra l'errore all'utente solo se non è un annullamento
+      if (!error.message?.includes('cancelled') && !error.message?.includes('canceled')) {
+        Alert.alert(
+          t('error', { ns: 'common', defaultValue: 'Errore' }),
+          errorMessage
+        );
       }
       
+      safeSetState({ isLoading: false });
       return false;
     }
   };
@@ -398,27 +537,27 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Mostra il prompt di upgrade
   const showUpgradePrompt = (reason?: string, source?: string) => {
     try {
-      let message = t('upgradeBenefits', { ns: 'purchases' });
+      let message = t('upgradeBenefits', { ns: 'purchases', defaultValue: 'Aggiorna a Premium per funzionalità avanzate!' });
       
       if (reason === 'session_limit') {
-        message = t('sessionLimitReached', { ns: 'purchases' });
+        message = t('sessionLimitReached', { ns: 'purchases', defaultValue: 'Hai raggiunto il limite di sessioni gratuite per questa settimana. Aggiorna a Premium per sessioni illimitate!' });
       } else if (reason === 'export') {
-        message = t('exportPremiumFeature', { ns: 'purchases' });
+        message = t('exportPremiumFeature', { ns: 'purchases', defaultValue: 'L\'esportazione dati è una funzionalità Premium. Aggiorna per accedere!' });
       } else if (reason === 'stats') {
-        message = t('statsPremiumFeature', { ns: 'purchases' });
+        message = t('statsPremiumFeature', { ns: 'purchases', defaultValue: 'Le statistiche avanzate sono una funzionalità Premium. Aggiorna per accedere!' });
       }
       
       // Mostra l'alert
       Alert.alert(
-        t('upgradeTitle', { ns: 'purchases' }),
+        t('upgradeTitle', { ns: 'purchases', defaultValue: 'Aggiorna a Premium' }),
         message,
         [
           {
-            text: t('notNow', { ns: 'common' }),
+            text: t('notNow', { ns: 'common', defaultValue: 'Non ora' }),
             style: 'cancel'
           },
           {
-            text: t('learnMore', { ns: 'purchases' }),
+            text: t('learnMore', { ns: 'purchases', defaultValue: 'Scopri Premium' }),
             onPress: () => {
               // Mostra la finestra di abbonamento
               showSubscriptionScreen();
@@ -434,21 +573,44 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Funzione per attivare/disattivare la modalità premium simulata (per testing)
   const toggleSimulatePremium = async (value: boolean): Promise<boolean> => {
     try {
+      console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Valore ricevuto:', value);
+      
       // Salva il valore
       await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, value ? 'true' : 'false');
+      console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Salvato in AsyncStorage');
       
       // Imposta anche lo stato di simulazione nel servizio
       await purchaseService.setMockPremiumStatus(value);
+      console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Aggiornato purchase service');
       
-      // Aggiorna lo stato
+      // 🔧 FIX CRITICO: Ricalcola sessioni rimanenti in base al nuovo stato premium
+      let newRemainingSessions;
+      if (value) {
+        // Se premium, sessioni illimitate
+        newRemainingSessions = -1;
+        console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Premium attivato - sessioni illimitate');
+      } else {
+        // Se free, ricarica il conteggio dal database/storage
+        try {
+          newRemainingSessions = await purchaseService.getRemainingSessionsCount();
+          console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Free mode - sessioni rimanenti:', newRemainingSessions);
+        } catch (error) {
+          console.error('🎯 TOGGLE_SIMULATE_PREMIUM: Errore nel recupero sessioni:', error);
+          newRemainingSessions = FREE_LIMITS.SESSIONS_PER_WEEK;
+        }
+      }
+      
+      // Aggiorna lo stato con tutti i valori necessari
       safeSetState({
         isPremium: value,
-        isAdFree: value
+        isAdFree: value,
+        remainingFreeSessions: newRemainingSessions
       });
       
+      console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Stato aggiornato - premium:', value, 'remaining:', newRemainingSessions);
       return true;
     } catch (error) {
-      console.error('Error toggling simulated premium status:', error);
+      console.error('🎯 TOGGLE_SIMULATE_PREMIUM: ❌ Errore:', error);
       return false;
     }
   };
@@ -459,6 +621,44 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     AsyncStorage.setItem(STORAGE_KEYS.CURRENT_PATH, path).catch(error => {
       console.error('Error saving current path:', error);
     });
+  };
+
+  // Testing function - enable premium simulation for development
+  const enablePremiumTest = async () => {
+    if (__DEV__) {
+      console.log('[PURCHASE_TEST] Enabling premium simulation for testing...');
+      await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, 'true');
+      
+      // Update state immediately
+      safeSetState({
+        isPremium: true,
+        isAdFree: true,
+        remainingFreeSessions: -1, // -1 means unlimited
+      });
+      
+      console.log('[PURCHASE_TEST] ✅ Premium simulation enabled');
+      return true;
+    }
+    return false;
+  };
+  
+  // Testing function - disable premium simulation
+  const disablePremiumTest = async () => {
+    if (__DEV__) {
+      console.log('[PURCHASE_TEST] Disabling premium simulation...');
+      await AsyncStorage.removeItem(STORAGE_KEYS.SIMULATE_PREMIUM);
+      
+      // Update state to free version
+      safeSetState({
+        isPremium: false,
+        isAdFree: false,
+        remainingFreeSessions: FREE_LIMITS.SESSIONS_PER_WEEK,
+      });
+      
+      console.log('[PURCHASE_TEST] ✅ Premium simulation disabled');
+      return true;
+    }
+    return false;
   };
 
   return (
@@ -485,6 +685,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         hideSubscriptionScreen,
         updateCurrentPath,
         toggleSimulatePremium,
+        
+        // Testing functions (only available in development)
+        enablePremiumTest,
+        disablePremiumTest,
       }}
     >
       {children}

@@ -11,630 +11,385 @@ import {
   Alert,
   ActivityIndicator,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Animated,
+  Easing,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
 import { router, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../contexts/ThemeContext';
-import * as authService from '../lib/services/auth.service';
-import supabase, { supabaseUrl, supabaseAnonKey } from '../lib/supabase/client';
-import appleAuth from '@invertase/react-native-apple-authentication';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Funzione per validare il formato dell'email
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+// Dimensioni dello schermo
+const { width, height } = Dimensions.get('window');
 
-// Funzione per validare la complessità della password
-const isValidPassword = (password: string): boolean => {
-  // Verifica che la password abbia almeno 6 caratteri, una maiuscola, una minuscola e un numero
-  const hasMinLength = password.length >= 6;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  
-  return hasMinLength && hasUppercase && hasLowercase && hasNumber;
-};
+// Colore di sfondo identico alla schermata di splash
+const BACKGROUND_COLOR = '#0c2348';
 
-export default function SignupScreen() {
+export default function SignUpScreen() {
+  const { signup } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
-  const { currentTheme } = useTheme();
-  const { signup, loginWithProvider } = useAuth();
-  const colors = currentTheme.COLORS;
-
+  
   // Stato
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [animationsStarted, setAnimationsStarted] = useState(false);
+  
+  // Valori per le animazioni di entrata
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(20)).current;
+  const footerOpacity = useRef(new Animated.Value(0)).current;
   
   // Riferimenti per i campi di input
   const passwordInputRef = useRef(null);
   const confirmPasswordInputRef = useRef(null);
 
-  // CRITICAL FIX: Reset all redirect flags when this screen mounts
+  // Avvia le animazioni quando il componente è montato
   useEffect(() => {
-    if (typeof global !== 'undefined') {
-      // Clear all navigation blocking flags
-      global.__BLOCK_ALL_SCREENS__ = false;
-      global.__WIZARD_AFTER_REGISTRATION__ = false;
-      global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-      global.__PREVENT_ALL_REDIRECTS__ = false;
-      console.log('Signup: Cleared all navigation blocking flags on mount');
-    }
+    if (animationsStarted) return;
+    setAnimationsStarted(true);
+    
+    const animationSequence = Animated.stagger(180, [
+      // Prima il sottotitolo
+      Animated.timing(subtitleOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease)
+      }),
+      
+      // Poi la card con gli input
+      Animated.parallel([
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease)
+        }),
+        Animated.timing(cardTranslateY, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic)
+        })
+      ]),
+      
+      // Infine il footer
+      Animated.timing(footerOpacity, {
+        toValue: 1,
+        duration: 450,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease)
+      })
+    ]);
+    
+    animationSequence.start();
   }, []);
 
-  // Funzione per gestire la registrazione
+  // Funzione per la validazione dell'email
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return false;
+    } else if (!emailRegex.test(email)) {
+      return false;
+    }
+    return true;
+  };
+  
+  // Funzione per la validazione della password
+  const validatePassword = (password: string) => {
+    if (!password) {
+      return false;
+    } else if (password.length < 6) {
+      return false;
+    }
+    // Controlla che contenga almeno una maiuscola, una minuscola e un numero
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    
+    return hasUpperCase && hasLowerCase && hasNumbers;
+  };
+
+  // Funzione di registrazione
   const handleSignup = async () => {
     try {
-      setIsLoading(true);
-
-      // Controlla i campi obbligatori
-      if (!email || !password || !confirmPassword) {
-        Alert.alert('Errore', 'Tutti i campi sono obbligatori.');
-        setIsLoading(false);
+      Keyboard.dismiss();
+      
+      // Validazione degli input
+      const isEmailValid = validateEmail(email);
+      const isPasswordValid = validatePassword(password);
+      
+      if (!isEmailValid) {
+        Alert.alert('Errore', 'Inserisci un indirizzo email valido');
         return;
       }
-
-      // Controlla se le email sono valide
-      if (!isValidEmail(email)) {
-        Alert.alert('Errore', 'Inserisci un indirizzo email valido.');
-        setIsLoading(false);
+      
+      if (!isPasswordValid) {
+        Alert.alert('Errore', 'La password deve contenere almeno 6 caratteri con lettere maiuscole, minuscole e numeri');
         return;
       }
-
-      // Controlla se le password corrispondono
+      
       if (password !== confirmPassword) {
-        Alert.alert('Errore', 'Le password non corrispondono.');
-        setIsLoading(false);
+        Alert.alert('Errore', 'Le password non coincidono');
         return;
       }
-
-      // Controlla se le password rispettano i requisiti di sicurezza
-      if (!isValidPassword(password)) {
-        Alert.alert('Errore', 'La password deve contenere almeno 6 caratteri, una lettera maiuscola, una minuscola e un numero.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Registra l'utente
-      const { success, error } = await signup(email, password);
-
-      if (success) {
-        // CRITICAL FIX: Imposta i flag globali per assicurarsi che il wizard venga mostrato
-        if (typeof global !== 'undefined') {
-          global.__BLOCK_ALL_SCREENS__ = false; // Non blocchiamo tutte le schermate
-          global.__WIZARD_AFTER_REGISTRATION__ = true;
-          global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
-          global.__WIZARD_START_TIME__ = Date.now();
-          
-          console.log("🔴 Set __LOGIN_REDIRECT_IN_PROGRESS__ and __WIZARD_AFTER_REGISTRATION__ to true");
-          
-          // Rimuoviamo la flag dopo alcuni secondi per sicurezza
-          setTimeout(() => {
-            if (typeof global !== 'undefined') {
-              global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-              console.log("🔴 Reset __LOGIN_REDIRECT_IN_PROGRESS__ to false after timeout");
-            }
-          }, 10000); // Extended timeout for safety
-        }
-        
-        setIsLoading(false);
-        console.log("🔴 Registration successful, preparing to redirect to wizard in 2.5 seconds");
-        
-        // Breve attesa per permettere lo stato dell'app di aggiornarsi
-        setTimeout(() => {
-          // Reindirizzamento al wizard
-          console.log("🔴 Now redirecting to profile wizard after registration");
-          router.replace('/onboarding/profile-wizard');
-        }, 2500); // Increased delay from 1500ms to 2500ms
-      } else {
-        Alert.alert('Errore', error || 'Si è verificato un errore durante la registrazione.');
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      Alert.alert('Errore', 'Si è verificato un errore durante la registrazione.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Funzione per registrazione con Google
-  const handleGoogleSignup = async () => {
-    try {
-      setIsLoading(true);
-      // Placeholder per la vera implementazione
-      Alert.alert(
-        'Funzionalità non disponibile',
-        'La registrazione con Google sarà disponibile nelle prossime versioni.'
-      );
-    } catch (error) {
-      console.error('Google signup error:', error);
-      Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Google');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Funzione per registrazione con Apple
-  const handleAppleSignup = async () => {
-    try {
-      setIsLoading(true);
-      console.log('🍎 Registrazione con Apple - Inizio processo');
       
-      // Verifica se siamo su iOS - in tal caso usiamo l'autenticazione nativa
-      if (Platform.OS === 'ios') {
-        console.log('🍎 Registrazione con Apple - Utilizzo autenticazione nativa iOS');
-        try {
-          // Verifica se Apple Authentication è disponibile
-          const isAvailable = await AppleAuthentication.isAvailableAsync();
-          
-          if (!isAvailable) {
-            console.log('🍎 Registrazione con Apple - Servizio non disponibile su questo dispositivo');
-            Alert.alert(
-              'Non supportato',
-              'La registrazione con Apple non è supportata su questo dispositivo.'
-            );
-            setIsLoading(false);
-            return;
-          }
-          
-          // Usa l'API di autenticazione nativa di Apple
-          const credential = await AppleAuthentication.signInAsync({
-            requestedScopes: [
-              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-              AppleAuthentication.AppleAuthenticationScope.EMAIL,
-            ],
-          });
-          
-          console.log('🍎 Registrazione con Apple - Autenticazione nativa completata');
-          
-          if (credential && credential.identityToken) {
-            // CRITICAL FIX: Reset navigation flags
-            if (typeof global !== 'undefined') {
-              global.__WIZARD_AFTER_REGISTRATION__ = false;
-              global.__BLOCK_ALL_SCREENS__ = false;
-              global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
-            }
-            
-            // NUOVA STRATEGIA: Utilizziamo direttamente l'API REST di Supabase Auth
-            try {
-              // 1. Creiamo i dati per la richiesta REST
-              const requestData = {
-                id_token: credential.identityToken,
-                provider: 'apple',
-                // Nessun campo audience, lasciamo che Supabase lo gestisca
-              };
-              
-              // 2. Inviamo la richiesta direttamente all'endpoint auth di Supabase
-              console.log('🍎 Invio richiesta diretta a Supabase Auth REST API');
-              const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=id_token`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': supabaseAnonKey,
-                  'X-Client-Info': 'bacchus-ios-app'
-                },
-                body: JSON.stringify(requestData),
-              });
-              
-              // 3. Analizziamo la risposta
-              if (!authResponse.ok) {
-                // Se c'è un errore, cerchiamo di estrarre il messaggio
-                const errorJson = await authResponse.json().catch(() => ({}));
-                console.error('🍎 Errore API REST Supabase:', errorJson, authResponse.status);
-                
-                // Lanciamo un errore con informazioni dettagliate
-                throw new Error(`Errore: ${authResponse.status} - ${errorJson.message || errorJson.error || 'Risposta non valida dal server'}`);
+      setIsLoading(true);
+      
+      // 🔧 FIX: Usa correttamente la risposta dell'AuthContext
+      const response = await signup(email, password);
+      console.log('[SIGNUP] Risposta AuthContext:', response);
+      
+      if (response.success) {
+        console.log('[SIGNUP] ✅ Registrazione completata');
+        
+        if (response.needsEmailConfirmation) {
+          console.log('[SIGNUP] → Richiesta conferma email');
+          Alert.alert(
+            'Registrazione completata!',
+            'Controlla la tua email per confermare l\'account, poi torna qui per accedere.',
+            [
+              {
+                text: 'OK',
+                onPress: () => router.replace('/auth/login')
               }
-              
-              // 4. Se tutto è andato bene, processiamo la risposta
-              const authData = await authResponse.json();
-              console.log('🍎 Autenticazione REST riuscita');
-              
-              if (authData.access_token && authData.refresh_token) {
-                // 5. Salviamo i token nell'AsyncStorage
-                const session = {
-                  access_token: authData.access_token,
-                  refresh_token: authData.refresh_token,
-                  expires_at: authData.expires_in ? Math.floor(Date.now() / 1000) + authData.expires_in : 0,
-                  token_type: authData.token_type || 'bearer',
-                  provider_token: authData.provider_token,
-                  provider_refresh_token: authData.provider_refresh_token,
-                  user: authData.user
-                };
-                
-                // 6. Salva la sessione in AsyncStorage
-                const tokenKey = `sb-${supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'bacchus'}-auth-token`;
-                await AsyncStorage.setItem(tokenKey, JSON.stringify(session));
-                
-                // 7. Imposta i flag per il wizard
-                if (typeof global !== 'undefined') {
-                  global.__BLOCK_ALL_SCREENS__ = false;
-                  global.__WIZARD_AFTER_REGISTRATION__ = true;
-                  global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
-                  global.__WIZARD_START_TIME__ = Date.now();
-                  
-                  console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
-                  
-                  setTimeout(() => {
-                    if (typeof global !== 'undefined') {
-                      global.__BLOCK_ALL_SCREENS__ = false;
-                    }
-                  }, 10000);
-                }
-                
-                // 8. Breve attesa e reindirizzamento al wizard
-                setTimeout(() => {
-                  router.replace('/onboarding/profile-wizard');
-                }, 1500);
-                
-                return;
-              } else {
-                console.error('🍎 Token di accesso mancante nella risposta:', authData);
-                throw new Error('Token mancanti nella risposta');
-              }
-            } catch (restError) {
-              console.error('🍎 Errore durante l\'autenticazione REST:', restError);
-              
-              // Come ultima risorsa, proviamo un'alternativa
-              console.log('🍎 Tentativo di recupero usando metodo alternativo...');
-              
-              try {
-                const alternativeResponse = await fetch(`${supabaseUrl}/auth/v1/callback`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': supabaseAnonKey,
-                  },
-                  body: JSON.stringify({
-                    type: 'apple',
-                    token: credential.identityToken,
-                  }),
-                });
-                
-                if (alternativeResponse.ok) {
-                  const alternativeData = await alternativeResponse.json();
-                  console.log('🍎 Metodo alternativo riuscito');
-                  
-                  // Imposta i flag per il wizard
-                  if (typeof global !== 'undefined') {
-                    global.__BLOCK_ALL_SCREENS__ = false;
-                    global.__WIZARD_AFTER_REGISTRATION__ = true;
-                    global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
-                    global.__WIZARD_START_TIME__ = Date.now();
-                  }
-                  
-                  // Reindirizzamento al wizard
-                  setTimeout(() => {
-                    router.replace('/onboarding/profile-wizard');
-                  }, 1500);
-                  
-                  return;
-                } else {
-                  console.error('🍎 Anche il metodo alternativo è fallito:', await alternativeResponse.text());
-                }
-              } catch (altError) {
-                console.error('🍎 Errore nel metodo alternativo:', altError);
-              }
-              
-              // Tutti i tentativi sono falliti
-              Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
-              setIsLoading(false);
-              return;
-            }
-          } else {
-            console.error('🍎 Token di identità mancante');
-            Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.error('🍎 Errore durante l\'autenticazione con Apple:', error);
-          
-          // Clean all flags to prevent issues
+            ]
+          );
+        } else {
+          console.log('[SIGNUP] → Navigazione diretta a:', response.redirectTo || 'wizard');
+
+          // Set wizard flag per sicurezza
           if (typeof global !== 'undefined') {
-            global.__WIZARD_AFTER_REGISTRATION__ = false;
-            global.__BLOCK_ALL_SCREENS__ = false;
-            global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+            global.__WIZARD_AFTER_REGISTRATION__ = true;
+            console.log('[SIGNUP] Flag wizard impostato');
           }
-          
-          // Gestisci cancellazione utente
-          if (error.code === 'ERR_CANCELED') {
-            console.log('User canceled Apple Sign in');
-          } else {
-            Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
-          }
-          setIsLoading(false);
-          return;
-        }
-      }
-      
-      // Per piattaforme non iOS, usa il flusso OAuth standard
-      console.log('🍎 Registrazione con Apple - Utilizzo flusso OAuth standard');
-      
-      // Usa il loginWithProvider dall'AuthContext per inviare le credenziali a Supabase
-      const result = await loginWithProvider('apple');
-      
-      if (result.success) {
-        console.log("🔴 Account creato con Apple, reindirizzamento a wizard");
-        
-        // CRITICAL FIX: Imposta i flag globali per assicurarsi che il wizard venga mostrato
-        if (typeof global !== 'undefined') {
-          global.__BLOCK_ALL_SCREENS__ = false;
-          global.__WIZARD_AFTER_REGISTRATION__ = true;
-          global.__LOGIN_REDIRECT_IN_PROGRESS__ = true;
-          global.__WIZARD_START_TIME__ = Date.now();
-          
-          // Per sicurezza, imposta un timer che reimposta i flag se qualcosa va storto
-          setTimeout(() => {
-            if (typeof global !== 'undefined') {
-              global.__BLOCK_ALL_SCREENS__ = false;
-            }
-          }, 10000);
-        }
-        
-        // Breve attesa per permettere lo stato dell'app di aggiornarsi
-        setTimeout(() => {
-          // Reindirizzamento al wizard
+
+          // 🔧 FIX CRITICO: NAVIGA EFFETTIVAMENTE invece di aspettare AuthContext
+          console.log('[SIGNUP] ✅ Registrazione completata - navigazione al wizard');
           router.replace('/onboarding/profile-wizard');
-        }, 1500);
+        }
       } else {
-        console.error('Apple signup error:', result.error);
-        Alert.alert('Errore', `Si è verificato un errore durante la registrazione con Apple: ${result.error}`);
+        console.error('[SIGNUP] ❌ Registrazione fallita:', response.error);
+        
+        // 🔧 FIX: Gestione errori migliorata con messaggi specifici
+        const errorMessage = response.error || 'Si è verificato un errore durante la registrazione';
+        console.error(`[SIGNUP] 🔴 Errore UI: ${errorMessage}`);
+        
+        // Messaggi specifici per errori di produzione TestFlight
+        let displayTitle = 'Errore di registrazione';
+        let displayMessage = errorMessage;
+        
+        if (errorMessage.includes('connessione') || errorMessage.includes('connection')) {
+          displayTitle = 'Problema di connessione';
+          displayMessage = 'Verifica la tua connessione internet e riprova. Se sei connesso, il server potrebbe essere temporaneamente non disponibile.';
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('tempo')) {
+          displayTitle = 'Timeout di connessione';
+          displayMessage = 'La registrazione sta impiegando troppo tempo. Riprova tra qualche minuto.';
+        } else if (errorMessage.includes('network') || errorMessage.includes('rete')) {
+          displayTitle = 'Errore di rete';
+          displayMessage = 'Problema di rete. Controlla la tua connessione e riprova.';
+        } else if (errorMessage.includes('email') && errorMessage.includes('registrata')) {
+          displayTitle = 'Email già in uso';
+          displayMessage = 'Questa email è già registrata. Prova ad accedere invece di registrarti.';
+        } else if (errorMessage.includes('password') || errorMessage.includes('Password')) {
+          displayTitle = 'Password non valida';
+          displayMessage = 'La password non rispetta i requisiti. Deve contenere almeno 8 caratteri con lettere maiuscole, minuscole e numeri.';
+        }
+        
+        console.log(`[SIGNUP] 📱 Mostro alert: ${displayTitle} - ${displayMessage}`);
+        Alert.alert(displayTitle, displayMessage);
       }
-    } catch (error) {
-      console.error('Apple signup error:', error);
+    } catch (error: any) {
+      console.error('[SIGNUP] Errore catch generale:', error);
       
-      // Clean all flags to prevent issues
-      if (typeof global !== 'undefined') {
-        global.__WIZARD_AFTER_REGISTRATION__ = false;
-        global.__BLOCK_ALL_SCREENS__ = false;
-        global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+      // 🔧 FIX: Fallback per errori imprevisti in produzione TestFlight
+      const errorMessage = error?.message || 'Errore di connessione imprevisto';
+      console.error(`[SIGNUP] 💥 Errore catch: ${errorMessage}`);
+      
+      // Messaggi user-friendly per errori tecnici
+      let userMessage = 'Si è verificato un errore tecnico durante la registrazione.';
+      
+      if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+        userMessage = 'Problema di connessione. Controlla la tua connessione internet e riprova.';
+      } else if (errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
+        userMessage = 'Impossibile contattare il server. Riprova tra qualche minuto.';
       }
       
-      Alert.alert('Errore', 'Si è verificato un errore durante la registrazione con Apple');
+      Alert.alert(
+        'Errore tecnico',
+        `${userMessage}\n\nSe il problema persiste, controlla la tua connessione internet o riprova più tardi.`
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Funzione per nascondere la tastiera
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <SafeAreaView style={[styles.container, { backgroundColor: '#0f1c35' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View style={styles.innerContainer}>
-            {/* Logo e titolo */}
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/images/bacchus-logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={[styles.appSubtitle, { color: '#8a9bb5' }]}>
-                {t('appTagline', { defaultValue: 'Monitora. Informati. Resta al sicuro.' })}
-              </Text>
-            </View>
-            
-            {/* Form di registrazione */}
-            <View style={[styles.formContainer, { 
-              backgroundColor: '#162a4e',
-              borderWidth: 1,
-              borderColor: '#254175',
-              borderRadius: 15,
-              padding: 20,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 10,
-              elevation: 5
-            }]}>
-              <Text style={[styles.cardTitle, { color: '#FFFFFF', fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }]}>
-                {t('createAccount', { ns: 'auth', defaultValue: 'Crea un account' })}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: '#8a9bb5', textAlign: 'center', marginBottom: 20 }]}>
-                {t('signupSubtitle', { ns: 'auth', defaultValue: 'Registrati per iniziare a monitorare' })}
-              </Text>
-              
-              {/* Email input */}
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { 
-                    backgroundColor: '#1e355a',
-                    color: '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: '#2e4a7a',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 3,
-                    elevation: 2
-                  }]}
-                  placeholder={t('email', { ns: 'auth' })}
-                  placeholderTextColor="#8a9bb5"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  returnKeyType="next"
-                  value={email}
-                  onChangeText={setEmail}
-                  onSubmitEditing={() => passwordInputRef.current?.focus()}
-                  cursorColor="#00bcd7"
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.innerContainer}>
+              {/* Logo */}
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require('../../assets/images/bacchus-logo.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
+                <Animated.Text style={[styles.appSubtitle, { opacity: subtitleOpacity }]}>
+                  {t('createAccount', { defaultValue: 'Crea il tuo account' })}
+                </Animated.Text>
               </View>
               
-              {/* Password input */}
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
-                <TextInput
-                  ref={passwordInputRef}
-                  style={[styles.input, { 
-                    backgroundColor: '#1e355a',
-                    color: '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: '#2e4a7a',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 3,
-                    elevation: 2
-                  }]}
-                  placeholder={t('password', { ns: 'auth' })}
-                  placeholderTextColor="#8a9bb5"
-                  secureTextEntry={!showPassword}
-                  returnKeyType="next"
-                  value={password}
-                  onChangeText={setPassword}
-                  onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
-                  cursorColor="#00bcd7"
-                />
-                <TouchableOpacity 
-                  style={styles.passwordVisibilityButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={22} 
-                    color="#8a9bb5" 
-                  />
-                </TouchableOpacity>
-              </View>
-              
-              {/* Confirm Password input */}
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
-                <TextInput
-                  ref={confirmPasswordInputRef}
-                  style={[styles.input, { 
-                    backgroundColor: '#1e355a',
-                    color: '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: '#2e4a7a',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 3,
-                    elevation: 2
-                  }]}
-                  placeholder={t('confirmPassword', { ns: 'auth' })}
-                  placeholderTextColor="#8a9bb5"
-                  secureTextEntry={!showConfirmPassword}
-                  returnKeyType="go"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  onSubmitEditing={handleSignup}
-                  cursorColor="#00bcd7"
-                />
-                <TouchableOpacity 
-                  style={styles.passwordVisibilityButton}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Ionicons 
-                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={22} 
-                    color="#8a9bb5" 
-                  />
-                </TouchableOpacity>
-              </View>
-              
-              {/* Signup button */}
-              <TouchableOpacity 
-                style={[styles.signupButton, { backgroundColor: colors.primary }]}
-                onPress={handleSignup}
-                disabled={isLoading}
+              {/* Signup Card */}
+              <Animated.View 
+                style={[
+                  styles.signupCard,
+                  { 
+                    opacity: cardOpacity,
+                    transform: [{ translateY: cardTranslateY }]
+                  }
+                ]}
               >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.signupButtonText}>
-                    {t('signUp', { ns: 'auth' })}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-            
-            {/* Alternativa di accesso */}
-            <View style={styles.alternativesContainer}>
-              <View style={styles.divider}>
-                <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                <Text style={[styles.dividerText, { color: colors.textSecondary }]}>
-                  {t('or', { ns: 'common' })}
+                <Text style={styles.cardTitle}>
+                  {t('signupTitle', { defaultValue: 'Registrati' })}
                 </Text>
-                <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-              </View>
-              
-              {/* Pulsanti social signup */}
-              <View style={styles.socialButtonsContainer}>
-                {/* Google signup button */}
-                <TouchableOpacity 
-                  style={[styles.socialButton, { 
-                    backgroundColor: '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    marginRight: 8
-                  }]}
-                  onPress={handleGoogleSignup}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="logo-google" size={20} color="#4285F4" style={styles.socialIcon} />
-                  <Text style={[styles.socialButtonText, { color: '#757575' }]}>
-                    Google
-                  </Text>
-                </TouchableOpacity>
+                <Text style={styles.cardSubtitle}>
+                  {t('signupSubtitle', { defaultValue: 'Inserisci i tuoi dati per creare un account' })}
+                </Text>
                 
-                {/* Apple signup button */}
-                <TouchableOpacity 
-                  style={[styles.socialButton, { 
-                    backgroundColor: '#000000',
-                    marginLeft: 8
-                  }]}
-                  onPress={handleAppleSignup}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="logo-apple" size={22} color="#FFFFFF" style={styles.socialIcon} />
-                  <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>
-                    Apple
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                {/* Form */}
+                <View style={styles.formContainer}>
+                  {/* Email input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('emailPlaceholder', { defaultValue: 'La tua email' })}
+                      placeholderTextColor="#8a9bb5"
+                      keyboardType="email-address"
+                      returnKeyType="next"
+                      autoCapitalize="none"
+                      value={email}
+                      onChangeText={setEmail}
+                      onSubmitEditing={() => passwordInputRef.current?.focus()}
+                    />
+                  </View>
+                  
+                  {/* Password input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
+                    <TextInput
+                      ref={passwordInputRef}
+                      style={styles.input}
+                      placeholder={t('passwordPlaceholder', { defaultValue: 'Crea una password' })}
+                      placeholderTextColor="#8a9bb5"
+                      secureTextEntry={!showPassword}
+                      returnKeyType="next"
+                      value={password}
+                      onChangeText={setPassword}
+                      onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+                    />
+                    <TouchableOpacity 
+                      style={styles.passwordVisibilityButton}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={22} 
+                        color="#8a9bb5" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Confirm Password input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
+                    <TextInput
+                      ref={confirmPasswordInputRef}
+                      style={styles.input}
+                      placeholder={t('confirmPasswordPlaceholder', { defaultValue: 'Conferma password' })}
+                      placeholderTextColor="#8a9bb5"
+                      secureTextEntry={!showConfirmPassword}
+                      returnKeyType="done"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      onSubmitEditing={handleSignup}
+                    />
+                    <TouchableOpacity 
+                      style={styles.passwordVisibilityButton}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <Ionicons 
+                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={22} 
+                        color="#8a9bb5" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Signup button */}
+                  <TouchableOpacity 
+                    style={styles.signupButton}
+                    onPress={handleSignup}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.signupButtonText}>
+                        {t('createAccount', { defaultValue: 'CREA ACCOUNT' })}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+              
+              {/* Footer */}
+              <Animated.View 
+                style={[
+                  styles.footerContainer,
+                  { opacity: footerOpacity }
+                ]}
+              >
+                <Text style={styles.hasAccountText}>
+                  {t('alreadyHaveAccount', { defaultValue: 'Hai già un account?' })}
+                </Text>
+                <Link href="/auth/login" asChild>
+                  <TouchableOpacity>
+                    <Text style={styles.loginText}>
+                      {t('login', { defaultValue: 'Accedi' })}
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              </Animated.View>
             </View>
-            
-            {/* Footer con link di login */}
-            <View style={styles.footerContainer}>
-              <Text style={[styles.alreadyAccountText, { color: colors.textSecondary }]}>
-                {t('alreadyHaveAccount', { ns: 'auth' })}
-              </Text>
-              <Link href="/auth/login" asChild>
-                <TouchableOpacity>
-                  <Text style={[styles.loginText, { color: colors.primary }]}>
-                    {t('login', { ns: 'auth' })}
-                  </Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -645,58 +400,91 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  keyboardAvoidingView: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
   },
   innerContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+    justifyContent: 'flex-start',
   },
   logoContainer: {
     alignItems: 'center',
+    marginTop: 20,
     marginBottom: 20,
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 120,
+    height: 120,
     marginBottom: 10,
   },
   appSubtitle: {
     fontSize: 16,
+    color: '#8a9bb5',
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  signupCard: {
+    width: '100%',
+    backgroundColor: '#162a4e',
+    borderRadius: 15,
+    padding: 20,
+    marginTop: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#254175',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  cardTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: '#8a9bb5',
+    marginBottom: 20,
   },
   formContainer: {
     width: '100%',
-    maxWidth: 350,
   },
   inputContainer: {
-    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e355a',
+    borderRadius: 10,
     marginBottom: 16,
-    width: '100%',
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#2e4a7a',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   inputIcon: {
-    position: 'absolute',
-    left: 12,
-    top: 14,
-    zIndex: 1,
+    marginRight: 12,
   },
   input: {
-    height: 50,
-    borderRadius: 10,
-    paddingHorizontal: 46,
+    flex: 1,
+    height: 48,
     fontSize: 16,
-    width: '100%',
+    color: '#ffffff',
   },
   passwordVisibilityButton: {
-    position: 'absolute',
-    right: 12,
-    top: 14,
-    zIndex: 1,
+    padding: 5,
   },
   signupButton: {
-    height: 50,
+    height: 48,
+    backgroundColor: '#00bcd7',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -706,65 +494,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-  },
-  cardTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  alternativesContainer: {
-    width: '100%',
-    maxWidth: 350,
-    marginTop: 30,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-  },
-  socialButtonsContainer: {
-    flexDirection: 'row',
-    width: '100%',
-    marginBottom: 10,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 50,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  socialIcon: {
-    marginRight: 8,
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   footerContainer: {
     flexDirection: 'row',
-    marginTop: 20,
-    marginBottom: 10,
+    marginVertical: 20,
   },
-  alreadyAccountText: {
+  hasAccountText: {
     fontSize: 14,
+    color: '#8a9bb5',
     marginRight: 5,
   },
   loginText: {
     fontSize: 14,
+    color: '#00bcd7',
     fontWeight: '600',
   },
 }); 

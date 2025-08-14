@@ -20,7 +20,6 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  isRecovering: boolean;
   retryCount: number;
 }
 
@@ -65,12 +64,10 @@ const ensureErrorMessages = () => {
 // Componente per la schermata di errore
 const ErrorScreen = ({ 
   error, 
-  resetErrorBoundary, 
-  isRecovering
+  resetErrorBoundary
 }: { 
   error: Error; 
   resetErrorBoundary: () => void;
-  isRecovering: boolean;
 }) => {
   const insets = useSafeAreaInsets();
   
@@ -124,13 +121,6 @@ const ErrorScreen = ({
         )}
         
         <View style={styles.buttonContainer}>
-          {isRecovering ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4F8EF7" />
-              <Text style={styles.loadingText}>{msg.loading}</Text>
-            </View>
-          ) : (
-            <>
               <TouchableOpacity 
                 style={[styles.button, styles.primaryButton]} 
                 onPress={resetErrorBoundary}
@@ -150,8 +140,6 @@ const ErrorScreen = ({
               >
                 <Text style={styles.secondaryButtonText}>{msg.home}</Text>
               </TouchableOpacity>
-            </>
-          )}
         </View>
       </View>
     </SafeAreaView>
@@ -164,7 +152,6 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      isRecovering: false,
       retryCount: 0
     };
     
@@ -176,7 +163,6 @@ class ErrorBoundary extends Component<Props, State> {
     return {
       hasError: true,
       error,
-      isRecovering: false,
       retryCount: 0
     };
   }
@@ -205,126 +191,25 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  resetErrorBoundary = async (): Promise<void> => {
-    this.setState({
-      isRecovering: true
-    });
-    
-    try {
-      // Increment retry count
-      const newRetryCount = this.state.retryCount + 1;
+  resetErrorBoundary = (): void => {
+    console.log('🔄 ErrorBoundary: Semplice reset...');
       
-      // Log the error for diagnostics
-      if (this.state.error) {
-        console.log('Error details:', this.state.error.message);
-        console.log('Error stack:', this.state.error.stack);
-        
-        // Check for session-specific errors
-        const errorMsg = this.state.error.message?.toLowerCase() || '';
-        const errorStack = this.state.error.stack?.toLowerCase() || '';
-        
-        // Gestione specifica per errori di sessione o rendering React con controlli migliorati
-        if (errorMsg.includes('session') || 
-            errorMsg.includes('undefined is not an object') ||
-            errorStack.includes('session') ||
-            errorMsg.includes('cannot read property') ||
-            errorMsg.includes('null is not an object') ||
-            errorMsg.includes('cannot read properties of undefined') ||
-            errorMsg.includes('cannot read properties of null')) {
-          console.log('Detected possible session issue, trying session-specific recovery...');
-          
-          // Try to reset session services and cache
-          try {
-            // Prima importa i servizi necessari
-            const sessionService = require('../lib/services/session.service');
-            
-            // Prova a reinizializzare completamente il servizio delle sessioni
-            await sessionService.initSessionService();
-            console.log('Re-initialized session service');
-            
-            // Controlla l'integrità delle sessioni
-            const integrityCheck = await sessionService.ensureSessionIntegrity();
-            console.log('Session integrity check result:', integrityCheck);
-            
-            // Se siamo in un errore critico e abbiamo fatto più tentativi,
-            // prova a resettare completamente la sessione attiva
-            if (newRetryCount >= 2) {
-              console.log('Multiple recovery attempts, trying to reset active session...');
-              
-              // Termina la sessione attiva se esiste
-              const sessionEnded = await sessionService.endSession();
-              console.log('Active session termination result:', sessionEnded);
-              
-              // Attendi un momento per permettere che venga elaborata la rimozione della sessione
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-          } catch (e) {
-            console.error('Error during session service recovery:', e);
-          }
-          
-          // Se l'errore è veramente critico, tenta di navigare alla dashboard
-          if (newRetryCount >= 3) {
-            try {
-              const { router } = require('expo-router');
-              console.log('Critical error, navigating to dashboard...');
-              setTimeout(() => {
-                try {
-                  router.replace('/dashboard');
-                } catch (navError) {
-                  console.error('Navigation error:', navError);
-                }
-              }, 500);
-            } catch (routerError) {
-              console.error('Router import error:', routerError);
-            }
-          }
-        }
+    // 1. Pulisci solo flag globali critici (sincrono)
+      if (typeof global !== 'undefined') {
+        global.__WIZARD_AFTER_REGISTRATION__ = false;
+        global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+        global.__PREVENT_ALL_REDIRECTS__ = false;
+        global.__BLOCK_ALL_SCREENS__ = false;
       }
       
-      // If we've tried multiple times and still getting errors, do a more thorough cleanup
-      if (newRetryCount >= 3) {
-        console.log('Multiple recovery attempts failed, performing deep cleanup...');
-        
-        // Reset auth state
-        await resetAuthState();
-        
-        // Reset any stored JWT tokens
-        await clearStoredAuthSessions();
-        
-        // Preserve language preference
-        const language = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-        
-        // Clear all other data from storage
-        await AsyncStorage.clear();
-        
-        // Restore language preference
-        if (language) {
-          await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-        }
-        
-        // Try to redirect to the root
-        try {
-          router.replace('/');
-        } catch (e) {
-          console.error('Navigation error during deep recovery:', e);
-        }
-      }
-      
-      // Reset the error state
+    // 2. Resetta solo lo stato interno dell'ErrorBoundary
       this.setState({
         hasError: false,
         error: null,
-        isRecovering: false,
-        retryCount: newRetryCount
+        retryCount: 0
       });
-    } catch (e) {
-      console.error('Error during recovery:', e);
       
-      // If recovery fails, stay in error state but stop the recovery spinner
-      this.setState({
-        isRecovering: false
-      });
-    }
+      console.log('🔄 ErrorBoundary: Reset completato');
   };
 
   render(): ReactNode {
@@ -338,7 +223,6 @@ class ErrorBoundary extends Component<Props, State> {
         <ErrorScreen 
           error={this.state.error as Error} 
           resetErrorBoundary={this.resetErrorBoundary}
-          isRecovering={this.state.isRecovering} 
         />
       );
     }

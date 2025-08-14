@@ -10,11 +10,13 @@ export interface Profile {
   id: string;
   user_id: string;
   name: string;
-  weight: number;
+  weightKg: number;
   age: number;
-  gender: 'Male' | 'Female' | 'Other';
-  drinking_frequency: 'Rarely' | 'Occasionally' | 'Frequently';
-  is_default: boolean;
+  height: number;
+  gender: 'male' | 'female';
+  drinkingFrequency: 'rarely' | 'occasionally' | 'regularly' | 'frequently';
+  color?: string;
+  emoji?: string;
   created_at: string;
   updated_at: string;
 }
@@ -71,14 +73,16 @@ export interface BeverageType {
 export const SQL_DEFINITIONS = {
   profiles: `
     CREATE TABLE IF NOT EXISTS profiles (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      id TEXT PRIMARY KEY,
       user_id UUID REFERENCES auth.users NOT NULL,
       name TEXT NOT NULL,
-      weight NUMERIC NOT NULL,
+      weightKg NUMERIC NOT NULL,
       age INT NOT NULL,
+      height NUMERIC NOT NULL,
       gender TEXT NOT NULL,
-      drinking_frequency TEXT NOT NULL,
-      is_default BOOLEAN DEFAULT false,
+      drinkingFrequency TEXT NOT NULL,
+      color TEXT,
+      emoji TEXT,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );

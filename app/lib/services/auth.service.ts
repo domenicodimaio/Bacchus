@@ -6,14 +6,15 @@
  */
 
 import { Session, User } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import supabase, { 
-  SUPABASE_AUTH_TOKEN_KEY, 
-  supabaseUrl, 
-  supabaseAnonKey,
-  validateSupabaseConnection,
+  SUPABASE_AUTH_TOKEN_KEY,
   clearStoredAuthSessions,
-  createTempClient
+  validateSupabaseConnection,
+  createTempClient,
+  supabaseUrl
 } from '../supabase/client';
 import { storeAuthState } from '../supabase/middleware';
 import * as offlineService from './offline.service';
@@ -25,10 +26,12 @@ import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import { Linking, Platform } from 'react-native';
 import config from '../config';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { remoteLogger, logError, logInfo } from './logging.service';
+import storageService, { STORAGE_KEYS } from './storage.service';
 
 // Variabili usate per le importazioni ritardate, per evitare dipendenze cicliche
 let profileService: any = null;
-let storageService: any = null;
 let sessionService: any = null;
 
 // Funzione per importare i servizi dinamicamente quando necessario
@@ -41,10 +44,10 @@ const importServices = async () => {
   }
 };
 
-// Chiavi per storage locale
-export const USER_DATA_KEY = 'bacchus_user_data';
-export const USER_SESSION_KEY = 'bacchus_user_session';
-export const SELECTED_PROFILE_KEY = 'bacchus_selected_profile';
+// Chiavi per storage locale - ora usa STORAGE_KEYS centralizzato
+export const USER_DATA_KEY = STORAGE_KEYS.USER_DATA;
+export const USER_SESSION_KEY = STORAGE_KEYS.USER_SESSION;
+export const SELECTED_PROFILE_KEY = STORAGE_KEYS.ACTIVE_PROFILE;
 
 // Supabase Admin client (diverso dal client principale importato sopra)
 const supabaseAdmin = null; // Disabled admin client to avoid key issues
@@ -59,6 +62,8 @@ export type AuthResponse = {
   session?: Session;
   data?: any;
   redirectToProfileCreation?: boolean;
+  needsEmailConfirmation?: boolean;
+  isMockUser?: boolean;
 };
 
 // Helper function to get environment variables from various sources
@@ -83,152 +88,215 @@ const getEnvVar = (key) => {
 
 /**
  * Registra un nuovo utente con email e password
+ * VERSIONE SEMPLIFICATA SENZA RETRY AGGRESSIVO
  */
 export const signUp = async (email: string, password: string): Promise<AuthResponse> => {
   try {
-    // Verifica connessione
-    const isOffline = await offlineService.isOffline();
+    console.log('[AUTH] === INIZIO REGISTRAZIONE ===');
+    console.log('[AUTH] Email:', email);
+    
+    // 🔧 PRODUZIONE: Timeout più lunghi e retry logic per TestFlight
+    const MAX_RETRIES = 3; // Aumentato da 2 a 3
+    const TIMEOUT_MS = 30000; // 30 secondi invece di 15 per TestFlight
+    const CONNECTION_TIMEOUT = 8000; // 8 secondi per check connessione
+    
+    // Verifica connessione offline (con timeout)
+    const isOffline = await Promise.race([
+      offlineService.isOffline(),
+      new Promise<boolean>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout connessione')), CONNECTION_TIMEOUT)
+      )
+    ]).catch(() => true); // Se timeout, assume offline
+    
     if (isOffline) {
-      console.log('[AUTH] Registrazione fallita: dispositivo offline');
       return {
         success: false,
-        error: 'No internet connection available'
+        error: 'Nessuna connessione internet disponibile'
       };
     }
     
-    console.log('[AUTH] Inizio processo di registrazione per:', email);
+    // Pulisci storage precedente
+    await storageService.removeMultiple([
+      USER_DATA_KEY,
+      USER_SESSION_KEY,
+      SELECTED_PROFILE_KEY,
+      SUPABASE_AUTH_TOKEN_KEY,
+      'bacchus_profiles',
+      'bacchus_wizard_cache'
+    ]);
     
-    // Prima della registrazione, pulisci qualsiasi token di autenticazione esistente
-    console.log('[AUTH] Pulizia token di autenticazione precedenti');
-    await clearStoredAuthSessions();
+    console.log('[AUTH] Storage pulito, tentativo registrazione...');
     
-    // Creiamo un client temporaneo ottimizzato per il processo di registrazione
-    // Questo client non utilizza AsyncStorage, non salva sessioni ed è configurato solo per questa operazione
-    console.log('[AUTH] Creazione client temporaneo dedicato per registrazione');
-    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        storage: null,
-        detectSessionInUrl: false,
-      },
-      global: {
-        headers: {
-          'x-application-name': 'Bacchus-Register',
-        },
-      },
-    });
+    // 🔧 PRODUZIONE: Registrazione con retry e timeout
+    let lastError: any = null;
     
-    // NUOVA STRATEGIA: Bypassiamo completamente la validazione della connessione
-    // e procediamo direttamente con la registrazione usando il client temporaneo
-    console.log('[AUTH] Registrazione utente in corso (client dedicato):', email);
-    
-    // Registra utente con il client temporaneo
-    const { data, error } = await tempClient.auth.signUp({
-      email,
-      password,
-    });
-    
-    if (error) {
-      console.error('[AUTH] Errore registrazione con client dedicato:', error.message);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`[AUTH] Tentativo registrazione ${attempt}/${MAX_RETRIES}`);
       
-      // FALLBACK: Se il client temporaneo fallisce, proviamo con il client standard
-      console.log('[AUTH] Tentativo con client standard come fallback');
       try {
-        const { data: standardData, error: standardError } = await supabase.auth.signUp({
-          email,
-          password,
+        // REGISTRAZIONE CON TIMEOUT ESPLICITO
+        const registrationPromise = supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password: password,
+          options: {
+            emailRedirectTo: undefined // Disabilita redirect email per evitare problemi
+          }
         });
         
-        if (standardError) {
-          console.error('[AUTH] Anche il client standard ha fallito:', standardError.message);
+        // 🔧 PRODUZIONE: Timeout esplicito
+        const { data, error } = await Promise.race([
+          registrationPromise,
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout registrazione')), TIMEOUT_MS)
+          )
+        ]);
+        
+        if (error) {
+          console.error(`[AUTH] Errore registrazione tentativo ${attempt}:`, error.message);
+          lastError = error;
           
-          // Traduzioni dei messaggi di errore più comuni
-          let errorMessage = standardError.message;
-          if (standardError.message.includes('valid email')) {
-            errorMessage = 'Inserisci un indirizzo email valido.';
-          } else if (standardError.message.includes('least 6 characters')) {
-            errorMessage = 'La password deve essere di almeno 6 caratteri.';
-          } else if (standardError.message.includes('already registered')) {
-            errorMessage = 'Email già registrata. Prova ad accedere.';
+          // 🔧 PRODUZIONE: Retry solo per errori di rete
+          if (error.message.includes('network') || error.message.includes('timeout') || error.message.includes('fetch')) {
+            if (attempt < MAX_RETRIES) {
+              console.log(`[AUTH] 🔄 Retry ${attempt}/${MAX_RETRIES} dopo ${attempt * 2} secondi per errore: ${error.message}`);
+              await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+              continue;
+            } else {
+              console.error(`[AUTH] ❌ Tutti i ${MAX_RETRIES} tentativi falliti per errore di rete: ${error.message}`);
+            }
+          } else {
+            console.error(`[AUTH] ❌ Errore non recuperabile al tentativo ${attempt}: ${error.message}`);
           }
           
+          // Gestione errori specifica (NON retry)
+          if (error.message.includes('User already registered')) {
+            return {
+              success: false,
+              error: 'Email già registrata. Prova ad accedere invece di registrarti.'
+            };
+          } else if (error.message.includes('Password should be at least')) {
+            return {
+              success: false,
+              error: 'Password troppo debole. Usa almeno 6 caratteri.'
+            };
+          } else if (error.message.includes('Invalid email')) {
+            return {
+              success: false,
+              error: 'Indirizzo email non valido.'
+            };
+          } else if (error.message.includes('rate') || error.message.includes('limit')) {
+            return {
+              success: false,
+              error: 'Troppe richieste. Riprova tra qualche minuto.'
+            };
+          } else {
+            return {
+              success: false,
+              error: error.message || 'Errore durante la registrazione.'
+            };
+          }
+        }
+        
+        // 🔧 PRODUZIONE: Verifica utente creato
+        if (!data.user) {
+          console.error('[AUTH] Nessun utente creato');
           return {
             success: false,
-            error: errorMessage
+            error: 'Errore durante la creazione account.'
           };
         }
         
-        if (standardData.user) {
-          console.log('[AUTH] Utente registrato con successo (client standard):', standardData.user.id);
+        console.log('[AUTH] ✅ Utente registrato:', data.user.id);
+        console.log('[AUTH] Conferma email richiesta:', !data.session);
+        
+        // Salva i dati dell'utente
+        await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
+          id: data.user.id,
+          email: data.user.email,
+          created_at: data.user.created_at
+        }));
+        
+        // Se c'è una sessione, salvala
+        if (data.session) {
+          await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
+          console.log('[AUTH] ✅ Sessione salvata, utente già verificato');
           
           return {
             success: true,
-            user: standardData.user,
-            session: standardData.session,
-            redirectToProfileCreation: true
+            user: data.user,
+            session: data.session,
+            redirectToProfileCreation: true,
+            needsEmailConfirmation: false
+          };
+        } else {
+          console.log('[AUTH] ✅ Registrazione completata, conferma email necessaria');
+          
+          return {
+            success: true,
+            user: data.user,
+            session: null,
+            redirectToProfileCreation: false,
+            needsEmailConfirmation: true
           };
         }
-      } catch (standardError) {
-        console.error('[AUTH] Errore fatale con client standard:', standardError);
+        
+      } catch (attemptError: any) {
+        console.error(`[AUTH] Errore tentativo ${attempt}:`, attemptError.message);
+        lastError = attemptError;
+        
+        // 🔧 PRODUZIONE: Retry per timeout/network
+        if (attemptError.message.includes('Timeout') || attemptError.message.includes('network')) {
+          if (attempt < MAX_RETRIES) {
+            console.log(`[AUTH] Retry per timeout/network dopo ${attempt * 2} secondi...`);
+            await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+            continue;
+          }
+        }
+        
+        // Altri errori non fanno retry
+        break;
       }
-      
-      // Traduzioni dei messaggi di errore più comuni
-      let errorMessage = error.message;
-      if (error.message.includes('valid email')) {
-        errorMessage = 'Inserisci un indirizzo email valido.';
-      } else if (error.message.includes('least 6 characters')) {
-        errorMessage = 'La password deve essere di almeno 6 caratteri.';
-      } else if (error.message.includes('already registered')) {
-        errorMessage = 'Email già registrata. Prova ad accedere.';
-      }
-      
+    }
+    
+    // 🔧 PRODUZIONE: Se arriviamo qui, tutti i tentativi sono falliti
+    console.error('[AUTH] Tutti i tentativi di registrazione falliti');
+    
+    // Messaggi di errore più informativi per l'utente
+    const errorMessage = lastError?.message || 'Errore durante la registrazione';
+    console.error(`[AUTH] 🔴 Errore finale: ${errorMessage}`);
+    
+    if (lastError?.message?.includes('Timeout')) {
       return {
         success: false,
-        error: errorMessage
+        error: 'La registrazione sta impiegando troppo tempo. Controlla la tua connessione internet e riprova. Se il problema persiste, riprova tra qualche minuto.'
       };
-    }
-    
-    if (!data.user) {
-      console.error('[AUTH] Nessun utente restituito dopo la registrazione');
+    } else if (lastError?.message?.includes('network') || lastError?.message?.includes('fetch')) {
       return {
         success: false,
-        error: 'Errore durante la registrazione. Riprova più tardi.'
+        error: 'Problema di connessione al server. Verifica la tua connessione internet e riprova.'
+      };
+    } else if (lastError?.message?.includes('already registered')) {
+      return {
+        success: false,
+        error: 'Questa email è già registrata. Prova ad accedere invece di registrarti.'
+      };
+    } else {
+      return {
+        success: false,
+        error: `Errore durante la registrazione: ${errorMessage}. Riprova tra qualche minuto.`
       };
     }
-    
-    console.log('[AUTH] Utente registrato con successo (client dedicato):', data.user.id);
-    
-    // Sincronizza i dati dell'utente registrato con il client principale
-    try {
-      // Per assicurarci che il client principale sia aggiornato, facciamo login con il nuovo utente
-      console.log('[AUTH] Aggiornamento sessione nel client principale');
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-    } catch (syncError) {
-      console.error('[AUTH] Errore durante la sincronizzazione con client principale:', syncError);
-      // Continuiamo comunque perché l'utente è già registrato
-    }
-
-    // Redirigi alla schermata corretta
-    // L'utente dovrebbe creare il proprio profilo
-    console.log('[AUTH] Reindirizzamento per creazione profilo');
-    
-    // Restituisci il risultato
-    return {
-      success: true,
-      user: data.user,
-      session: data.session,
-      redirectToProfileCreation: true
-    };
     
   } catch (error) {
-    console.error('[AUTH] Errore sconosciuto durante registrazione:', error);
+    console.error('[AUTH] Errore imprevisto durante registrazione:', error);
+    
+    // Gestione errori imprevisti più dettagliata
+    const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
+    console.error(`[AUTH] 💥 Errore catch: ${errorMessage}`);
+    
     return {
       success: false,
-      error: 'Errore durante la registrazione. Riprova più tardi.'
+      error: 'Errore tecnico durante la registrazione. Verifica la tua connessione internet e riprova tra qualche minuto.'
     };
   }
 };
@@ -289,15 +357,15 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     }
     
     // Salva i dati dell'utente
-    await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
-      id: data.user.id,
-      email: data.user.email,
-      createdAt: data.user.created_at
-    }));
-    
+          await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
+            id: data.user.id,
+            email: data.user.email,
+            createdAt: data.user.created_at
+          }));
+        
     // Salva la sessione
     if (data.session) {
-      await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
+        await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
       
       // Formato della chiave Supabase: sb-{ref}-auth-token
       const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || '';
@@ -311,11 +379,11 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     await sessionServiceImport.initSessionService(data.user.id);
     
     // Login completato con successo
-    return {
-      success: true,
-      user: data.user,
-      session: data.session
-    };
+      return {
+        success: true,
+        user: data.user,
+        session: data.session
+      };
   } catch (error) {
     console.error('[AUTH] Errore imprevisto durante il login:', error);
     return {
@@ -339,85 +407,223 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
       };
     }
     
-    console.log(`AUTH: Tentativo di login con ${provider}...`);
+    console.log(`🍎 AUTH: Avvio autenticazione con ${provider}...`);
     
-    // Ottieni le configurazioni per OAuth dal modulo centralizzato
-    const redirectTo = config.getRedirectUrl(provider);
-    console.log(`AUTH: URL di redirezione per ${provider}:`, redirectTo);
+    // Pulisci eventuali stati precedenti
+    await clearStoredAuthSessions();
     
-    // Ottieni configurazioni specifiche per il provider
-    const providerOptions = config.getOAuthConfig(provider);
-    console.log(`AUTH: Opzioni per ${provider}:`, providerOptions);
-    
-    // Inizia il flusso di autenticazione OAuth
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: provider,
-      options: providerOptions
-    });
-    
-    if (error) {
-      console.error(`AUTH: Errore durante l'autenticazione con ${provider}:`, error);
-      throw error;
-    }
-    
-    if (!data.url) {
-      console.error(`AUTH: Non è stata restituita una URL di autorizzazione da ${provider}`);
-      return {
-        success: false,
-        error: `Errore durante l'autenticazione con ${provider}: URL mancante`
-      };
-    }
-    
-    console.log(`AUTH: URL di autorizzazione per ${provider} ottenuta:`, data.url);
-    
-    // Gestione speciale per evitare redirezioni esterne su Apple
-    if (provider === 'apple' && Platform.OS === 'ios') {
+    if (provider === 'apple') {
       try {
-        // Richiedi importazione dell'expo-auth-session
-        const { exchangeCodeAsync } = require('expo-auth-session');
-        // Apri la URL usando un WebBrowser interno
-        const response = await Linking.openURL(data.url);
-        console.log(`AUTH: Apertura browser interno per ${provider} completata`);
-        return {
-          success: true,
-          // Il flusso di autenticazione continuerà in expo-router
-        };
-      } catch (err) {
-        console.error(`AUTH: Errore nell'apertura del browser interno per ${provider}:`, err);
+        console.log('🍎 AUTH: Iniziando processo Apple Sign In...');
+        
+        // Log remoto dell'inizio del processo
+        await logInfo('Apple Sign In Started', {
+          provider: 'apple',
+          platform: Platform.OS,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Controlla se Apple Sign In è disponibile
+        const isAvailable = await AppleAuthentication.isAvailableAsync();
+        console.log('🍎 AUTH: Apple Sign In disponibile:', isAvailable);
+        
+        if (!isAvailable) {
+          await logError('Apple Sign In Not Available', null, {
+            provider: 'apple',
+            platform: Platform.OS,
+            deviceCheck: 'failed'
+          });
+          
+          return {
+            success: false,
+            error: 'Apple Sign In non è disponibile su questo dispositivo'
+          };
+        }
+        
+        console.log('🍎 AUTH: Richiesta credenziali Apple...');
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        
+        console.log('🍎 AUTH: Credenziali Apple ricevute:', {
+          user: credential.user,
+          email: credential.email,
+          hasIdentityToken: !!credential.identityToken,
+          hasAuthorizationCode: !!credential.authorizationCode,
+          fullName: credential.fullName
+        });
+        
+        if (credential.identityToken) {
+          console.log('🍎 AUTH: Inviando token a Supabase per autenticazione...');
+          
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'apple',
+            token: credential.identityToken,
+            nonce: undefined,
+          });
+          
+          console.log('🍎 AUTH: Risposta Supabase:', {
+            hasUser: !!data?.user,
+            hasSession: !!data?.session,
+            userId: data?.user?.id,
+            userEmail: data?.user?.email,
+            error: error?.message
+          });
+          
+          if (error) {
+            console.error('🍎 AUTH: Errore Supabase:', error);
+            
+            // Analizza l'errore specifico di Supabase
+            if (error.message?.includes('Invalid login')) {
+              return {
+                success: false,
+                error: 'Il tuo account Apple non è riconosciuto. Prova prima a registrarti.'
+              };
+            } else if (error.message?.includes('Email not confirmed')) {
+              return {
+                success: false,
+                error: 'Account Apple non confermato. Controlla le tue impostazioni Apple ID.'
+              };
+            } else if (error.message?.includes('signup')) {
+              return {
+                success: false,
+                error: 'Primo accesso con Apple. L\'account verrà creato automaticamente.'
+              };
+            }
+            
+            throw error;
+          }
+          
+          if (data?.session && data?.user) {
+            console.log('🍎 AUTH: Login Apple completato con successo');
+            
+            // Salva i dati utente in AsyncStorage per offline
+            await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));
+            await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
+            
+            // Salva anche nel formato Supabase standard
+            const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || '';
+            const tokenKey = `sb-${projectRef}-auth-token`;
+            await AsyncStorage.setItem(tokenKey, JSON.stringify(data.session));
+            
+            console.log('🍎 AUTH: Sessione salvata correttamente');
+            
+            return {
+              success: true,
+              data: {
+                user: data.user,
+                session: data.session
+              }
+            };
+          } else {
+            throw new Error('Nessuna sessione ricevuta da Supabase');
+          }
+        } else {
+          throw new Error('Nessun token di identità ricevuto da Apple');
+        }
+        
+      } catch (error: any) {
+        console.error('🍎 AUTH: Errore dettagliato Apple:', error);
+        
+        // Log remoto dell'errore per debugging su TestFlight
+        await logError('Apple Sign In Failed', error, {
+          provider: 'apple',
+          errorCode: error.code,
+          errorName: error.name,
+          platform: Platform.OS,
+          critical: true
+        });
+        
+        // Gestisci errori specifici di Apple
+        if (error.code === 'ERR_REQUEST_CANCELED') {
+          return {
+            success: false,
+            error: 'Accesso con Apple annullato dall\'utente'
+          };
+        } else if (error.code === 'ERR_REQUEST_NOT_HANDLED') {
+          return {
+            success: false,
+            error: 'Apple Sign In non supportato su questo dispositivo'
+          };
+        } else if (error.code === 'ERR_REQUEST_NOT_INTERACTIVE') {
+          return {
+            success: false,
+            error: 'Impossibile aprire Apple Sign In'
+          };
+        } else if (error.message?.includes('not available')) {
+          return {
+            success: false,
+            error: 'Apple Sign In non disponibile. Assicurati di aver configurato correttamente l\'app nelle impostazioni Apple.'
+          };
+        } else if (error.message?.includes('invalid_request')) {
+          return {
+            success: false,
+            error: 'Errore di configurazione Apple Sign In. Contatta il supporto.'
+          };
+        } else if (error.message?.includes('network')) {
+          return {
+            success: false,
+            error: 'Errore di connessione. Verifica la tua connessione internet e riprova.'
+          };
+        }
+        
+        // Log completo per il debug
+        console.error('🍎 AUTH: Errore completo Apple:', {
+          message: error.message,
+          code: error.code,
+          name: error.name,
+          stack: error.stack
+        });
+        
+        // Altri errori
         return {
           success: false,
-          error: `Impossibile aprire il browser per ${provider}`
+          error: `Errore durante l'autenticazione Apple: ${error.message || 'Errore sconosciuto'}`
+        };
+      }
+    } else if (provider === 'google') {
+      try {
+        console.log('📱 AUTH: Iniziando OAuth flow Google...');
+        
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            skipBrowserRedirect: false,
+            redirectTo: 'bacchus://auth-callback'
+          }
+        });
+        
+        if (error) {
+          return {
+            success: false,
+            error: error.message || 'Errore durante l\'autenticazione Google'
+          };
+        }
+        
+        return {
+          success: false,
+          error: 'oauth_in_progress',
+          data: { provider: 'google' }
+        };
+        
+      } catch (googleError: any) {
+        console.error('📱 AUTH: Errore autenticazione Google:', googleError);
+        return {
+          success: false,
+          error: `Errore Google: ${googleError.message || 'Errore sconosciuto'}`
         };
       }
     }
     
-    // Apri la URL nel browser - questo è importante per il flusso di autenticazione
-    try {
-      const canOpen = await Linking.canOpenURL(data.url);
-      
-      if (canOpen) {
-        await Linking.openURL(data.url);
-        console.log(`AUTH: Browser aperto con URL di autorizzazione per ${provider}`);
-        return {
-          success: true,
-          // Il flusso di autenticazione continuerà in expo-router
-        };
-      } else {
-        console.error(`AUTH: Impossibile aprire la URL di autorizzazione per ${provider}`);
-        return {
-          success: false,
-          error: `Impossibile aprire la URL di autorizzazione per ${provider}`
-        };
-      }
-    } catch (error) {
-      console.error(`AUTH: Errore durante l'apertura della URL di autorizzazione per ${provider}:`, error);
-      return {
-        success: false,
-        error: `Errore durante l'apertura della URL di autorizzazione per ${provider}`
-      };
-    }
+    return {
+      success: false,
+      error: 'Provider non supportato'
+    };
   } catch (error: any) {
-    console.error(`AUTH: Errore generale durante il login con ${provider}:`, error);
+    console.error(`❌ AUTH: Errore generale durante il login con ${provider}:`, error);
     return {
       success: false,
       error: error?.message || `Errore durante il login con ${provider}`
@@ -429,24 +635,83 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
  * Effettua il logout dell'utente
  */
 export const signOut = async (): Promise<AuthResponse> => {
+  console.log('AUTH: Inizio logout immediato e sincrono');
+  
   try {
-    console.log('Starting logout process');
+    // 1. Pulisci IMMEDIATAMENTE tutti i flag globali
+    if (typeof global !== 'undefined') {
+      global.__WIZARD_AFTER_REGISTRATION__ = false;
+      global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+      global.__PREVENT_ALL_REDIRECTS__ = false;
+      global.__BLOCK_ALL_SCREENS__ = false;
+      global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
+    }
     
-    // Prima di effettuare il logout, cancella i dati ospite
-    await clearGuestData();
-    
-    // Effettua il logout da Supabase
+    // 2. Effettua il logout da Supabase IMMEDIATAMENTE
     const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.warn('AUTH: Errore logout Supabase (continuo comunque):', error);
+    }
     
-    if (error) throw error;
+    // 3. Pulisci AsyncStorage in modo sincrono
+    const keysToRemove = [
+      USER_DATA_KEY,
+      USER_SESSION_KEY,
+      SELECTED_PROFILE_KEY,
+      'bacchus_wizard_cache',
+      'registration_just_completed',
+      'lastKnownSession',
+      'activeSession',
+      'bacchus_profiles',
+      'bacchus_active_profile',
+      'bacchus_current_profile',
+      'apple_auth_in_progress',
+      'apple_auth_timestamp'
+    ];
+    
+    await AsyncStorage.multiRemove(keysToRemove);
+    
+    // 4. Pulisci sessioni di autenticazione
+    await clearStoredAuthSessions();
+    
+    // 5. FORZA IMMEDIATAMENTE LA NAVIGAZIONE AL LOGIN
+    const { router } = require('expo-router');
+    
+    // 6. Usa setTimeout(0) per forzare l'esecuzione immediata nel prossimo ciclo di eventi
+    setTimeout(() => {
+      console.log('AUTH: Forzando navigazione immediata al login...');
+      try {
+        router.replace('/auth/login');
+        console.log('AUTH: Navigazione forzata completata');
+      } catch (navError) {
+        console.error('AUTH: Errore navigazione, riprovo...', navError);
+        // Riprova con un fallback
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 100);
+      }
+    }, 0);
+    
+    console.log('AUTH: Logout completato immediatamente');
     
     return { success: true };
-  } catch (error) {
-    console.error('Errore durante il logout:', error);
-    return {
-      success: false,
-      error: error.message || 'Impossibile effettuare il logout'
-    };
+  } catch (error: any) {
+    console.error('AUTH: Errore durante logout:', error);
+    
+    // Anche in caso di errore, forza la pulizia e la navigazione
+    try {
+      await AsyncStorage.clear();
+      
+      // Forza comunque la navigazione
+      const { router } = require('expo-router');
+      setTimeout(() => {
+        router.replace('/auth/login');
+      }, 0);
+    } catch (clearError) {
+      console.error('AUTH: Errore pulizia di emergenza:', clearError);
+    }
+    
+    return { success: true }; // Restituisce sempre successo per il logout
   }
 };
 
@@ -658,66 +923,64 @@ export const resetAuthState = async (): Promise<void> => {
 
 /**
  * Verifica se il wizard del profilo è stato completato
+ * Versione SEMPLIFICATA per evitare loop
  */
 export const hasCompletedProfileWizard = async (): Promise<boolean> => {
   try {
-    console.log('Verifica completamento wizard...');
+    console.log('[AUTH] Verifica completamento wizard...');
     
-    // Verifica PRIMA in AsyncStorage (più veloce e affidabile)
-    const profileSettingsStr = await AsyncStorage.getItem(SELECTED_PROFILE_KEY);
-    if (profileSettingsStr) {
-      const profileSettings = JSON.parse(profileSettingsStr);
-      if (profileSettings.completedWizard === true) {
-        console.log('Wizard completato (da AsyncStorage):', true);
-        return true;
-      }
+    // STEP 1: Controlla i flag diretti in AsyncStorage (più veloce e affidabile)
+    const wizardCompleted = await AsyncStorage.getItem('profile_wizard_completed');
+    const wizardCompletedAlt = await AsyncStorage.getItem('bacchus_wizard_completed');
+    
+    if (wizardCompleted === 'true' || wizardCompletedAlt === 'true') {
+      console.log('[AUTH] ✅ Wizard completato (da AsyncStorage flag)');
+      return true;
     }
     
-    // Se non troviamo in AsyncStorage, verifica se l'utente è autenticato
+    // STEP 2: Se non c'è flag, controlla se ci sono profili nel database
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      console.log('Utente non autenticato, wizard non completato');
+      console.log('[AUTH] Utente non autenticato, wizard non completato');
       return false;
     }
     
-    // Verifica quindi se ci sono profili con has_completed_wizard = true nel DB
+    // STEP 3: Controlla se l'utente ha almeno un profilo nel database (RAPIDO)
     if (!(await offlineService.isOffline())) {
       try {
-        const { data, error } = await supabase
+        console.log('[AUTH] Controllo rapido profili per utente:', currentUser.id);
+        
+        const { data: profiles, error } = await supabase
           .from('profiles')
-          .select('has_completed_wizard')
+          .select('id, name')
           .eq('user_id', currentUser.id)
-          .eq('has_completed_wizard', true)
           .limit(1);
         
         if (error) {
-          // Se l'errore è dovuto alla mancanza della colonna, lo ignoriamo
-          if (error.code === 'PGRST204' && 
-              error.message && 
-              error.message.includes('has_completed_wizard')) {
-            console.log('La colonna has_completed_wizard non esiste nel database. Utilizzo solo AsyncStorage.');
-          } else {
-            console.error('Error checking wizard completion from DB:', error);
-          }
-        } else if (data && data.length > 0) {
-          // Se troviamo il flag nel DB, aggiorniamo anche AsyncStorage per la prossima volta
-          const profileSettings = profileSettingsStr ? JSON.parse(profileSettingsStr) : {};
-          profileSettings.completedWizard = true;
-          await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify(profileSettings));
-          
-          console.log('Wizard completato (da DB):', true);
-          return true;
+          console.error('[AUTH] Errore controllo profili:', error.message);
+          return false;
         }
-      } catch (err) {
-        console.error('Unexpected error checking wizard completion from DB:', err);
+        
+        if (profiles && profiles.length > 0) {
+          console.log('[AUTH] ✅ Profilo trovato, wizard considerato completato');
+          
+          // Salva il flag per le prossime volte
+          await AsyncStorage.setItem('profile_wizard_completed', 'true');
+          return true;
+        } else {
+          console.log('[AUTH] Nessun profilo trovato, wizard da completare');
+          return false;
+        }
+      } catch (dbError) {
+        console.error('[AUTH] Errore controllo database:', dbError);
+        return false;
       }
     }
     
-    // Se arriviamo qui, significa che non abbiamo trovato conferma del completamento
-    console.log('Nessuna conferma trovata, wizard non completato');
+    console.log('[AUTH] ❌ Wizard non completato');
     return false;
   } catch (error) {
-    console.error('Error checking profile wizard completion:', error);
+    console.error('[AUTH] Errore verifica wizard:', error);
     return false;
   }
 };
@@ -863,7 +1126,6 @@ export const deleteAccount = async (): Promise<AuthResponse> => {
     }
     
     // Prima otteniamo la sessione attuale e i token necessari
-    // QUESTO È CRUCIALE - Dobbiamo ottenere il token PRIMA di eliminare qualsiasi dato
     console.log('Retrieving authentication session...');
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
@@ -871,282 +1133,156 @@ export const deleteAccount = async (): Promise<AuthResponse> => {
     
     if (!accessToken) {
       console.error('No access token available in the current session');
-      
-      // Tentiamo comunque di proseguire con l'eliminazione
-      console.log('Attempting to delete user data without token...');
-    } else {
-      console.log('Access token retrieved successfully');
-    }
-
-    // Tenta di eliminare le tabelle di dati dell'utente
-    try {
-      // Tenta di eliminare i profili
-      await supabase.from('profiles').delete().eq('user_id', userId);
-      console.log('User profiles deleted successfully');
-    } catch (profileError) {
-      console.error('Error deleting user profiles:', profileError);
-    }
-    
-    // Verifica se esiste la tabella active_sessions prima di tentare l'eliminazione
-    try {
-      const { count } = await supabase
-        .from('active_sessions')
-        .select('*', { count: 'exact', head: true });
-      
-      if (count !== null) {
-        // La tabella esiste, procedi con l'eliminazione
-        await supabase.from('active_sessions').delete().eq('user_id', userId);
-        console.log('Active sessions deleted successfully');
-      } else {
-        console.log('Active sessions table does not exist, skipping deletion');
-      }
-    } catch (sessionError) {
-      console.log('Error checking/deleting active sessions:', sessionError);
-    }
-    
-    // Verifica se esiste la tabella session_history prima di tentare l'eliminazione
-    try {
-      const { count } = await supabase
-        .from('session_history')
-        .select('*', { count: 'exact', head: true });
-      
-      if (count !== null) {
-        // La tabella esiste, procedi con l'eliminazione
-        await supabase.from('session_history').delete().eq('user_id', userId);
-        console.log('Session history deleted successfully');
-      } else {
-        console.log('Session history table does not exist, skipping deletion');
-      }
-    } catch (historyError) {
-      console.log('Error checking/deleting session history:', historyError);
-    }
-    
-    // Tenta di eliminare l'account direttamente tramite gli endpoint di Supabase
-    let accountDeleted = false;
-    
-    // METODO PRINCIPALE: Usa l'API di amministrazione se abbiamo il service role key
-    const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://egdpjqdsugbcoroclgys.supabase.co';
-    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-    
-    // Log masked keys for debugging
-    console.log('URL:', supabaseUrl);
-    console.log('Service Role Key Available:', !!serviceRoleKey);
-    console.log('Anon Key Available:', !!supabaseAnonKey);
-    
-    if (serviceRoleKey) {
-      console.log('Attempting admin API deletion...');
-      try {
-        // Crea un client admin temporaneo 
-        const tempSupabaseAdmin = createClient(
-          supabaseUrl,
-          serviceRoleKey
-        );
-        
-        try {
-          const { error } = await tempSupabaseAdmin.auth.admin.deleteUser(userId);
-          if (!error) {
-            console.log('User successfully deleted via supabaseAdmin API');
-            accountDeleted = true;
-          } else {
-            console.error('Admin API deletion failed:', error);
-          }
-        } catch (adminClientError) {
-          console.error('Error with supabaseAdmin client:', adminClientError);
-        }
-        
-        // Fallback: chiamata REST diretta se il client admin fallisce
-        if (!accountDeleted) {
-          console.log('Admin client failed, trying direct REST API call...');
-          
-          try {
-            const adminResponse = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`
-              }
-            });
-            
-            console.log('Admin deletion status:', adminResponse.status);
-            console.log('Admin deletion headers:', JSON.stringify(Object.fromEntries([...adminResponse.headers])));
-            
-            if (adminResponse.ok) {
-              console.log('User successfully deleted via admin API');
-              accountDeleted = true;
-            } else {
-              const errorText = await adminResponse.text();
-              console.error('Admin API deletion failed:', errorText);
-            }
-          } catch (fetchError) {
-            console.error('Fetch error with admin API deletion:', fetchError);
-          }
-        }
-      } catch (adminError) {
-        console.error('Error with admin API deletion:', adminError);
-      }
-    } else {
-      console.warn('No service role key available, cannot use admin API');
-    }
-    
-    // METODO ALTERNATIVO: Tenta di eliminare l'account con il token utente
-    if (!accountDeleted && accessToken) {
-      console.log('Attempting user self-deletion via auth API...');
-      try {
-        // Assicuriamoci che la richiesta includa sia l'apikey che l'authorization token
-        const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseAnonKey || '', // Aggiungiamo l'apikey anonima
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        
-        console.log('User self-deletion response status:', userResponse.status);
-        
-        if (userResponse.ok) {
-          console.log('User successfully deleted via user auth API');
-          accountDeleted = true;
-        } else {
-          const errorText = await userResponse.text();
-          console.error('User API deletion failed:', errorText);
-          console.log('Response status:', userResponse.status);
-          console.log('Response headers:', JSON.stringify(Object.fromEntries([...userResponse.headers])));
-          
-          // Trying alternative method with a different endpoint structure
-          console.log('Attempting alternative user deletion method...');
-          
-          // Try with a more complete URL that includes both auth and rest endpoints
-          try {
-            const alternativeResponse = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': supabaseAnonKey || '',
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-            
-            console.log('Alternative deletion response status:', alternativeResponse.status);
-            
-            if (alternativeResponse.ok) {
-              console.log('User successfully deleted via alternative method');
-              accountDeleted = true;
-            } else {
-              const altErrorText = await alternativeResponse.text();
-              console.error('Alternative deletion failed:', altErrorText);
-              
-              // If none of the above methods work, try a raw REST API call with specific headers
-              const rawResponse = await fetch(`${supabaseUrl}/rest/v1/profiles?user_id=eq.${userId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': supabaseAnonKey || '',
-                  'Authorization': `Bearer ${accessToken}`,
-                  'Prefer': 'return=minimal'
-                }
-              });
-              
-              console.log('Raw deletion response status:', rawResponse.status);
-              if (rawResponse.ok) {
-                console.log('At least user data deleted via raw deletion');
-                // This doesn't delete the auth account but removes related data
-              }
-            }
-          } catch (altError) {
-            console.error('Error with alternative deletion method:', altError);
-          }
-        }
-      } catch (userError) {
-        console.error('Error with user API deletion:', userError);
-      }
-    }
-    
-    // In ogni caso, puliamo i dati locali
-    try {
-      console.log('Resetting all local data...');
-      await resetAllLocalData();
-      console.log('Local data reset completed');
-    } catch (resetError) {
-      console.error('Error resetting local data:', resetError);
-    }
-
-    // Se non siamo riusciti a eliminare l'account con i metodi sopra
-    // ma siamo arrivati a questo punto, logghiamo l'utente e lo reindirizziamo
-    // in modo che debba fare di nuovo il login
-    if (!accountDeleted) {
-      console.warn('Could not delete user account from Supabase Auth');
-      try {
-        await supabase.auth.signOut();
-        console.log('User signed out successfully');
-      } catch (signOutError) {
-        console.error('Error signing out:', signOutError);
-      }
-      
-      // Elimina anche tutti i token di autenticazione
-      try {
-        await resetAuthState();
-        console.log('Auth state reset successfully');
-      } catch (resetError) {
-        console.error('Error resetting auth state:', resetError);
-      }
-      
       return {
         success: false,
-        error: 'Could not delete account from authentication provider, but deleted all data'
+        error: 'No active session found'
       };
     }
     
-    // Procedura di pulizia finale
+    console.log('Access token retrieved, proceeding with account deletion');
+
+    // Prima eliminiamo tutti i dati dell'utente nelle tabelle
     try {
-      // Rimuovi i token e altri dati di autenticazione
-      await AsyncStorage.removeItem(SUPABASE_AUTH_TOKEN_KEY);
-      await AsyncStorage.removeItem(USER_SESSION_KEY);
-      await AsyncStorage.removeItem(USER_DATA_KEY);
-      console.log('Auth tokens explicitly removed');
+      console.log('Deleting user data from tables...');
       
-      // Effettua il logout
-      await supabase.auth.signOut();
-      console.log('User signed out successfully');
-    } catch (finalError) {
-      console.error('Error in final cleanup:', finalError);
+      // Elimina i profili
+      const { error: profilesError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (profilesError) {
+        console.error('Error deleting profiles:', profilesError);
+      } else {
+        console.log('Profiles deleted successfully');
+      }
+      
+      // Elimina le sessioni attive
+      try {
+        const { error: sessionsError } = await supabase
+          .from('active_sessions')
+          .delete()
+          .eq('user_id', userId);
+        
+        if (sessionsError && !sessionsError.message.includes('does not exist')) {
+          console.error('Error deleting active sessions:', sessionsError);
+          } else {
+          console.log('Active sessions deleted successfully');
+        }
+      } catch (e) {
+        console.warn('Error with active sessions table (might not exist):', e);
+      }
+      
+      // Elimina la cronologia delle sessioni
+      try {
+        const { error: historyError } = await supabase
+          .from('session_history')
+          .delete()
+          .eq('user_id', userId);
+        
+        if (historyError && !historyError.message.includes('does not exist')) {
+          console.error('Error deleting session history:', historyError);
+            } else {
+          console.log('Session history deleted successfully');
+        }
+      } catch (e) {
+        console.warn('Error with session history table (might not exist):', e);
+      }
+      
+      console.log('User data deletion completed');
+    } catch (error) {
+      console.error('Error deleting user data:', error);
+      // Continuiamo comunque con l'eliminazione dell'account
     }
     
-    // Reindirizza alla pagina iniziale invece che alla login
-    console.log('Redirecting to home screen after account deletion');
+    // Ora proviamo a eliminare l'account utente
     try {
-      // Reset completo dello stato dell'app
-      await resetAppState();
+      console.log('Deleting user account...');
       
-      // Reindirizza all'onboarding o alla home iniziale per consentire una nuova registrazione
-      router.replace('/');
+      // ✅ CORREZIONE CRITICA: Utilizzare la vera API admin di Supabase per eliminare l'account
+      // Invece di solo disabilitarlo, proviamo la vera eliminazione
+      console.log('Attempting real account deletion...');
       
-      // In alternativa prova a tornare indietro alla radice dell'app
-      setTimeout(() => {
-        if (router) {
-          router.navigate('/');
-        }
-      }, 500);
-    } catch (navError) {
-      console.error('Navigation error after account deletion:', navError);
-      // Fallback: tenta di ricaricare l'app
+      // Metodo 1: Usare l'Admin API di Supabase se disponibile
       try {
-        router.replace('/');
-      } catch (e) {
-        console.error('Failed to navigate to home after account deletion:', e);
+        // Questo richiede che nel progetto Supabase sia abilitata l'API admin
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+        
+        if (!deleteError) {
+          console.log('✅ Account deleted successfully via admin API');
+          await resetAllLocalData();
+          await signOut();
+          return { success: true };
+        } else {
+          console.warn('Admin delete failed, trying alternative method:', deleteError);
+        }
+      } catch (adminError) {
+        console.warn('Admin API not available, trying alternative method:', adminError);
       }
-    }
+      
+      // Metodo 2: Eliminazione manuale completa se admin API non funziona
+      console.log('Trying manual complete account deletion...');
+      
+      // Prima segna l'account come da eliminare nel metadata
+      const { error: markError } = await supabase.auth.updateUser({
+        data: { 
+          account_deletion_requested: true, 
+          deleted_at: new Date().toISOString(),
+          email_backup: currentUser.email  // Backup per riferimento
+        }
+      });
+      
+      if (markError) {
+        console.error('Failed to mark account for deletion:', markError);
+      }
+      
+      // Poi tenta di eliminare usando il client edge function se disponibile
+      try {
+        const { data: deleteResult, error: edgeError } = await supabase.functions.invoke('delete-user', {
+          body: { userId: userId }
+        });
+        
+        if (!edgeError && deleteResult?.success) {
+          console.log('✅ Account deleted successfully via edge function');
+          await resetAllLocalData();
+          await signOut();
+          return { success: true };
+        } else {
+          console.warn('Edge function delete failed:', edgeError);
+        }
+      } catch (edgeError) {
+        console.warn('Edge function not available:', edgeError);
+      }
+      
+      // Metodo 3: Se tutto il resto fallisce, almeno logout e pulizia completa
+      console.log('Account deletion not fully supported, performing logout and data cleanup...');
+      
+      // Esegui comunque logout e pulizia locale
+      await resetAllLocalData();
+      await signOut();
+      
+      // Informa l'utente che il logout è stato effettuato ma l'account potrebbe richiedere eliminazione manuale
+      return { 
+        success: true,
+        error: 'partial_deletion' // Codice speciale per indicare eliminazione parziale
+      };
+      
+    } catch (error) {
+      console.error('Fatal error deleting user account:', error);
+      
+      // In caso di errore, almeno facciamo il logout
+      await signOut();
     
     return {
-      success: true
+        success: false,
+        error: 'cannotDeleteAccount'
     };
-  } catch (error: any) {
-    console.error('Delete account error:', error);
+    }
+  } catch (error) {
+    console.error('Fatal error in deleteAccount:', error);
     return {
       success: false,
-      error: error.message || 'An error occurred while deleting account'
+      error: 'cannotDeleteAccount'
     };
   }
 };

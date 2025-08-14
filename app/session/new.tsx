@@ -147,8 +147,8 @@ export default function NewSessionScreen() {
         return;
       }
       
-      // Navigate to the session screen
-      router.replace('/session');
+      // Navigate to the session tab (not replace!)
+      router.push('/(tabs)/session');
     } catch (error) {
       console.error('Errore nella creazione della sessione:', error);
       Alert.alert(

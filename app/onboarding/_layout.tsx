@@ -10,31 +10,40 @@ export default function OnboardingLayout() {
         headerShown: false,
         animation: 'none',
         animationDuration: 0,
-        // Disabilita qualsiasi interazione di navigazione
+        // 🚫 SWIPE BACK COMPLETAMENTE DISABILITATO - RICHIESTA UTENTE
         gestureEnabled: false,
-        // Usa modal con trasparenza per le schermate speciali
-        presentation: 'transparentModal',
-        // In teoria questo dovrebbe prevenire la chiusura automatica
-        autoHideHomeIndicator: false,
-        // Extra importante: setta fullScreenGestureEnabled a false su iOS
         fullScreenGestureEnabled: false,
-        // Non consentire di trascinare la schermata verso il basso
-        contentStyle: {
-          backgroundColor: 'transparent',
-        },
+        gestureDirection: 'horizontal',
+        presentation: 'modal',
       }}
     >
       <Stack.Screen
-        name="subscription-offer"
+        name="profile-wizard"
         options={{
-          title: "Premium",
-          // Disabilita tutti i gesti possibili
+          title: "Configurazione Profilo",
+          // ZERO POSSIBILITÀ DI GESTURE
           gestureEnabled: false,
           headerShown: false,
           animation: 'none',
           animationDuration: 0,
-          presentation: 'transparentModal',
-          contentStyle: { backgroundColor: 'transparent' },
+          fullScreenGestureEnabled: false,
+          gestureDirection: 'horizontal',
+          presentation: 'modal',
+          // Previeni swipe back completamente
+          headerBackVisible: false,
+          headerLeft: () => null, // Rimuovi qualsiasi pulsante back
+        }}
+      />
+      <Stack.Screen
+        name="subscription-offer"
+        options={{
+          title: "Premium",
+          gestureEnabled: false,
+          headerShown: false,
+          animation: 'none',
+          animationDuration: 0,
+          fullScreenGestureEnabled: false,
+          presentation: 'modal',
         }}
       />
     </Stack>

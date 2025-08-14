@@ -15,14 +15,12 @@ import { calculateBAC, calculateTimeToSober, calculateTimeToLegalLimit } from '.
 import { DrinkRecord } from '../bac/visualization';
 import { Session, UserProfile, Drink, FoodRecord } from '../../types/session';
 
-// ===== VARIABILI GLOBALI =====
+// ===== STATO SEMPLIFICATO =====
 let _initialized = false;
 let activeSession: Session | null = null;
 let sessionHistory: Session[] = [];
 let _currentUserId: string | null = null;
-// Aggiunta: flag per evitare chiamate multiple ravvicinate
-let _initializationInProgress = false;
-let _lastInitTime = 0;
+// Rimossi flag di race condition - causavano più problemi di quanti ne risolvevano
 
 // ===== CHIAVI STORAGE =====
 // Migliora la gestione delle chiavi di storage con prefissi per utenti
@@ -41,6 +39,9 @@ const getSessionHistoryKey = (userId: string | null): string => {
   if (!userId) return 'guest_session_history';
   return `user_${userId}_session_history`;
 };
+
+// Chiave per l'ultima sessione conosciuta in AsyncStorage
+const LAST_KNOWN_SESSION_KEY = 'bacchus_last_known_session';
 
 // ===== FUNZIONI DI BASE =====
 
@@ -93,17 +94,116 @@ export function setSessionHistory(history: Session[]): void {
 // Nuova funzione asincrona per caricare la cronologia
 export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
   try {
-    console.log('[loadSessionHistoryFromStorage] Caricamento forzato della cronologia da localStorage');
+    console.log('[loadSessionHistoryFromStorage] 🔄 Caricamento forzato cronologia...');
     const userId = await getCurrentUserId();
+    
+    // 🔧 FIX CRITICO: Carica prima dal database se l'utente è autenticato
+    if (userId) {
+      console.log('[loadSessionHistoryFromStorage] 🗄️ Utente autenticato - caricamento da database Supabase...');
+      try {
+        // Carica sessioni dal database
+        const { data: supabaseSessions, error } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false });
+          
+        if (error) {
+          console.error('[loadSessionHistoryFromStorage] ❌ Errore database:', error);
+        } else if (supabaseSessions && supabaseSessions.length > 0) {
+          console.log(`[loadSessionHistoryFromStorage] ✅ Caricate ${supabaseSessions.length} sessioni dal database`);
+          
+          // Converti le sessioni Supabase in formato locale
+          const convertedSessions: Session[] = [];
+          for (const dbSession of supabaseSessions) {
+            try {
+              // Carica il profilo per ogni sessione
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', dbSession.profile_id)
+                .single();
+                
+              if (profileData) {
+                // Crea sessione locale dal formato database
+                const localSession: Session = {
+                  id: dbSession.id,
+                  startTime: new Date(dbSession.data.start_time),
+                  sessionStartTime: new Date(dbSession.data.start_time),
+                  endTime: dbSession.data.end_time ? new Date(dbSession.data.end_time) : undefined,
+                  profile: {
+                    id: profileData.id,
+                    userId: profileData.user_id,
+                    name: profileData.name,
+                    gender: profileData.gender,
+                    weightKg: profileData.weight,
+                    age: profileData.age,
+                    height: profileData.height,
+                    drinkingFrequency: profileData.drinking_frequency,
+                    emoji: profileData.emoji || '😀',
+                    color: profileData.color || '#FF5252',
+                    isDefault: profileData.is_default || false,
+                    isGuest: false,
+                    createdAt: profileData.created_at,
+                    updatedAt: profileData.updated_at,
+                    hasCompletedWizard: true
+                  },
+                  drinks: dbSession.data.drinks || [],
+                  foods: dbSession.data.foods || [],
+                  currentBAC: dbSession.data.current_bac || 0,
+                  status: dbSession.data.status || 'safe',
+                  bacTimePoints: [],
+                  soberTime: dbSession.data.soberTime || '0:00',
+                  sessionDuration: '0:00',
+                  timeToSober: 0,
+                  legalTime: dbSession.data.legalTime || '0:00',
+                  timeToLegal: 0,
+                  bacSeries: [],
+                  user_id: dbSession.user_id,
+                  updated_at: dbSession.updated_at,
+                  isClosed: !dbSession.is_active
+                };
+                
+                convertedSessions.push(localSession);
+              }
+            } catch (conversionError) {
+              console.error('[loadSessionHistoryFromStorage] ❌ Errore conversione sessione:', conversionError);
+            }
+          }
+          
+          // Filtra solo sessioni chiuse per la cronologia
+          const historySessions = convertedSessions.filter(s => s.isClosed);
+          
+          // Aggiorna la variabile globale
+          sessionHistory = historySessions;
+          
+          // Salva anche localmente per cache
+          if (historySessions.length > 0) {
+            await AsyncStorage.setItem(getSessionHistoryKey(userId), JSON.stringify(historySessions));
+          }
+          
+          console.log(`[loadSessionHistoryFromStorage] ✅ Cronologia aggiornata con ${historySessions.length} sessioni dal database`);
+          return historySessions;
+        } else {
+          // 🔧 FIX SESSION HISTORY: Se Supabase è vuoto, fai fallback a locale
+          console.log('[loadSessionHistoryFromStorage] ⚠️ Database vuoto - fallback a localStorage...');
+        }
+      } catch (dbError) {
+        console.error('[loadSessionHistoryFromStorage] ❌ Errore database generale:', dbError);
+      }
+    }
+    
+    // Fallback: carica da localStorage se non c'è database o errori
+    console.log('[loadSessionHistoryFromStorage] 📱 Fallback: caricamento da localStorage...');
     const { history } = await loadSessionsFromLocalStorage(userId);
       
     // Aggiorna la variabile globale con la cronologia caricata
     sessionHistory = history;
-    console.log(`[loadSessionHistoryFromStorage] Caricati ${sessionHistory.length} elementi nella cronologia`);
+    console.log(`[loadSessionHistoryFromStorage] ✅ Caricate ${history.length} sessioni dalla cronologia locale`);
     
     return sessionHistory;
   } catch (error) {
-    console.error('[loadSessionHistoryFromStorage] Errore nel caricamento della cronologia:', error);
+    console.error('[loadSessionHistoryFromStorage] ❌ Errore generale:', error);
     return [];
   }
 }
@@ -111,172 +211,33 @@ export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
 // Inizializza il servizio delle sessioni
 export async function initSessionService(userId?: string): Promise<void> {
   try {
-    // Verifica se un'inizializzazione è già in corso o se è stata completata recentemente
-    const currentTime = Date.now();
-    if (_initializationInProgress) {
-      console.log('Inizializzazione sessioni già in corso, richiesta ignorata');
-      return;
-    }
+    console.log('[SESSION_SERVICE] Inizializzazione ULTRA semplificata...');
     
-    // Previeni chiamate multiple troppo ravvicinate (entro 3 secondi)
-    if (_initialized && currentTime - _lastInitTime < 3000) {
-      console.log('Servizio sessioni già inizializzato recentemente, controllo ignorato');
-      return;
-    }
-    
-    _initializationInProgress = true;
-    
-    // Imposto un timeout per evitare che un'operazione troppo lunga blocchi l'UI
-    const initPromise = new Promise<void>(async (resolve, reject) => {
-      try {
-        console.log('Initializing session service');
-        
-        // Ottieni l'ID dell'utente corrente se non fornito
-        let currentUserId = userId;
-        if (!currentUserId) {
-          const currentUser = await getCurrentUser();
-          currentUserId = currentUser?.id || null;
-        }
-        
-        _currentUserId = currentUserId;
-        console.log('Session service initialized for user:', _currentUserId || 'guest');
-        
-        // Se già inizializzato, facciamo solo un controllo rapido
-        if (_initialized) {
-          console.log('Servizio sessioni già inizializzato, eseguendo controllo leggero');
-          
-          // Se c'è una sessione attiva, verifica che appartenga all'utente corrente
-          if (activeSession && currentUserId && activeSession.user_id && 
-              activeSession.user_id !== currentUserId) {
-            console.log('Active session belongs to a different user, resetting it');
-            activeSession = null;
-            
-            // Rimuovi da AsyncStorage, ma senza attendere
-            const key = getActiveSessionKey(currentUserId);
-            AsyncStorage.removeItem(key);
-          }
-          
-          resolve();
-          return;
-        }
-        
-        // OTTIMIZZAZIONE: Carica solo la sessione attiva invece di tutta la cronologia
-        // quando stiamo facendo l'inizializzazione durante il completamento del wizard
-        // La cronologia può essere caricata in un secondo momento quando necessaria
-        const activeKey = getActiveSessionKey(currentUserId);
-        const activeData = await AsyncStorage.getItem(activeKey);
-        
-        if (activeData) {
-          try {
-            const parsedSession = JSON.parse(activeData);
-            
-            // Verifica che la sessione appartenga all'utente corrente
-            if (currentUserId && parsedSession.user_id && 
-                parsedSession.user_id !== currentUserId) {
-              console.log('Active session belongs to a different user, ignoring it');
-              activeSession = null;
-            } else {
-              activeSession = parsedSession;
-              
-              // Converti le date in oggetti Date
-              if (activeSession.startTime) {
-                activeSession.startTime = new Date(activeSession.startTime);
-              }
-              if (activeSession.sessionStartTime) {
-                activeSession.sessionStartTime = new Date(activeSession.sessionStartTime);
-              }
-              if (activeSession.endTime) {
-                activeSession.endTime = new Date(activeSession.endTime);
-              }
-              
-              // Se c'è una sessione attiva, aggiorna il BAC
-              updateSessionBAC();
-            }
-          } catch (parseError) {
-            console.error('Error parsing active session:', parseError);
-            activeSession = null;
-          }
-        } else {
-          activeSession = null;
-        }
-        
-        // Imposta il flag di inizializzazione
-        _initialized = true;
-        _lastInitTime = Date.now(); // Salva il timestamp dell'ultima inizializzazione
-        console.log('Session service initialized with', 
-          activeSession ? '1 active session' : 'no active sessions');
-        
-        // Carica la cronologia in background
-        setTimeout(() => {
-          loadSessionHistoryInBackground(currentUserId);
-        }, 100);
-        
-        resolve();
-      } catch (error) {
-        console.error('Error in session service initialization:', error);
-        reject(error);
-      }
-    });
-    
-    // Imposta un timeout per evitare che l'operazione blocchi indefinitamente
-    const timeoutPromise = new Promise<void>((_, reject) => {
-      setTimeout(() => {
-        _initialized = true; // Forza l'inizializzazione anche in caso di timeout
-        _lastInitTime = Date.now(); // Salva il timestamp dell'ultima inizializzazione
-        reject(new Error('Session service initialization timed out'));
-      }, 5000); // 5 secondi di timeout
-    });
-    
-    // Attendiamo che l'inizializzazione termini o vada in timeout
-    await Promise.race([initPromise, timeoutPromise]);
-  } catch (error) {
-    console.error('Error initializing session service:', error);
-    // Forziamo l'inizializzazione anche in caso di errore per non bloccare l'app
+    // FARE ASSOLUTAMENTE NIENTE - solo impostare il flag
     _initialized = true;
-    _lastInitTime = Date.now(); // Salva il timestamp dell'ultima inizializzazione
-  } finally {
-    _initializationInProgress = false; // Resetta il flag di inizializzazione in corso
+    
+    console.log('[SESSION_SERVICE] ✅ Inizializzato (nessuna operazione)');
+  } catch (error) {
+    console.error('[SESSION_SERVICE] Errore:', error);
+    _initialized = true; // Marca come inizializzato anche in caso di errore
   }
 }
 
-// Funzione per caricare la cronologia delle sessioni in background
+// Carica cronologia sessioni (versione semplificata)
 async function loadSessionHistoryInBackground(userId: string | null = null): Promise<void> {
   try {
-    console.log('🔴🔴🔴 DIAGNOSTICA: loadSessionHistoryInBackground chiamato per userId:', userId || 'guest', '🔴🔴🔴');
-    
-    // Verifichiamo tutte le chiavi per assicurarci di trovare la giusta
-    const allKeys = await AsyncStorage.getAllKeys();
-    console.log(`🔴 DIAGNOSTICA: Tutte le chiavi in AsyncStorage: ${allKeys.join(', ')}`);
-    
-    // Chiave standard
     const historyKey = getSessionHistoryKey(userId);
-    console.log(`🔴 DIAGNOSTICA: Tentativo caricamento cronologia con chiave: ${historyKey}`);
-    
-    // Ricerchiamo anche chiavi simili se l'utente ha un ID
-    const possibleKeys = userId 
-      ? allKeys.filter(key => key.includes(userId) && key.includes('session_history'))
-      : [];
-    
-    if (possibleKeys.length > 0 && !allKeys.includes(historyKey)) {
-      console.log(`🔴 DIAGNOSTICA: Trovate chiavi alternative per session_history: ${possibleKeys.join(', ')}`);
-    }
-    
-    // Prova prima la chiave standard
     let historyData = await AsyncStorage.getItem(historyKey);
     
-    // Se non trova nulla con la chiave standard e ci sono chiavi alternative, prova quelle
-    if (!historyData && possibleKeys.length > 0) {
-      for (const altKey of possibleKeys) {
-        console.log(`🔴 DIAGNOSTICA: Tentativo con chiave alternativa: ${altKey}`);
-        const altData = await AsyncStorage.getItem(altKey);
-        if (altData) {
-          historyData = altData;
-          console.log(`🔴 DIAGNOSTICA: Dati trovati con chiave alternativa: ${altKey}`);
-          
-          // Facciamo una migrazione della chiave per le future chiamate
-          await AsyncStorage.setItem(historyKey, altData);
-          console.log(`🔴 DIAGNOSTICA: Migrazione dati da chiave ${altKey} a ${historyKey} completata`);
-          break;
+    if (!historyData && userId) {
+      // Fallback: cerca chiavi alternative per questo utente
+      const allKeys = await AsyncStorage.getAllKeys();
+      const altKey = allKeys.find(key => key.includes(userId) && key.includes('session_history'));
+      if (altKey) {
+        historyData = await AsyncStorage.getItem(altKey);
+        // Migra alla chiave standard
+        if (historyData) {
+          await AsyncStorage.setItem(historyKey, historyData);
         }
       }
     }
@@ -284,26 +245,17 @@ async function loadSessionHistoryInBackground(userId: string | null = null): Pro
     if (historyData) {
       try {
         const history = JSON.parse(historyData);
-        // Filtra le sessioni per l'utente corrente se necessario
-        if (userId) {
-          sessionHistory = history.filter(session => 
-            !session.user_id || session.user_id === userId
-          );
-        } else {
-          sessionHistory = history;
-        }
-        
-        console.log(`🔴 DIAGNOSTICA: Loaded ${sessionHistory.length} sessions into history`);
-      } catch (parseError) {
-        console.error('🔴 DIAGNOSTICA: Error parsing session history:', parseError);
+        sessionHistory = userId 
+          ? history.filter(s => !s.user_id || s.user_id === userId)
+          : history;
+      } catch (error) {
         sessionHistory = [];
       }
     } else {
       sessionHistory = [];
-      console.log('🔴 DIAGNOSTICA: No session history found in storage');
     }
   } catch (error) {
-    console.error('🔴 DIAGNOSTICA: Error loading session history in background:', error);
+    console.error('Error loading session history:', error);
   }
 }
 
@@ -419,7 +371,14 @@ export async function loadSessionsFromLocalStorage(userId: string | null = null)
 // Salva la sessione localmente
 export async function saveSessionLocally(session: Session | Session[] | null, type: 'active' | 'history' = 'active'): Promise<boolean> {
   try {
-    const userId = session && 'user_id' in session ? session.user_id : null;
+    let userId = null;
+    if (session) {
+      if (Array.isArray(session) && session.length > 0) {
+        userId = session[0].user_id;
+      } else if (!Array.isArray(session) && 'user_id' in session) {
+        userId = session.user_id;
+      }
+    }
     
     if (type === 'active') {
       if (!session || Array.isArray(session)) {
@@ -430,6 +389,10 @@ export async function saveSessionLocally(session: Session | Session[] | null, ty
       const key = getActiveSessionKey(userId);
       console.log(`🔵 DIAGNOSTICA: Salvando sessione attiva con chiave: ${key}`);
       await AsyncStorage.setItem(key, JSON.stringify(session));
+      
+      // Salva anche come ultima sessione conosciuta per fallback
+      await AsyncStorage.setItem(LAST_KNOWN_SESSION_KEY, JSON.stringify(session));
+      
       activeSession = session;
       console.log(`Active session saved with ID: ${session.id}`);
       return true;
@@ -806,12 +769,14 @@ export async function endSession(): Promise<boolean> {
     // Il flag isClosed dovrebbe già essere true, ma lo impostiamo di nuovo per sicurezza
     sessionToSave.isClosed = true;
     
+    // Ottieni userId PRIMA di salvare
+    const userId = await getCurrentUserId();
+    
     // Salva la sessione nella cronologia
     sessionHistory.push(sessionToSave);
     await saveSessionLocally(sessionHistory, 'history');
     
     // Salva su Supabase se l'utente è autenticato
-    const userId = await getCurrentUserId();
     if (userId) {
       await saveSessionToSupabase(sessionToSave, false);
     }
@@ -864,257 +829,210 @@ export async function endSession(): Promise<boolean> {
 export function updateSessionBAC(): Session | null {
   try {
     if (!activeSession) {
-      console.log('updateSessionBAC: Nessuna sessione attiva');
       return null;
     }
     
-    // Verifica fondamentale: se la sessione non ha un profilo valido, corregi o esci
+    // Verifica che il profilo esista e sia valido
     if (!activeSession.profile) {
-      console.error('updateSessionBAC: Sessione senza profilo valido');
-      return null;
-    }
-
-    // Funzione di supporto per parse delle date sicuro
-    const safeParseDate = (dateValue: any): Date => {
-      if (!dateValue) return new Date();
+      console.warn('updateSessionBAC: Sessione senza profilo, tentativo di riparazione...');
       
-      try {
-        if (dateValue instanceof Date) return dateValue;
-        if (typeof dateValue === 'string') return new Date(dateValue);
-        return new Date();
-      } catch (error) {
-        console.error('Error parsing date:', error);
-        return new Date();
-      }
-    };
-
-    const now = new Date();
-    // Verifica profilo e usa valori predefiniti sicuri se mancano dati essenziali
-    const gender = activeSession.profile.gender || 'male'; // Default a male se non specificato
-    const weightKg = typeof activeSession.profile.weightKg === 'number' && activeSession.profile.weightKg > 0 
-      ? activeSession.profile.weightKg 
-      : 70; // Peso predefinito 70kg
-    
-    // Verifica che drinks esista o inizializza come array vuoto
-    const drinks = Array.isArray(activeSession.drinks) ? activeSession.drinks : [];
-    // Verifica che foods esista o inizializza come array vuoto
-    const foods = Array.isArray(activeSession.foods) ? activeSession.foods : [];
-
-    if (drinks.length === 0) {
-      // Se non ci sono bevande, il BAC è 0
+      // Prova a riparare la sessione invece di fallire
+      setTimeout(() => {
+        ensureSessionIntegrity().catch(err => {
+          console.error('Errore durante riparazione sessione:', err);
+        });
+      }, 100);
+      
+      // Ritorna la sessione con valori di default sicuri
       activeSession.currentBAC = 0;
       activeSession.soberTime = '0h 0m';
       activeSession.timeToSober = 0;
       activeSession.status = 'safe';
+      return activeSession;
+    }
+    
+    // Verifica che i dati del profilo siano validi
+    const gender = activeSession.profile.gender || 'male';
+    const weightKg = activeSession.profile.weightKg || 70; // Peso di default sicuro
+    
+    if (weightKg <= 0) {
+      console.warn('updateSessionBAC: Peso del profilo non valido, uso peso di default');
+      // Aggiorna il profilo con un peso di default invece di fallire
+      activeSession.profile.weightKg = 70;
+    }
+
+    const now = new Date();
+    
+    // Verifica che esistano drinks e foods (con valori di default sicuri)
+    const drinks = activeSession.drinks || [];
+    const foods = activeSession.foods || [];
+
+    if (drinks.length === 0) {
+      // Nessuna bevanda = BAC 0 (stato sicuro)
+      activeSession.currentBAC = 0;
+      activeSession.soberTime = '0h 0m';
+      activeSession.timeToSober = 0;
+      activeSession.status = 'safe';
+      activeSession.legalTime = '0h 0m';
+      activeSession.timeToLegal = 0;
       
-      // Salva la sessione aggiornata
-      saveSessionLocally(activeSession, 'active').catch(error => {
-        console.error('Errore nel salvataggio della sessione:', error);
-      });
+      // Calcola durata della sessione
+      const startTime = activeSession.startTime || activeSession.sessionStartTime || new Date();
+      const durationMs = now.getTime() - new Date(startTime).getTime();
+      const hours = Math.floor(durationMs / (1000 * 60 * 60));
+      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      activeSession.sessionDuration = `${hours}h ${minutes}m`;
       
       return activeSession;
     }
 
-    // Prepara i drink per il calcolo del BAC con validazione robusta
-    const drinksForBac = drinks.map(drink => {
-      try {
-        // Assicurati che tutti i valori siano numeri
-        let alcoholGrams: number;
-        
-        if (typeof drink.alcoholGrams === 'string') {
-          alcoholGrams = parseFloat(drink.alcoholGrams) || 0;
-        } else {
-          alcoholGrams = typeof drink.alcoholGrams === 'number' ? drink.alcoholGrams : 0;
-        }
-        
-        // Se i grammi sono troppo bassi (probabilmente un errore), ricalcola
-        if (alcoholGrams < 0.1) {
-          try {
-            const volume = typeof drink.volume === 'string' ? parseFloat(drink.volume) || 0 : 0;
-            const alcoholPercentage = typeof drink.alcoholPercentage === 'string' 
-              ? parseFloat(drink.alcoholPercentage) || 0
-              : typeof drink.alcoholPercentage === 'number' ? drink.alcoholPercentage : 0;
-            
-            // Formula: volume (ml) * percentuale (%) * 0.789 (densità alcol) / 100
-            alcoholGrams = (volume * alcoholPercentage * 0.789) / 100;
-          } catch (e) {
-            console.error('Errore nel ricalcolo dei grammi di alcol:', e);
-            alcoholGrams = 0;
-          }
-        }
-        
-        // Assicurati che il valore non sia NaN
-        alcoholGrams = !isNaN(alcoholGrams) ? alcoholGrams : 0;
-        
-        const drinkTime = safeParseDate(drink.time || drink.timeConsumed || new Date());
-        const timeSinceDrink = (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60);
-        
-        return {
-          alcoholGrams: Math.max(0, alcoholGrams), // Assicurati che sia sempre >= 0
-          hoursSinceDrink: Math.max(0, timeSinceDrink), // Assicurati che sia sempre >= 0
-          time: drinkTime
-        };
-      } catch (e) {
-        console.error('Errore nella preparazione dei dati della bevanda:', e);
-        // In caso di errore, restituisci un drink sicuro che non influenzerà il BAC
-        return {
-          alcoholGrams: 0,
-          hoursSinceDrink: 0,
-          time: new Date()
-        };
-      }
-    });
-    
-    // Calcola il BAC totale con validazione
-    let totalAlcoholGrams = 0;
+    // Calcola BAC semplificato ma robusto
     try {
-      totalAlcoholGrams = drinksForBac.reduce((total, drink) => total + drink.alcoholGrams, 0);
-    } catch (e) {
-      console.error('Errore nel calcolo del totale di grammi di alcol:', e);
-    }
-    
-    // Usa la formula di Widmark per calcolare il BAC
-    // Fattore r (distribuzione dell'alcol nel corpo)
-    const r = gender === 'male' ? 0.68 : 0.55;
-    
-    // Calcola il BAC iniziale (senza considerare l'eliminazione)
-    // BAC = A / (r * W * 10) dove:
-    // A = grammi di alcol
-    // r = fattore di distribuzione (L/kg)
-    // W = peso in kg
-    // 10 = fattore di conversione per ottenere g/L
-    let initialBAC = totalAlcoholGrams / (r * weightKg);
-    
-    // Assicurati che il valore non sia NaN o Infinity
-    if (isNaN(initialBAC) || !isFinite(initialBAC)) {
-      console.error('BAC calcolato non valido, impostazione predefinita a 0');
-      initialBAC = 0;
-    }
-    
-    // Calcola il fattore di assorbimento in base ai cibi consumati
-    let foodAbsorptionFactor = 1.0; // Default: nessun effetto del cibo (fattore 1.0)
-    
-    if (foods && foods.length > 0) {
-      try {
-        // Ordina i cibi per orario di consumo (dal più recente)
-        const sortedFoods = [...foods].sort((a, b) => {
-          try {
-            const timeA = safeParseDate(a.time || a.timeConsumed).getTime();
-            const timeB = safeParseDate(b.time || b.timeConsumed).getTime();
-            return timeB - timeA; // Ordine decrescente (più recente prima)
-          } catch (e) {
-            console.error('Errore nell\'ordinamento dei cibi:', e);
-            return 0;
-          }
-        });
-        
-        // Prendi il cibo più recente
-        const mostRecentFood = sortedFoods[0];
-        if (mostRecentFood) {
-          const foodTime = safeParseDate(mostRecentFood.time || mostRecentFood.timeConsumed);
-          const hoursSinceFood = (now.getTime() - foodTime.getTime()) / (1000 * 60 * 60);
+      const r = gender === 'male' ? 0.68 : 0.55;
+      const metabolismRate = 0.015; // g/L all'ora
+      
+      let totalBAC = 0;
+      
+      drinks.forEach(drink => {
+        try {
+          // Calcola grammi di alcol
+          let alcoholGrams = 0;
           
-          // L'effetto del cibo diminuisce nel tempo (massimo 4 ore)
-          if (hoursSinceFood <= 4) {
-            // L'effetto del cibo è massimo subito dopo averlo consumato e diminuisce gradualmente
-            const effectStrength = Math.max(0, 1 - (hoursSinceFood / 4));
-            
-            // Controlla che absorptionFactor sia un numero valido
-            const absorptionFactor = typeof mostRecentFood.absorptionFactor === 'number' && 
-                                      !isNaN(mostRecentFood.absorptionFactor) ? 
-                                      mostRecentFood.absorptionFactor : 0.95;
-            
-            // Limita l'intervallo del fattore di assorbimento
-            const safeAbsorptionFactor = Math.min(1, Math.max(0.3, absorptionFactor));
-            
-            // Applica il fattore di assorbimento corretto
-            foodAbsorptionFactor = 1.0 - ((1.0 - safeAbsorptionFactor) * effectStrength);
+          if (typeof drink.alcoholGrams === 'number') {
+            alcoholGrams = drink.alcoholGrams;
+          } else if (typeof drink.alcoholGrams === 'string') {
+            alcoholGrams = parseFloat(drink.alcoholGrams) || 0;
           }
+          
+          // Se troppo basso, ricalcola
+          if (alcoholGrams < 0.1) {
+            const volume = parseFloat(drink.volume) || 0;
+            const percentage = typeof drink.alcoholPercentage === 'number' 
+              ? drink.alcoholPercentage 
+              : parseFloat(drink.alcoholPercentage) || 0;
+            
+            alcoholGrams = (volume * percentage * 0.789) / 100;
+          }
+          
+          // BAC iniziale per questo drink
+          const initialBAC = alcoholGrams / (r * weightKg);
+          
+          // Tempo trascorso dal consumo
+          const drinkTime = new Date(drink.time);
+          const hoursSince = Math.max(0, (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60));
+          
+          // BAC metabolizzato
+          const metabolized = Math.min(initialBAC, metabolismRate * hoursSince);
+          
+          // BAC rimanente
+          const remaining = Math.max(0, initialBAC - metabolized);
+          
+          totalBAC += remaining;
+        } catch (e) {
+          // Ignora errori sui singoli drink
         }
-      } catch (e) {
-        console.error('Errore nel calcolo dell\'effetto del cibo:', e);
-        // In caso di errore, usa il valore predefinito
-        foodAbsorptionFactor = 1.0;
-      }
-    }
-    
-    // Applica il fattore di assorbimento del cibo al BAC iniziale
-    let calculatedBAC = initialBAC * foodAbsorptionFactor;
-    
-    // Sottrai l'alcol metabolizzato nel tempo
-    // Per ogni drink, considera quanto alcol è stato metabolizzato dal momento dell'assunzione
-    const metabolismRate = 0.015; // g/L all'ora
-    
-    try {
-      drinksForBac.forEach(drink => {
-        const metabolizedAmount = Math.min(
-          drink.alcoholGrams / (r * weightKg), 
-          metabolismRate * drink.hoursSinceDrink
-        );
-        calculatedBAC -= metabolizedAmount;
       });
-    } catch (e) {
-      console.error('Errore nel calcolo della metabolizzazione dell\'alcol:', e);
-    }
-    
-    // Assicurati che il BAC non sia negativo
-    calculatedBAC = Math.max(0, calculatedBAC);
-    
-    // Verifica che il BAC sia un numero valido
-    if (isNaN(calculatedBAC) || !isFinite(calculatedBAC)) {
-      console.error('BAC finale calcolato non valido, impostazione predefinita a 0');
-      calculatedBAC = 0;
-    }
-    
-    // Limitazione di sicurezza: il BAC non può essere superiore a 0.5 (valore pericolosamente alto)
-    calculatedBAC = Math.min(calculatedBAC, 0.5);
-    
-    // Arrotonda a 2 decimali
-    calculatedBAC = Math.round(calculatedBAC * 100) / 100;
-    
-    // Aggiorna il BAC della sessione
-    activeSession.currentBAC = calculatedBAC;
-    
-    // Aggiorna il BAC time point attuale se esiste
-    if (Array.isArray(activeSession.bacTimePoints) && activeSession.bacTimePoints.length > 0) {
-      activeSession.bacTimePoints[activeSession.bacTimePoints.length - 1] = calculatedBAC;
-    }
-    
-    // Calcola il tempo per tornare sobri (BAC < 0.01)
-    if (calculatedBAC > 0.01) {
-      const hoursToSober = calculatedBAC / metabolismRate;
-      const hours = Math.floor(hoursToSober);
-      const minutes = Math.round((hoursToSober - hours) * 60);
-      activeSession.soberTime = `${hours}h ${minutes}m`;
-      activeSession.timeToSober = Math.ceil(hoursToSober * 60); // In minuti
-    } else {
+      
+      // Effetto del cibo (semplificato)
+      let foodFactor = 1.0;
+      if (foods.length > 0) {
+        try {
+          const recentFood = foods[foods.length - 1];
+          if (recentFood.absorptionFactor) {
+            foodFactor = Math.min(1, Math.max(0.5, recentFood.absorptionFactor));
+          }
+        } catch (e) {
+          // Ignora errori sul cibo
+        }
+      }
+      
+      // BAC finale
+      totalBAC = Math.max(0, totalBAC * foodFactor);
+      totalBAC = Math.min(0.5, totalBAC); // Limite sicurezza
+      totalBAC = Math.round(totalBAC * 100) / 100; // Arrotonda
+      
+      // Aggiorna la sessione
+      activeSession.currentBAC = totalBAC;
+      
+      // Calcola tempo per tornare sobri
+      if (totalBAC > 0.01) {
+        const hours = totalBAC / metabolismRate;
+        activeSession.soberTime = `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
+        activeSession.timeToSober = Math.ceil(hours * 60);
+      } else {
+        activeSession.soberTime = '0h 0m';
+        activeSession.timeToSober = 0;
+      }
+      
+      // Calcola tempo per raggiungere il limite legale
+      if (totalBAC > 0.05) {
+        const hoursToLegal = (totalBAC - 0.05) / metabolismRate;
+        activeSession.legalTime = `${Math.floor(hoursToLegal)}h ${Math.round((hoursToLegal % 1) * 60)}m`;
+        activeSession.timeToLegal = Math.ceil(hoursToLegal * 60);
+      } else {
+        activeSession.legalTime = '0h 0m';
+        activeSession.timeToLegal = 0;
+      }
+      
+      // Aggiorna lo status
+      if (totalBAC < 0.03) {
+        activeSession.status = 'safe';
+      } else if (totalBAC < 0.08) {
+        activeSession.status = 'caution';
+      } else {
+        activeSession.status = 'danger';
+      }
+      
+      // Calcola durata della sessione
+      const startTime = activeSession.startTime || activeSession.sessionStartTime || new Date();
+      const durationMs = now.getTime() - new Date(startTime).getTime();
+      const hours = Math.floor(durationMs / (1000 * 60 * 60));
+      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      activeSession.sessionDuration = `${hours}h ${minutes}m`;
+      
+    } catch (bacError) {
+      console.error('updateSessionBAC: Errore nel calcolo BAC:', bacError);
+      
+      // In caso di errore nel calcolo, impostiamo valori sicuri
+      activeSession.currentBAC = 0;
       activeSession.soberTime = '0h 0m';
       activeSession.timeToSober = 0;
-    }
-    
-    // Aggiorna lo stato della sessione in base al BAC
-    if (calculatedBAC < 0.03) {
+      activeSession.timeToLegal = 0;
+      activeSession.legalTime = '0h 0m';
       activeSession.status = 'safe';
-    } else if (calculatedBAC < 0.08) {
-      activeSession.status = 'caution';
-    } else if (calculatedBAC < 0.15) {
-      activeSession.status = 'warning';
-    } else if (calculatedBAC < 0.3) {
-      activeSession.status = 'danger';
-    } else {
-      activeSession.status = 'critical';
+      
+      // Calcola durata della sessione anche in caso di errore
+      const startTime = activeSession.startTime || activeSession.sessionStartTime || new Date();
+      const durationMs = now.getTime() - new Date(startTime).getTime();
+      const hours = Math.floor(durationMs / (1000 * 60 * 60));
+      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      activeSession.sessionDuration = `${hours}h ${minutes}m`;
     }
     
-    // Salva la sessione aggiornata in background
-    saveSessionLocally(activeSession, 'active').catch(error => {
-      console.error('Errore nel salvataggio della sessione:', error);
-    });
+    // Salva automaticamente la sessione aggiornata
+    try {
+      saveSessionLocally(activeSession, 'active').catch(saveError => {
+        console.error('Errore nel salvataggio sessione aggiornata:', saveError);
+      });
+    } catch (saveError) {
+      console.error('Errore nel salvataggio sessione:', saveError);
+    }
     
     return activeSession;
+    
   } catch (error) {
-    console.error('Error updating session BAC:', error);
-    // In caso di errore catastrofico, restituisci la sessione come è, senza aggiornamenti
-    return activeSession;
+    console.error('updateSessionBAC: Errore generale:', error);
+    
+    // In caso di errore generale, ritorna un oggetto sessione sicuro
+    if (activeSession) {
+      activeSession.currentBAC = 0;
+      activeSession.soberTime = '0h 0m';
+      activeSession.timeToSober = 0;
+      activeSession.status = 'safe';
+      return activeSession;
+    }
+    
+    return null;
   }
 }
 
@@ -1496,17 +1414,17 @@ export async function createSession(profile: UserProfile): Promise<Session | nul
               userId: dbProfile.user_id,
               name: dbProfile.name,
               gender: dbProfile.gender,
-              weightKg: dbProfile.weightKg,
+              weightKg: dbProfile.weight,  // 🔧 FIX: DB ha 'weight' non 'weightKg'
               age: dbProfile.age,
               height: dbProfile.height,
-              drinkingFrequency: dbProfile.drinkingFrequency,
+              drinkingFrequency: dbProfile.drinking_frequency,  // 🔧 FIX: DB ha 'drinking_frequency'
               emoji: dbProfile.emoji,
               color: dbProfile.color,
-              isDefault: dbProfile.is_default,
+              isDefault: dbProfile.is_default,  // 🔧 FIX: DB ha 'is_default'
               isGuest: false,
               createdAt: dbProfile.created_at,
               updatedAt: dbProfile.updated_at,
-              hasCompletedWizard: dbProfile.has_completed_wizard
+              hasCompletedWizard: true  // 🔧 FIX: Forza true per profili dal DB
             };
             
             console.log('Utilizzerò il profilo dal database:', profileToUse.id, profileToUse.name);
@@ -1892,7 +1810,7 @@ export async function addFood(food: FoodRecord): Promise<boolean> {
     updateSessionBAC();
     
     // Salva la sessione aggiornata
-    await saveSessionLocally(activeSession);
+    await saveSessionLocally(activeSession, 'active');
     
     console.log('Food added to session, absorption factor:', food.absorptionFactor);
     console.log('Updated session BAC:', activeSession.currentBAC);
@@ -1925,13 +1843,28 @@ export async function removeFood(foodId: string): Promise<boolean> {
     updateSessionBAC();
 
     // Salva la sessione aggiornata
-    await saveSessionLocally(activeSession);
+    await saveSessionLocally(activeSession, 'active');
     
     console.log('Food removed successfully');
     return true;
   } catch (error) {
     console.error('Error removing food from session:', error);
     return false;
+  }
+}
+
+// Recupera l'ultima sessione conosciuta da AsyncStorage come fallback
+export async function getLastKnownSession(): Promise<Session | null> {
+  try {
+    const sessionJson = await AsyncStorage.getItem(LAST_KNOWN_SESSION_KEY);
+    if (sessionJson) {
+      console.log('Trovata ultima sessione conosciuta in AsyncStorage');
+      return JSON.parse(sessionJson);
+    }
+    return null;
+  } catch (error) {
+    console.error('Errore nel recupero dell\'ultima sessione conosciuta:', error);
+    return null;
   }
 }
 

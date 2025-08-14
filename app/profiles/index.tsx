@@ -23,7 +23,6 @@ import * as sessionService from '../lib/services/session.service';
 import * as profileService from '../lib/services/profile.service';
 import { formatDate } from '../utils/timeUtils';
 import { useAuth } from '../contexts/AuthContext';
-import CustomTabBar from '../components/CustomTabBar';
 import * as authService from '../lib/services/auth.service';
 import Toast from 'react-native-toast-message';
 import { navigateToSession } from '../session/index';
@@ -168,15 +167,15 @@ export default function ProfilesScreen() {
   
   const handleLogout = () => {
     Alert.alert(
-      t('logout', { ns: 'auth' }),
-      t('confirmLogout', { ns: 'auth' }),
+      t('logout', { ns: 'auth', defaultValue: 'Esci' }),
+      t('confirmLogout', { ns: 'auth', defaultValue: 'Sei sicuro di voler uscire?' }),
       [
         {
-          text: t('cancel', { ns: 'common' }),
+          text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }),
           style: 'cancel',
         },
         {
-          text: t('logout', { ns: 'auth' }),
+          text: t('logout', { ns: 'auth', defaultValue: 'Esci' }),
           style: 'destructive',
           onPress: async () => {
             setIsLoading(true);
@@ -199,17 +198,15 @@ export default function ProfilesScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      i18n.language === 'it' ? 'Elimina Account' : 'Delete Account',
-      i18n.language === 'it' 
-        ? 'ATTENZIONE: Questa azione è irreversibile. Tutti i tuoi dati verranno eliminati definitivamente. Vuoi davvero procedere?' 
-        : 'WARNING: This action is irreversible. All your data will be permanently deleted. Do you really want to proceed?',
+      t('deleteAccount', { ns: 'common', defaultValue: 'Elimina Account' }),
+      t('deleteAccountConfirmation', { ns: 'common', defaultValue: 'ATTENZIONE: Questa azione è irreversibile. Tutti i tuoi dati verranno eliminati definitivamente. Vuoi davvero procedere?' }),
       [
         {
-          text: i18n.language === 'it' ? 'Annulla' : 'Cancel',
+          text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }),
           style: 'cancel',
         },
         {
-          text: i18n.language === 'it' ? 'Elimina Account' : 'Delete Account',
+          text: t('deleteAccount', { ns: 'common', defaultValue: 'Elimina Account' }),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -229,10 +226,8 @@ export default function ProfilesScreen() {
                   // Facciamo vedere un toast direttamente nella schermata di login
                   Toast.show({
                     type: 'success',
-                    text1: i18n.language === 'it' ? 'Account eliminato' : 'Account deleted',
-                    text2: i18n.language === 'it' 
-                      ? 'Il tuo account è stato eliminato con successo' 
-                      : 'Your account was successfully deleted',
+                    text1: t('accountDeleted', { ns: 'common', defaultValue: 'Account eliminato' }),
+                    text2: t('accountDeletedMessage', { ns: 'common', defaultValue: 'Il tuo account è stato eliminato con successo' }),
                     visibilityTime: 3000,
                     position: 'bottom',
                   });
@@ -412,7 +407,6 @@ export default function ProfilesScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
-          <CustomTabBar />
         </View>
       </>
     );
@@ -459,7 +453,6 @@ export default function ProfilesScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          <CustomTabBar />
         </View>
       </>
     );
@@ -555,7 +548,7 @@ export default function ProfilesScreen() {
               >
                 <Ionicons name="log-out-outline" size={24} color={colors.error} />
                 <Text style={[styles.optionText, { color: colors.error }]}>
-                  {i18n.language === 'it' ? 'Disconnetti' : 'Logout'}
+                  {i18n.language === 'it' ? 'Esci' : 'Logout'}
                 </Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
@@ -579,7 +572,6 @@ export default function ProfilesScreen() {
           {/* Statistiche del profilo */}
           {isPremium ? renderDetailedStatistics() : renderBasicStatistics()}
         </ScrollView>
-        <CustomTabBar />
       </View>
     </>
   );

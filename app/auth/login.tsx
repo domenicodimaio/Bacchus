@@ -54,6 +54,31 @@ export default function LoginScreen() {
   // Controlla se stiamo arrivando dalla splash screen
   const isFromSplash = params.fromSplash === 'true';
 
+  // 🔧 FIX CRITICO: Controllo AsyncStorage disponibilità
+  useEffect(() => {
+    const checkAsyncStorage = async () => {
+      try {
+        if (typeof AsyncStorage === 'undefined') {
+          console.error('[LOGIN] ❌ AsyncStorage non disponibile, usando fallback globale');
+          if (typeof global !== 'undefined' && (global as any).AsyncStorage) {
+            console.log('[LOGIN] ✅ Fallback AsyncStorage trovato nei global');
+          } else {
+            console.error('[LOGIN] 💥 Nessun AsyncStorage disponibile!');
+          }
+        } else {
+          console.log('[LOGIN] ✅ AsyncStorage disponibile');
+          // Test rapido di AsyncStorage
+          await AsyncStorage.getItem('test');
+          console.log('[LOGIN] ✅ AsyncStorage funzionale');
+        }
+      } catch (error) {
+        console.error('[LOGIN] ❌ Errore test AsyncStorage:', error);
+      }
+    };
+    
+    checkAsyncStorage();
+  }, []);
+
   // Stato
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -146,7 +171,7 @@ export default function LoginScreen() {
         
         if (isAuthenticated) {
           console.log('User is already authenticated, redirecting directly to dashboard');
-          router.replace('/dashboard');
+          router.replace('/(tabs)/dashboard');
         }
       } catch (error) {
         console.error('Error checking auth state:', error);
@@ -273,7 +298,7 @@ export default function LoginScreen() {
           global.__WIZARD_AFTER_REGISTRATION__ = false;
         }
         
-        router.replace('/dashboard');
+        router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert(
           t('loginFailed', { ns: 'auth', defaultValue: 'Login Failed' }),
@@ -299,7 +324,7 @@ export default function LoginScreen() {
       const { success, error } = await loginWithProvider('google');
       
       if (success) {
-        router.replace('/dashboard');
+        router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert(
           t('loginFailed', { ns: 'auth', defaultValue: 'Login Failed' }),
@@ -317,212 +342,78 @@ export default function LoginScreen() {
     }
   };
   
-  // Funzione per eseguire il login con Apple
+  // Funzione per login con Apple
   const handleAppleLogin = async () => {
     try {
       setIsLoading(true);
-      console.log('🍎 Login con Apple - Inizio processo');
+      setDebugInfo('Inizializzazione Apple Sign In...');
+      console.log('🍎 Login con Apple - Avvio processo OAuth');
       
-      // Verifica se il servizio Apple Sign In è disponibile (solo su iOS)
-      if (Platform.OS === 'ios') {
-        console.log('🍎 Login con Apple - Utilizzo autenticazione nativa iOS');
-        try {
-          // Prima verifica se Apple Authentication è disponibile
-          let isAvailable = await AppleAuthentication.isAvailableAsync();
-          
-          if (!isAvailable) {
-            console.log('🍎 Login con Apple - Servizio non disponibile su questo dispositivo');
-            Alert.alert(
-              t('error', { ns: 'common' }),
-              t('appleAuthUnavailable', { ns: 'auth', defaultValue: 'Login con Apple non disponibile su questo dispositivo' })
-            );
-            setIsLoading(false);
-            return;
-          }
-          
-          // Usa l'API di autenticazione nativa di Apple
-          const credential = await AppleAuthentication.signInAsync({
-            requestedScopes: [
-              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-              AppleAuthentication.AppleAuthenticationScope.EMAIL,
-            ],
-          });
-          
-          console.log('🍎 Login con Apple - Autenticazione nativa completata');
-          
-          if (credential && credential.identityToken) {
-            console.log('🍎 Token ottenuto, utilizzo approccio REST diretto');
-            
-            // NUOVA STRATEGIA: Invece di usare l'SDK di Supabase, che ha problemi con l'audience,
-            // utilizziamo direttamente l'API REST di Supabase Auth
-            try {
-              // 1. Creiamo i dati per la richiesta REST
-              const requestData = {
-                id_token: credential.identityToken,
-                provider: 'apple',
-                // Nessun campo audience, lasciamo che Supabase lo gestisca
-              };
-              
-              // 2. Inviamo la richiesta direttamente all'endpoint auth di Supabase
-              console.log('🍎 Invio richiesta diretta a Supabase Auth REST API');
-              const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=id_token`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': supabaseAnonKey,
-                  'X-Client-Info': 'bacchus-ios-app'
-                },
-                body: JSON.stringify(requestData),
-              });
-              
-              // 3. Analizziamo la risposta
-              if (!authResponse.ok) {
-                // Se c'è un errore, cerchiamo di estrarre il messaggio
-                const errorJson = await authResponse.json().catch(() => ({}));
-                console.error('🍎 Errore API REST Supabase:', errorJson, authResponse.status);
-                
-                // Lanciamo un errore con informazioni dettagliate
-                throw new Error(`Errore: ${authResponse.status} - ${errorJson.message || errorJson.error || 'Risposta non valida dal server'}`);
-              }
-              
-              // 4. Se tutto è andato bene, processiamo la risposta
-              const authData = await authResponse.json();
-              console.log('🍎 Autenticazione REST riuscita');
-              
-              if (authData.access_token && authData.refresh_token) {
-                // 5. Salviamo i token nell'AsyncStorage
-                const session = {
-                  access_token: authData.access_token,
-                  refresh_token: authData.refresh_token,
-                  expires_at: authData.expires_in ? Math.floor(Date.now() / 1000) + authData.expires_in : 0,
-                  token_type: authData.token_type || 'bearer',
-                  provider_token: authData.provider_token,
-                  provider_refresh_token: authData.provider_refresh_token,
-                  user: authData.user
-                };
-                
-                // 6. Salva la sessione in AsyncStorage per sincronizzare con il client Supabase
-                const tokenKey = `sb-${supabaseUrl.match(/https:\/\/([^.]+)\./)?.[1] || 'bacchus'}-auth-token`;
-                await AsyncStorage.setItem(tokenKey, JSON.stringify(session));
-                await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(session));
-                
-                // 7. Ora che abbiamo i token, sincronizziamo il client Supabase chiamando getUser
-                try {
-                  await supabase.auth.getUser(authData.access_token);
-                } catch (syncError) {
-                  console.warn('🍎 Errore durante la sincronizzazione del client, ma possiamo procedere:', syncError);
-                }
-                
-                // 8. Login riuscito, redirect alla dashboard
-                console.log('🍎 Login con Apple completato con successo');
-                router.replace('/dashboard');
-                return;
-              } else {
-                console.error('🍎 Token di accesso mancante nella risposta:', authData);
-                throw new Error('Token mancanti nella risposta');
-              }
-            } catch (restError) {
-              console.error('🍎 Errore durante l\'autenticazione REST:', restError);
-              
-              // Come ultima risorsa, proviamo un'alternativa
-              console.log('🍎 Tentativo di recupero usando metodo alternativo...');
-              
-              // Inviamo le credenziali in modo diverso
-              try {
-                const alternativeResponse = await fetch(`${supabaseUrl}/auth/v1/callback`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': supabaseAnonKey,
-                  },
-                  body: JSON.stringify({
-                    type: 'apple',
-                    token: credential.identityToken,
-                  }),
-                });
-                
-                if (alternativeResponse.ok) {
-                  const alternativeData = await alternativeResponse.json();
-                  console.log('🍎 Metodo alternativo riuscito');
-                  
-                  // Salviamo i dati e procediamo
-                  if (alternativeData.session) {
-                    await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(alternativeData.session));
-                  }
-                  
-                  router.replace('/dashboard');
-                  return;
-                } else {
-                  console.error('🍎 Anche il metodo alternativo è fallito:', await alternativeResponse.text());
-                }
-              } catch (altError) {
-                console.error('🍎 Errore nel metodo alternativo:', altError);
-              }
-              
-              // Tutti i tentativi sono falliti, mostriamo un errore
-              Alert.alert(
-                t('error', { ns: 'common' }),
-                'Si è verificato un errore durante l\'autenticazione. Prova un altro metodo di accesso.'
-              );
-              setIsLoading(false);
-              return;
-            }
-          } else {
-            console.error('🍎 Login con Apple - Token di identità mancante');
-            Alert.alert(
-              t('error', { ns: 'common' }),
-              t('loginError', { ns: 'auth' })
-            );
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          // L'utente potrebbe aver annullato il login o si è verificato un errore
-          if (error.code === 'ERR_CANCELED') {
-            console.log('🍎 Login con Apple - Autenticazione annullata dall\'utente');
-          } else {
-            console.error('🍎 Errore durante l\'autenticazione con Apple:', error);
-            Alert.alert(
-              t('error', { ns: 'common' }),
-              t('loginErrorUnexpected', { ns: 'auth' })
-            );
-          }
-          setIsLoading(false);
-          return;
-        }
-      }
+      // Log remoto per debugging
+      const { logInfo, logError } = await import('../lib/services/logging.service');
+      await logInfo('Apple Login Attempt Started', {
+        platform: Platform.OS,
+        timestamp: new Date().toISOString()
+      });
       
-      console.log('🍎 Login con Apple - Utilizzando flusso OAuth per piattaforma non iOS');
+      const { success, error, data } = await loginWithProvider('apple');
       
-      // Per piattaforme non iOS, usa il flusso OAuth standard
-      const result = await authService.signInWithProvider('apple');
-      
-      if (result.success) {
-        console.log('🍎 Login con Apple - Prima fase completata, in attesa di reindirizzamento');
-        // Il risultato success qui significa solo che la richiesta è stata inviata
-        // La vera autenticazione avviene nel browser
+      if (success) {
+        console.log('🍎 Login con Apple - Successo immediato');
+        setDebugInfo('Login completato! Reindirizzamento...');
+        await logInfo('Apple Login Success', { immediate: true });
+        router.replace('/(tabs)/dashboard');
+      } else if (error === 'oauth_in_progress') {
+        // OAuth avviato correttamente, il sistema gestirà il callback automaticamente
+        console.log('🍎 Login con Apple - OAuth avviato, attendo callback automatico...');
+        setDebugInfo('Apertura Apple Sign In...');
+        await logInfo('Apple Login OAuth Started');
         
-        if (result.error) {
-          console.log('🍎 Login con Apple - Messaggio dal servizio:', result.error);
-        }
+        // Non disabilitare il loading - lascio che il sistema gestisca il callback
+        // Il sistema di callback lo gestirà automaticamente tramite deep linking
         
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 5000); // 5 secondi per dare tempo al browser di aprirsi
       } else {
-        console.log('🍎 Login con Apple - Errore nella prima fase:', result.error);
+        console.error('🍎 Login con Apple - Errore:', error);
         setIsLoading(false);
+        setDebugInfo('');
+        
+        await logError('Apple Login Failed', new Error(error || 'Unknown error'), {
+          errorType: 'login_flow',
+          errorMessage: error,
+          platform: Platform.OS
+        });
+        
+        // Gestisci errori specifici per Apple
+        let userMessage = 'Errore durante l\'accesso con Apple';
+        if (error?.includes('annullata') || error?.includes('canceled')) {
+          userMessage = 'Accesso con Apple annullato';
+        } else if (error?.includes('non disponibile')) {
+          userMessage = 'Apple Sign In non disponibile su questo dispositivo';
+        }
+        
         Alert.alert(
-          t('error', { ns: 'common' }),
-          result.error || t('loginError', { ns: 'auth' })
+          t('loginFailed'),
+          userMessage,
+          [{ text: t('ok'), style: 'default' }]
         );
       }
     } catch (error) {
-      console.error('🍎 Errore imprevisto nel login con Apple:', error);
+      console.error('🍎 Login con Apple - Errore generale:', error);
       setIsLoading(false);
+      setDebugInfo('');
+      
+      // Log remoto dell'errore
+      const { logError } = await import('../lib/services/logging.service');
+      await logError('Apple Login Exception', error, {
+        errorType: 'exception',
+        platform: Platform.OS,
+        critical: true
+      });
+      
       Alert.alert(
-        t('error', { ns: 'common' }),
-        t('loginErrorUnexpected', { ns: 'auth', defaultValue: 'Si è verificato un errore imprevisto durante il login con Apple' })
+        t('loginFailed'),
+        'Errore durante l\'accesso con Apple',
+        [{ text: t('ok'), style: 'default' }]
       );
     }
   };

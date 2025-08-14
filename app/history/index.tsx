@@ -27,7 +27,6 @@ import Animated, {
   withSequence,
   Easing
 } from 'react-native-reanimated';
-import CustomTabBar from '../components/CustomTabBar';
 import AppHeader from '../components/AppHeader';
 import OfflineIndicator from '../components/OfflineIndicator';
 import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
@@ -71,14 +70,18 @@ export default function HistoryScreen() {
   const [animatedStyles, setAnimatedStyles] = useState<{[key: string]: any}>({});
   
   // Use useCallback for loadSessions to prevent recreating the function on every render
-  const loadSessions = useCallback(() => {
+  const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
-      // Usa la funzione standard per ottenere la cronologia
-        const history = sessionService.getSessionHistory();
+      console.log('🔄 LOADING SESSIONS: Forzando caricamento da AsyncStorage...');
       
-      // La cronologia dovrebbe essere già caricata durante l'inizializzazione
-      console.log(`Visualizzazione di ${history.length} sessioni nella cronologia`);
+      // 🔧 FIX CRITICO: Carica prima da AsyncStorage per aggiornare la variabile globale
+      await sessionServiceDirect.loadSessionHistoryFromStorage();
+      
+      // Ora usa la funzione standard per ottenere la cronologia aggiornata
+      const history = sessionService.getSessionHistory();
+      
+      console.log(`✅ LOADING SESSIONS: Caricate ${history.length} sessioni dalla cronologia`);
       
       // Filtro per rimuovere sessioni invalide
       const validSessions = history.filter(session => {
@@ -122,7 +125,10 @@ export default function HistoryScreen() {
   
   // Load sessions on mount
   useEffect(() => {
-    loadSessions();
+    // 🔧 FIX: Handle async loadSessions properly
+    loadSessions().catch(error => {
+      console.error('Error in useEffect loadSessions:', error);
+    });
     // Animate in the list
     listOpacity.value = withDelay(300, withTiming(1, { duration: 500 }));
   }, []); // Empty dependency array to run only once on mount
@@ -131,7 +137,10 @@ export default function HistoryScreen() {
   useFocusEffect(
     useCallback(() => {
       console.log('History screen focused - reloading sessions');
-      loadSessions();
+      // 🔧 FIX: Handle async loadSessions properly
+      loadSessions().catch(error => {
+        console.error('Error in useFocusEffect loadSessions:', error);
+      });
       
       return () => {
         // Cleanup function when screen loses focus
@@ -700,7 +709,6 @@ export default function HistoryScreen() {
       {/* Contenuto principale */}
       {renderContent()}
       
-      <CustomTabBar />
     </View>
   );
 }

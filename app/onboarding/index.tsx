@@ -95,7 +95,8 @@ export default function OnboardingLayout() {
   if (isAuthenticated && hasCompletedWizard === true) {
     // Make sure to clear any navigation blocks before redirecting to dashboard
     clearAllNavigationBlocks();
-    return <Redirect href="/dashboard" />;
+    // 🔧 FIX CRITICO: Usa il percorso tabs invece del percorso standalone che causa conflitti
+    return <Redirect href="/(tabs)/dashboard" />;
   }
 
   // Default: mostra il layout normale

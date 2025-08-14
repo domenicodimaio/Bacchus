@@ -2,6 +2,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProductType, PRODUCT_IDS, Entitlement, FREE_LIMITS } from '../../types/purchases';
 import Constants from 'expo-constants';
+import * as authService from './auth.service';
+import supabase from '../supabase/client';
 
 // Determina se siamo in Expo Go o non possiamo usare RevenueCat
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -48,8 +50,16 @@ export const initPurchases = async () => {
     // In development mode or Expo Go, always use mock implementation
     if (__DEV__ || isExpoGo || !isRevenueCatAvailable) {
       console.log('Inizializzazione servizio acquisti in modalità mock (Dev/Expo Go/RevenueCat non disponibile)');
-      // Set mock premium status to true for development
-      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+      
+      // 🔧 FIX: Non impostare automaticamente premium in dev per testare counter sessioni gratuite
+      // Solo se non è già stato impostato manualmente
+      const existingMockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
+      if (!existingMockPremium) {
+        console.log('🔧 DEV MODE: Impostando modalità gratuita per testare counter sessioni');
+        await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
+      } else {
+        console.log(`🔧 DEV MODE: Mantenendo stato premium esistente: ${existingMockPremium}`);
+      }
       return true;
     }
     
@@ -348,9 +358,9 @@ export const isAdFree = async (): Promise<boolean> => {
  */
 
 /**
- * Verifica e resetta il contatore sessioni settimanali se è passata una settimana
+ * Fallback locale per il contatore sessioni (solo per offline)
  */
-export const checkAndResetWeeklySessionCount = async (): Promise<number> => {
+const checkAndResetWeeklySessionCountLocal = async (): Promise<number> => {
   try {
     const lastResetTimestamp = await AsyncStorage.getItem(STORAGE_KEYS.WEEKLY_SESSION_RESET);
     const now = new Date().getTime();
@@ -366,18 +376,49 @@ export const checkAndResetWeeklySessionCount = async (): Promise<number> => {
     const sessionCount = await AsyncStorage.getItem(STORAGE_KEYS.SESSION_COUNT);
     return sessionCount ? parseInt(sessionCount) : 0;
   } catch (error) {
-    console.error('Failed to check/reset weekly session count:', error);
+    console.error('Failed to check/reset weekly session count locally:', error);
     return 0;
   }
 };
 
 /**
- * Incrementa il contatore sessioni settimanali
+ * Verifica e resetta il contatore sessioni settimanali se è passata una settimana
+ * AGGIORNATO: Usa il database invece di AsyncStorage per collegare all'account
  */
-export const incrementSessionCount = async (): Promise<number> => {
+export const checkAndResetWeeklySessionCount = async (): Promise<number> => {
+  try {
+    // Ottieni utente corrente
+    const currentUser = await authService.getCurrentUser();
+    if (!currentUser) {
+      console.log('Nessun utente autenticato per controllo sessioni');
+      return 0;
+    }
+
+    // Usa funzione database per reset automatico
+    const { data, error } = await supabase
+      .rpc('reset_weekly_sessions_if_needed', { p_user_id: currentUser.id });
+    
+    if (error) {
+      console.error('Errore database nel controllo sessioni settimanali:', error);
+      // Fallback ad AsyncStorage se database fallisce
+      return await checkAndResetWeeklySessionCountLocal();
+    }
+    
+    return data || 0;
+  } catch (error) {
+    console.error('Failed to check/reset weekly session count:', error);
+    // Fallback ad AsyncStorage in caso di errore
+    return await checkAndResetWeeklySessionCountLocal();
+  }
+};
+
+/**
+ * Fallback locale per incremento sessioni (solo per offline)
+ */
+const incrementSessionCountLocal = async (): Promise<number> => {
   try {
     // Verifica e resetta se necessario
-    await checkAndResetWeeklySessionCount();
+    await checkAndResetWeeklySessionCountLocal();
     
     // Leggi il contatore corrente
     const sessionCount = await AsyncStorage.getItem(STORAGE_KEYS.SESSION_COUNT);
@@ -388,27 +429,98 @@ export const incrementSessionCount = async (): Promise<number> => {
     
     return newCount;
   } catch (error) {
-    console.error('Failed to increment session count:', error);
+    console.error('Failed to increment session count locally:', error);
     return 0;
   }
 };
 
 /**
+ * Incrementa il contatore sessioni settimanali
+ * AGGIORNATO: Usa il database invece di AsyncStorage per collegare all'account
+ */
+export const incrementSessionCount = async (): Promise<number> => {
+  try {
+    console.log('🎯 INCREMENT_SESSION: Inizio incremento...');
+    
+    // Ottieni utente corrente
+    const currentUser = await authService.getCurrentUser();
+    if (!currentUser) {
+      console.log('🎯 INCREMENT_SESSION: Nessun utente autenticato');
+      return 1;
+    }
+    
+    console.log('🎯 INCREMENT_SESSION: User ID:', currentUser.id);
+
+    // Usa funzione database per incrementare
+    console.log('🎯 INCREMENT_SESSION: Chiamando RPC increment_user_session_count...');
+    const { data, error } = await supabase
+      .rpc('increment_user_session_count', { p_user_id: currentUser.id });
+    
+    console.log('🎯 INCREMENT_SESSION: RPC result - data:', data, 'error:', error);
+    
+    if (error) {
+      console.error('🎯 INCREMENT_SESSION: ❌ Errore database:', error);
+      // Fallback ad AsyncStorage se database fallisce
+      const fallbackResult = await incrementSessionCountLocal();
+      console.log('🎯 INCREMENT_SESSION: Fallback locale result:', fallbackResult);
+      return fallbackResult;
+    }
+    
+    console.log('🎯 INCREMENT_SESSION: ✅ Sessioni usate dopo incremento:', data || 1);
+    return data || 1;
+  } catch (error) {
+    console.error('🎯 INCREMENT_SESSION: ❌ Errore generale:', error);
+    // Fallback ad AsyncStorage in caso di errore
+    return await incrementSessionCountLocal();
+  }
+};
+
+/**
  * Ottiene il numero di sessioni rimaste questa settimana
+ * AGGIORNATO: Usa il database invece di AsyncStorage per collegare all'account
  */
 export const getRemainingSessionsCount = async (): Promise<number> => {
   try {
+    console.log('🎯 GET_REMAINING_SESSIONS: Inizio verifica...');
+    
     // Se l'utente è premium, restituisci un valore infinito (rappresentato da -1)
     const premium = await isPremium();
-    if (premium) return -1;
+    console.log('🎯 GET_REMAINING_SESSIONS: Premium status:', premium);
+    if (premium) {
+      console.log('🎯 GET_REMAINING_SESSIONS: Utente premium - sessioni illimitate');
+      return -1;
+    }
     
-    // Altrimenti calcola le sessioni rimaste
-    const sessionCount = await AsyncStorage.getItem(STORAGE_KEYS.SESSION_COUNT);
-    const count = sessionCount ? parseInt(sessionCount) : 0;
+    // Ottieni utente corrente
+    const currentUser = await authService.getCurrentUser();
+    if (!currentUser) {
+      console.log('🎯 GET_REMAINING_SESSIONS: Nessun utente autenticato');
+      return 0;
+    }
     
-    return Math.max(0, FREE_LIMITS.SESSIONS_PER_WEEK - count);
+    console.log('🎯 GET_REMAINING_SESSIONS: User ID:', currentUser.id);
+
+    // Usa funzione database per ottenere sessioni rimanenti
+    console.log('🎯 GET_REMAINING_SESSIONS: Chiamando RPC get_remaining_sessions...');
+    const { data, error } = await supabase
+      .rpc('get_remaining_sessions', { p_user_id: currentUser.id });
+    
+    console.log('🎯 GET_REMAINING_SESSIONS: RPC result - data:', data, 'error:', error);
+    
+    if (error) {
+      console.error('🎯 GET_REMAINING_SESSIONS: ❌ Errore database:', error);
+      // Fallback: calcola localmente
+      const sessionCount = await AsyncStorage.getItem(STORAGE_KEYS.SESSION_COUNT);
+      const count = sessionCount ? parseInt(sessionCount) : 0;
+      const fallbackResult = Math.max(0, FREE_LIMITS.SESSIONS_PER_WEEK - count);
+      console.log('🎯 GET_REMAINING_SESSIONS: Fallback locale - count:', count, 'result:', fallbackResult);
+      return fallbackResult;
+    }
+    
+    console.log('🎯 GET_REMAINING_SESSIONS: ✅ Risultato finale:', data || 0);
+    return data || 0;
   } catch (error) {
-    console.error('Failed to get remaining sessions count:', error);
+    console.error('🎯 GET_REMAINING_SESSIONS: ❌ Errore generale:', error);
     return 0;
   }
 };

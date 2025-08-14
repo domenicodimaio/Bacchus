@@ -11,7 +11,7 @@
 import { METABOLISM_RATE } from '../../constants/bac';
 
 export interface Profile {
-  weight: number; // in kg
+  weightKg: number; // CORRETTO: usa weightKg come nel database
   gender: string; // 'Male' or 'Female'
   age: number;
   drinkingFrequency: string; // 'Rarely', 'Occasionally', or 'Frequently'
@@ -131,14 +131,14 @@ export function calculateBACFromProfile(
   foods: Food[],
   time: Date = new Date()
 ): number {
-  const { weight, gender, drinkingFrequency } = profile;
+  const { weightKg, gender, drinkingFrequency } = profile;
   
   // Get constants for calculations
   const r = getDistributionRatio(gender);
   const beta = getMetabolismRate(drinkingFrequency);
   
   // Convert weight to grams
-  const weightInGrams = weight * 1000;
+  const weightInGrams = weightKg * 1000;
   
   // Initialize BAC
   let totalBAC = 0;

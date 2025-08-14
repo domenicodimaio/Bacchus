@@ -179,8 +179,8 @@ export default function EditProfileScreen() {
         await updateCurrentProfile(updatedProfile);
       }
       
-      // Torna alla lista dei profili e forza un refresh con animazione da destra a sinistra
-      router.replace(`/profiles?refresh=${Date.now().toString()}`);
+      // Torna al tab Profilo (con tab bar) invece di sostituire tutta la navigazione
+      router.push('/(tabs)/profile');
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert(

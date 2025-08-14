@@ -149,7 +149,7 @@ export default function SubscriptionOfferScreen() {
             global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
             global.__PREVENT_AUTO_NAVIGATION__ = false;
           }
-          router.replace('/dashboard');
+          router.replace('/(tabs)/dashboard');
         }}]
       );
     });
@@ -174,7 +174,7 @@ export default function SubscriptionOfferScreen() {
     setTimeout(() => {
       if (fromWizard) {
         console.log('[SubscriptionOfferScreen] Ritorno alla dashboard dal wizard');
-        router.replace('/dashboard');
+        router.replace('/(tabs)/dashboard');
       } else {
         console.log('[SubscriptionOfferScreen] Ritorno indietro');
         router.back();

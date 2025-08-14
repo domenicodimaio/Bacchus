@@ -899,8 +899,8 @@ export default function AddDrinkScreen() {
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       
       <AppHeader
         title="addDrink"

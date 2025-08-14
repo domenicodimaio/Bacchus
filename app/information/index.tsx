@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -17,39 +17,84 @@ import { SIZES } from '../constants/theme';
 import AppHeader from '../components/AppHeader';
 import OfflineIndicator from '../components/OfflineIndicator';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 
 export default function InformationScreen() {
   const { t } = useTranslation(['profile', 'common']);
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   
+  // 🔧 FIX CRASH: Flag per controllare se il componente è montato
+  const isMounted = useRef(true);
+  
   // Variabili per la gestione dello swipe back
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+
+  // 🔧 FIX CRASH: Cleanup quando il componente viene smontato
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      // Reset sicuro delle animazioni
+      try {
+        translateX.value = 0;
+        translateY.value = 0;
+      } catch (error) {
+        console.log('Information cleanup: Animation reset failed (safe to ignore)');
+      }
+    };
+  }, []);
   
-  // Configura il gesto di swipe
+  // Configura il gesto di swipe con controllo sicurezza
   const swipeGesture = Gesture.Pan()
     .onUpdate((event) => {
-      if (event.translationX > 0) {
-        translateX.value = event.translationX;
+      // 🔧 FIX CRASH: Solo se il componente è ancora montato
+      if (isMounted.current && event.translationX > 0) {
+        try {
+          translateX.value = event.translationX;
+        } catch (error) {
+          console.log('Information: Animation update failed (component unmounted)');
+        }
       }
     })
     .onEnd((event) => {
-      if (event.translationX > 100) {
-        // Se lo swipe è abbastanza lungo, torna indietro
-        router.back();
-      } else {
-        // Altrimenti resetta la posizione
-        translateX.value = withTiming(0);
+      // 🔧 FIX CRASH: Solo se il componente è ancora montato
+      if (!isMounted.current) {
+        return;
+      }
+      
+      try {
+        if (event.translationX > 100) {
+          // 🔧 FIX SCHERMATA BIANCA: Reset animazioni prima di navigare
+          console.log('🎯 INFORMATION SWIPE: Navigando alla dashboard...');
+          translateX.value = 0;
+          translateY.value = 0;
+          // Usa runOnJS per navigare dal thread principale
+          const navigateToDashboard = () => {
+            router.replace('/(tabs)/dashboard');
+          };
+          runOnJS(navigateToDashboard)();
+        } else {
+          // Altrimenti resetta la posizione
+          translateX.value = withTiming(0);
+        }
+      } catch (error) {
+        console.log('Information: Animation end failed (component unmounted)');
       }
     });
   
-  // Stile animato per il container
+  // Stile animato per il container con controllo sicurezza
   const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }]
-    };
+    // 🔧 FIX CRASH: Ritorna valore sicuro se componente smontato
+    try {
+      return {
+        transform: [{ translateX: translateX.value }]
+      };
+    } catch (error) {
+      return {
+        transform: [{ translateX: 0 }]
+      };
+    }
   });
   
   return (

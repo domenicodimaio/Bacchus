@@ -1,10 +1,9 @@
-import React, { useRef } from 'react';
-import { Redirect } from 'expo-router';
+import React from 'react';
+
+// 🔧 FIX CRITICO: Import history direttamente invece di redirect
+import HistoryScreen from '../history/index';
 
 export default function HistoryTab() {
-  // Use a ref to track if we've already redirected
-  const hasRedirectedRef = useRef(false);
-
-  // This tab redirects to the session history screen
-  return <Redirect href="/history" />;
+  // 🔧 FIX: Render history direttamente - NO PIU' REDIRECT!
+  return <HistoryScreen />;
 } 

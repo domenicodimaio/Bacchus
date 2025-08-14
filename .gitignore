@@ -5,3 +5,30 @@
 expo-env.d.ts
 # @end expo-cli
 node_modules
+
+# Expo
+.expo/
+*.log
+*.ipa
+*.apk
+
+# Environment variables
+.env
+.env.local
+
+# Build artifacts
+build/
+dist/
+.expo/
+temp_ipa/
+temp_sql/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

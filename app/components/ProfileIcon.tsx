@@ -73,13 +73,13 @@ const ProfileIcon: React.FC<ProfileIconProps> = ({ size = 34, showModal = false,
     
     // Conferma prima di effettuare il logout
     setTimeout(() => {
-      Alert.alert(
-        t('logout', { ns: 'auth', defaultValue: 'Logout' }),
-        t('confirmLogout', { ns: 'auth', defaultValue: 'Are you sure you want to log out?' }),
-        [
-          { text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }), style: 'cancel' },
-          {
-            text: t('logout', { ns: 'auth', defaultValue: 'Logout' }),
+          Alert.alert(
+      t('logout', { ns: 'auth', defaultValue: 'Esci' }),
+      t('confirmLogout', { ns: 'auth', defaultValue: 'Sei sicuro di voler uscire?' }),
+      [
+        { text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }), style: 'cancel' },
+        {
+          text: t('logout', { ns: 'auth', defaultValue: 'Esci' }),
             style: 'destructive',
             onPress: async () => {
               try {
@@ -89,7 +89,7 @@ const ProfileIcon: React.FC<ProfileIconProps> = ({ size = 34, showModal = false,
                 console.error('Logout error:', error);
                 Alert.alert(
                   t('error', { ns: 'common', defaultValue: 'Error' }),
-                  t('logoutFailed', { ns: 'auth', defaultValue: 'Logout failed' })
+                  t('logoutFailed', { ns: 'auth', defaultValue: 'Uscita fallita' })
                 );
               }
             }
@@ -256,7 +256,7 @@ const ProfileIcon: React.FC<ProfileIconProps> = ({ size = 34, showModal = false,
               >
                 <Ionicons name="log-out-outline" size={24} color={colors.error} />
                 <Text style={[styles.optionText, { color: colors.error, marginLeft: 12 }]}>
-                  {t('logout', { ns: 'auth', defaultValue: 'Logout' })}
+                  {t('logout', { ns: 'auth', defaultValue: 'Esci' })}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -1,16 +1,12 @@
 import React from 'react';
-import { Redirect } from 'expo-router';
-import CustomTabBar from '../components/CustomTabBar';
 import { View, StyleSheet } from 'react-native';
 
+// 🔧 FIX CRITICO: Import profiles direttamente invece di redirect
+import ProfilesScreen from '../profiles/index';
+
 export default function ProfileTab() {
-  // Reindirizza a /profiles mantenendo il tab bar
-  return (
-    <View style={styles.container}>
-      <Redirect href="/profiles" />
-      <CustomTabBar />
-    </View>
-  );
+  // 🔧 FIX: Render profiles direttamente - NO PIU' REDIRECT!
+  return <ProfilesScreen />;
 }
 
 const styles = StyleSheet.create({

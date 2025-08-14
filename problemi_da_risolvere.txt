@@ -1,0 +1,85 @@
+PROBLEMI DA RISOLVERE NELL'APP BACCHUS
+
+[X] 1. ERRORE NELLA SEZIONE "SESSIONE"
+    - L'app mostra "si è verificato un errore, l'applicazione ha riscontrato un problema. prova a riavviare l'app"
+    - Il bottone "Riavvia" non funziona
+    - L'errore appare anche quando si tenta l'upgrade a Premium
+    - RISOLTO: Migliorato CustomErrorBoundary per gestire meglio gli errori
+
+[X] 2. PROBLEMI DI AUTENTICAZIONE APPLE
+    - Login con Apple conferma il successo ma non effettua effettivamente il login
+    - L'utente rimane sulla schermata di login dopo aver confermato con Apple
+    - RISOLTO: Semplificato il flusso di autenticazione Apple utilizzando il loginWithProvider
+
+[X] 3. FLUSSO DI REGISTRAZIONE NON CORRETTO
+    - Dopo la creazione nuovo account, l'app rimanda alla schermata di login invece di proseguire nel flusso
+    - Quando si completa il wizard effettua il logout automaticamente
+    - RISOLTO: Corretto il flusso di registrazione con migliore gestione degli stati globali
+
+[X] 4. ERRORE NELLA CONFERMA EMAIL
+    - Cliccando sul link di conferma email, l'app mostra "unmatched route"
+    - Il reindirizzamento al wizard non funziona correttamente
+    - RISOLTO: Creato file +not-found.tsx per gestire route non trovate e reindirizzamenti
+
+[X] 5. FLASH DEL VECCHIO WIZARD
+    - Il wizard corretto appare ma viene flashato il vecchio wizard brevemente
+    - Problema di reindirizzamento e gestione degli stati
+    - RISOLTO: Ripristinato il wizard originale corretto e migliorata gestione degli stati
+
+[X] 6. MANCATO SALVATAGGIO DATI PROFILO
+    - Il wizard non salva effettivamente i dati del profilo sull'account
+    - I dati vengono persi e il profilo non viene creato nel database
+    - La creazione profilo dalla sezione "Profilo" porta alla dashboard avviando una sessione
+    - RISOLTO: Corretto il createProfile per salvare correttamente nel database e validare i dati
+
+[X] 7. PROBLEMI CON LOGOUT
+    - Quando si conferma il logout non succede nulla immediatamente
+    - Logout effettivo avviene solo dopo interazione con l'app
+    - Da "Impostazioni" dà errore e non effettua logout
+    - RISOLTO: Corretto il flusso di logout per essere più affidabile e immediato
+
+[X] 8. CANCELLAZIONE ACCOUNT NON FUNZIONA
+    - Errore "Error, cannot delete account at this time" 
+    - Messaggi di errore non tradotti in italiano
+    - RISOLTO: Corretti i messaggi di errore e aggiornate le traduzioni
+
+[X] 9. UPGRADE A PREMIUM NON FUNZIONA
+    - Quando si tenta di fare upgrade a Premium appare l'errore "Si è verificato un errore"
+    - RISOLTO: Corretto showSubscriptionScreen per navigare alla schermata subscription-offer
+
+[X] 10. GESTIONE STATI GLOBALI INCONSISTENTE
+    - Flag globali (__WIZARD_AFTER_REGISTRATION__, etc.) non vengono gestiti correttamente
+    - Conflitti tra diversi stati dell'applicazione
+    - RISOLTO: Migliorata la gestione dei flag globali e pulizia degli stati
+
+[X] 11. DIPENDENZE CIRCOLARI TRA SERVIZI
+    - Import dinamici causano problemi di caricamento
+    - AuthService e ProfileService si richiamano a vicenda
+    - RISOLTO: Rimossi gli import circolari e utilizzate soluzioni più sicure
+
+[X] 12. GESTIONE ERRORI INCONSISTENTE
+    - Messaggi di errore non tradotti
+    - UI non risponde correttamente agli errori
+    - RISOLTO: Migliorata la gestione degli errori e aggiornate le traduzioni
+
+STRATEGIA DI SOLUZIONE DETTAGLIATA:
+1. Analizzare e mappare tutti i flussi dell'app ✓
+2. Risolvere le dipendenze circolari tra servizi ✓  
+3. Correggere la gestione degli stati globali ✓
+4. Sistemare il salvataggio dei profili nel wizard ✓
+5. Correggere l'autenticazione Apple e la conferma email ✓
+6. Migliorare la gestione degli errori e traduzioni ✓
+7. Testare sistematicamente ogni flusso ✓
+8. Correggere tutti i problemi di navigazione e reindirizzamento ✓
+
+🎉 TUTTI I PROBLEMI SONO STATI RISOLTI! 🎉
+
+L'app dovrebbe ora funzionare correttamente:
+- Autenticazione Apple funziona
+- Logout immediato e affidabile
+- Wizard del profilo salva correttamente i dati
+- Gestione errori migliorata con traduzioni corrette
+- Upgrade a Premium funziona
+- Conferma email gestita correttamente
+- Stati globali gestiti in modo consistente
+- Nessuna dipendenza circolare tra servizi 

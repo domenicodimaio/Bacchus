@@ -1,29 +1,29 @@
 // Polyfill diretto per crypto.getRandomValues
 import 'react-native-get-random-values';
 
-import React, { useEffect, useState, useCallback, ReactNode } from 'react';
-import { Stack, useRouter, usePathname } from 'expo-router';
-import { View, StyleSheet, LogBox, Text, Platform, TouchableOpacity, NativeModules } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { View, StyleSheet, LogBox, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from './components/Toast';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { OfflineProvider } from './contexts/OfflineContext';
-import { ActiveProfilesProvider, useUserProfile } from './contexts/ProfileContext';
-import { PurchaseProvider } from './contexts/PurchaseContext';
-import { COLORS } from './constants/theme';
-import { validateSupabaseConnection } from './lib/supabase/client';
-import * as SplashScreen from 'expo-splash-screen';
-import sessionService from './lib/services/session.service';
-import profileService from './lib/services/profile.service';
-import Constants from 'expo-constants';
-import supabase from './lib/supabase/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as authService from './lib/services/auth.service';
-import Toast from 'react-native-toast-message';
-import i18n, { ALL_NAMESPACES, SUPPORTED_LANGUAGES } from './i18n';
+import { ThemeProvider } from './contexts/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import DebugConsole from './components/DebugConsole';
+import * as SplashScreen from 'expo-splash-screen';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ActiveProfilesProvider } from './contexts/ProfileContext';
+import { PurchaseProvider } from './contexts/PurchaseContext';
+import { hasCompletedProfileWizard } from './lib/services/auth.service';
+import './lib/services/logging.service'; // Inizializza il servizio di logging
+
+// 🔧 FIX CRITICO: Rendi AsyncStorage globale per compatibilità
+// Questo risolve "Property 'AsyncStorage' doesn't exist" in produzione
+if (typeof global !== 'undefined') {
+  (global as any).AsyncStorage = AsyncStorage;
+}
 
 // Ignora alcuni warning specifici
 LogBox.ignoreLogs([
@@ -37,165 +37,103 @@ LogBox.ignoreLogs([
   "AsyncStorage has been extracted from react-native",
 ]);
 
-// Chiave per lo storage
-const FIRST_APP_LAUNCH_KEY = 'bacchus_first_app_launch';
+// Mantieni visibile la splash screen
+SplashScreen.preventAutoHideAsync().catch((err) => {
+  console.warn('Errore splash screen:', err);
+});
 
-// Assicura che le traduzioni siano completamente caricate
-const ensureTranslationsLoaded = async () => {
-  try {
-    console.log('🌐 [i18n] Assicurazione caricamento completo traduzioni');
-    
-    // Controlla se i18n è inizializzato
-    if (!i18n.isInitialized) {
-      console.log('🌐 [i18n] In attesa dell\'inizializzazione...');
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    // Verifica che i namespace principali siano caricati
-    const currentLng = i18n.language || 'it';
-    for (const ns of ALL_NAMESPACES) {
-      if (!i18n.hasResourceBundle(currentLng, ns)) {
-        console.log(`🌐 [i18n] Namespace mancante: ${currentLng}:${ns}`);
+// Componente di navigazione che usa l'AuthContext
+function NavigationHandler() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+  const [hasProfileInDB, setHasProfileInDB] = useState<boolean | null>(null);
+  const [checkingProfile, setCheckingProfile] = useState(false);
+
+  // Verifica profilo nel database quando utente è autenticato
+  useEffect(() => {
+    async function checkUserProfile() {
+      if (!isAuthenticated || !user || checkingProfile) return;
+      
+      setCheckingProfile(true);
+      try {
+        console.log('[NAVIGATION] Controllo profilo per utente:', user.id);
+        
+        // Importa dinamicamente per evitare dipendenze circolari
+        const supabase = (await import('./lib/supabase/client')).default;
+        
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id, name, gender, age')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('[NAVIGATION] Errore controllo profilo:', error);
+          setHasProfileInDB(false);
+          return;
+        }
+        
+        const hasValidProfile = profile && profile.name && profile.gender && profile.age;
+        console.log('[NAVIGATION] Profilo trovato:', !!profile, 'Valido:', hasValidProfile);
+        setHasProfileInDB(hasValidProfile);
+        
+      } catch (error) {
+        console.error('[NAVIGATION] Errore verifica profilo:', error);
+        setHasProfileInDB(false);
+      } finally {
+        setCheckingProfile(false);
       }
     }
     
-    // Attendiamo che i18n sia completamente inizializzato
-    if (!i18n.isInitialized) {
-      console.log('🌐 [i18n] Attesa inizializzazione...');
-      await new Promise(resolve => setTimeout(resolve, 300));
+    checkUserProfile();
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    // 🔧 LOGICA SEMPLIFICATA: Solo redirect essenziali
+    if (isLoading || checkingProfile) return;
+
+    const currentPath = segments.join('/');
+    console.log('[NAVIGATION] Auth:', isAuthenticated, 'Path:', currentPath);
+
+    // 🚫 NON interferire mai con onboarding/wizard
+    if (currentPath.includes('onboarding') || currentPath.includes('profile-wizard')) return;
+
+    // ✅ Solo 2 regole semplici:
+    // 1. Non autenticato → Login
+    if (!isAuthenticated && !currentPath.startsWith('auth')) {
+      console.log('[NAVIGATION] → Login (non autenticato)');
+      router.replace('/auth/login');
+      return;
     }
     
-    return true;
-  } catch (error) {
-    console.error('🌐 [i18n] Errore durante la verifica delle traduzioni:', error);
-    return false;
-  }
-};
-
-// Carica le risorse prima di mostrare l'app
-async function cacheResourcesAsync() {
-  try {
-    console.log('🔍 DIAGNOSTICA: Inizio cacheResourcesAsync');
-    
-    // Assicura che le traduzioni siano caricate
-    await ensureTranslationsLoaded();
-    console.log('🔍 DIAGNOSTICA: Traduzioni verificate');
-    
-    // Verifica basica della sessione
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('🔍 DIAGNOSTICA: Verifica sessione completata');
-    } catch (sessionError) {
-      console.error('🔍 DIAGNOSTICA: Errore verificando la sessione:', sessionError.message);
+    // 2. Autenticato su login → Dashboard  
+    if (isAuthenticated && currentPath === 'auth/login') {
+      console.log('[NAVIGATION] → Dashboard (già autenticato)');
+      router.replace('/(tabs)/dashboard');
+      return;
     }
-    
-    // Inizializzazione minimale
-    await sessionService.initSessionService();
-    console.log('🔍 DIAGNOSTICA: Servizio sessioni inizializzato');
-    
-    return true;
-  } catch (error) {
-    console.error('🔍 DIAGNOSTICA: Errore durante il caching delle risorse:', error);
-    return true; // Return true anche in caso di errore per permettere all'app di continuare
-  }
-}
+  }, [isLoading, isAuthenticated, segments, checkingProfile]);
 
-// Mantieni visibile la splash screen
-SplashScreen.preventAutoHideAsync().catch((err) => {
-  console.warn('Errore prevenzione nascondimento splash screen:', err);
-});
-
-// Schermata mostrata prima che il resto dell'app si carichi
-function InitialLoading() {
   return null;
 }
 
-// Definizione dei tipi per ErrorBoundary
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
-
-// Semplice componente di ErrorBoundary
-class CustomErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#14233B' }}>
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
-            Si è verificato un errore
-          </Text>
-          <Text style={{ color: 'white', textAlign: 'center', marginBottom: 20 }}>
-            L'applicazione ha riscontrato un problema. Prova a riavviare l'app.
-          </Text>
-          {Platform.OS !== 'web' && (
-            <TouchableOpacity
-              style={{ padding: 12, backgroundColor: '#00F7FF', borderRadius: 8 }}
-              onPress={() => {
-                try {
-                  // Prova a riavviare l'app
-                  if (Platform.OS === 'ios') {
-                    NativeModules.DevSettings?.reload();
-                  } else if (Platform.OS === 'android') {
-                    const { RNReload } = NativeModules;
-                    if (RNReload) {
-                      RNReload.reload();
-                    } else {
-                      NativeModules.DevSettings?.reload();
-                    }
-                  }
-                } catch (err) {
-                  console.error('Failed to reload app:', err);
-                }
-              }}
-            >
-              <Text style={{ color: '#14233B', fontWeight: 'bold' }}>Riavvia</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 export default function RootLayout() {
-  const router = useRouter();
-  const pathname = usePathname();
   const [appIsReady, setAppIsReady] = useState(false);
-  
-  // Inizializza l'app e carica i dati necessari
+
+  // Inizializzazione minima
   useEffect(() => {
     async function prepare() {
       try {
-        // Pre-carica le risorse prima di nascondere la splash screen
-        await Promise.all([
-          cacheResourcesAsync(),
-          // Usiamo un timeout breve per garantire un'esperienza fluida
-          new Promise(resolve => setTimeout(resolve, 600))
-        ]);
+        console.log('[LAYOUT] Preparazione minima...');
+        
+        // Delay minimo
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log('[LAYOUT] Pronto');
       } catch (e) {
-        console.warn('Errore durante la preparazione dell\'app:', e);
+        console.warn('Errore preparazione:', e);
       } finally {
-        // Al termine, impostiamo l'app come pronta
         setAppIsReady(true);
       }
     }
@@ -203,98 +141,50 @@ export default function RootLayout() {
     prepare();
   }, []);
 
-  // Gestisce la transizione dalla splash screen
+  // Nascondi splash screen quando pronto
   useEffect(() => {
-    const hideSplash = async () => {
-      if (appIsReady) {
-        try {
-          // Nascondi la splash screen quando l'app è pronta
-          await SplashScreen.hideAsync();
-          console.log('Splash screen nascosta dal layout');
-        } catch (e) {
-          console.warn('Errore nella gestione splash screen:', e);
-        }
-      }
-    };
-
-    hideSplash();
+    if (appIsReady) {
+      SplashScreen.hideAsync().catch(e => console.warn('Errore hide splash:', e));
+    }
   }, [appIsReady]);
 
-  // Controllo immediato all'avvio dell'app per reindirizzare gli utenti correttamente
-  useEffect(() => {
-    // Usiamo una variabile per evitare redirezioni multiple
-    let hasRedirected = false;
-    
-    async function checkUserStatus() {
-      try {
-        // Se abbiamo già eseguito un reindirizzamento, non facciamo nulla
-        if (hasRedirected) return;
-        
-        // Verifica base che l'utente sia autenticato
-        const isAuthenticated = await authService.isAuthenticated();
-        console.log('LAYOUT: Stato utente verificato - autenticato:', isAuthenticated);
-        
-        // Reindirizzamento semplificato
-        if (isAuthenticated) {
-          // Se l'utente è autenticato ma sta cercando di accedere alla pagina di login, mandalo alla dashboard
-          if (pathname === '/auth/login') {
-            console.log('LAYOUT: Utente già autenticato, redirect alla dashboard');
-            hasRedirected = true;
-            router.replace('/dashboard');
-          }
-        } else {
-          // Se l'utente non è autenticato e sta cercando di accedere a pagine protette, mandalo al login
-          if (pathname !== '/' && 
-              pathname !== '/auth/login' && 
-              pathname !== '/auth/signup' &&
-              !pathname.includes('/auth/login-diagnostic') && 
-              !pathname.includes('/auth/auth-callback') &&
-              !pathname.includes('/auth/login-callback')) {
-            console.log('LAYOUT: Utente non autenticato, redirect al login');
-            hasRedirected = true;
-            router.replace('/auth/login');
-          }
-        }
-      } catch (error) {
-        console.error('Error in initial auth check:', error);
-      }
-    }
-    
-    // Attendiamo che l'app sia pronta prima di eseguire il controllo
-    if (appIsReady) {
-      checkUserStatus();
-    }
-    
-    // Pulisci il flag quando il componente viene smontato
-    return () => {
-      hasRedirected = false;
-    };
-  }, [pathname, appIsReady]);
-
   if (!appIsReady) {
-    return <InitialLoading />;
+    return (
+      <View style={styles.splashContainer}>
+        <ActivityIndicator size="large" color="#0066cc" />
+      </View>
+    );
   }
 
-  // Semplifica il rendering principale
   return (
     <ThemeProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <AuthProvider>
-          <SafeAreaProvider>
-            <PurchaseProvider>
-              <StatusBar style="light" />
-              <CustomErrorBoundary>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    animation: 'fade',
-                    contentStyle: { backgroundColor: 'transparent' },
-                  }}
-                />
-              </CustomErrorBoundary>
-            </PurchaseProvider>
-          </SafeAreaProvider>
-        </AuthProvider>
+        <SafeAreaProvider>
+          <ToastProvider>
+            <ErrorBoundary>
+              <AuthProvider>
+                <ActiveProfilesProvider>
+                  <PurchaseProvider>
+                    <NavigationHandler />
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        animation: 'fade',
+                        contentStyle: { backgroundColor: 'transparent' },
+                        // 🚫 CRITICO: DISABILITA TUTTI I SWIPE BACK - RICHIESTA UTENTE
+                        gestureEnabled: false,
+                        fullScreenGestureEnabled: false,
+                        gestureDirection: 'horizontal',
+                      }}
+                    />
+                    <StatusBar style="auto" />
+                    <DebugConsole />
+                  </PurchaseProvider>
+                </ActiveProfilesProvider>
+              </AuthProvider>
+            </ErrorBoundary>
+          </ToastProvider>
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     </ThemeProvider>
   );
@@ -306,13 +196,9 @@ const styles = StyleSheet.create({
   },
   splashContainer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0c1620',
+    backgroundColor: '#0c2348',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999
   },
-  splashImage: {
-    width: '80%',
-    height: '80%'
-  }
 }); 

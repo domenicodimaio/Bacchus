@@ -111,7 +111,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
       label: t('common:tabs.dashboard', 'Dashboard'),
       icon: 'home-outline',
       activeIcon: 'home',
-      path: '/dashboard',
+      path: '/(tabs)/dashboard',
       key: 'dashboard'
     },
     {
@@ -119,7 +119,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
       label: t('common:tabs.session', 'Session'),
       icon: 'beer-outline',
       activeIcon: 'beer',
-      path: '/session',
+      path: '/(tabs)/session',
       key: 'session'
     },
     {
@@ -127,7 +127,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
       label: t('common:tabs.history', 'History'),
       icon: 'time-outline',
       activeIcon: 'time',
-      path: '/history',
+      path: '/(tabs)/history',
       key: 'history'
     },
     {
@@ -135,7 +135,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
       label: t('common:tabs.profile', 'Profilo'),
       icon: 'person-outline',
       activeIcon: 'person',
-      path: '/profiles',
+      path: '/(tabs)/profile',
       key: 'profiles'
     },
   ], [t]);
@@ -153,9 +153,19 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
 
   // Check if a tab is active
   const isActive = (path: string) => {
+    // Handle exact match
     if (pathname === path) return true;
-    if (path === '/dashboard' && pathname === '/') return true;
-    return pathname?.startsWith(path) || false;
+    
+    // Handle root path mapping to dashboard
+    if (path === '/(tabs)/dashboard' && (pathname === '/' || pathname === '/dashboard')) return true;
+    
+    // Handle tab route matches
+    if (path.startsWith('/(tabs)/')) {
+      const tabName = path.replace('/(tabs)/', '');
+      return pathname === `/${tabName}` || pathname === path || pathname?.startsWith(`/${tabName}`);
+    }
+    
+    return false;
   };
 
   // Navigate to a tab

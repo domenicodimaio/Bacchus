@@ -40,12 +40,12 @@ export default function UserProfile({ minimal = false }: UserProfileProps) {
   const handleLogout = async () => {
     try {
       Alert.alert(
-        t('logout', { ns: 'auth', defaultValue: 'Logout' }),
-        t('confirmLogout', { ns: 'auth', defaultValue: 'Are you sure you want to log out?' }),
+      t('logout', { ns: 'auth', defaultValue: 'Esci' }),
+      t('confirmLogout', { ns: 'auth', defaultValue: 'Sei sicuro di voler uscire?' }),
         [
-          { text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }), style: 'cancel' },
+        { text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }), style: 'cancel' },
           {
-            text: t('logout', { ns: 'auth', defaultValue: 'Logout' }),
+          text: t('logout', { ns: 'auth', defaultValue: 'Esci' }),
             style: 'destructive',
             onPress: async () => {
               try {
@@ -158,7 +158,7 @@ export default function UserProfile({ minimal = false }: UserProfileProps) {
             color={colors.error} 
           />
           <Text style={[styles.logoutText, { color: colors.error }]}>
-            {t('logout', { ns: 'auth', defaultValue: 'Logout' })}
+            {t('logout', { ns: 'auth', defaultValue: 'Esci' })}
           </Text>
         </TouchableOpacity>
       </View>

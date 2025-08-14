@@ -2,7 +2,7 @@ export default {
   expo: {
     name: 'Bacchus',
     slug: 'Bacchus',
-    owner: "dome.dima95",
+    owner: "domenicodimaio",
     version: '1.2.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -18,7 +18,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '448',
+      buildNumber: '975',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
@@ -42,7 +42,7 @@ export default {
     },
     android: {
       package: 'com.bacchusapp.app',
-      versionCode: 448,
+      versionCode: 975,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
@@ -74,6 +74,7 @@ export default {
       favicon: './assets/icon.png'
     },
     plugins: [
+      'expo-router',
       [
         'expo-build-properties',
         {
@@ -97,7 +98,7 @@ export default {
       supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NTg0MTUsImV4cCI6MjA1ODAzNDQxNX0.VNZ0L4a7yixOk3oATyAz-bCDsohhuNE5ohQdV363xWM',
       bundleIdentifier: 'com.bacchusapp.app',
       eas: {
-        projectId: "c53e831d-54d4-4fc8-aa16-7fd3360d2116"
+        projectId: "96b7f8cb-b419-4770-9912-693ddb0b2577"
       }
     }
   }

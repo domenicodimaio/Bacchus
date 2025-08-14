@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 15.0.14",
+    "version": ">= 16.9.0",
     "appVersionSource": "local"
   },
   "build": {
@@ -36,7 +36,10 @@
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
         "image": "latest",
-        "scheme": "Bacchus"
+        "scheme": "Bacchus",
+        "cache": {
+          "disabled": false
+        }
       },
       "channel": "production"
     },
@@ -118,7 +121,7 @@
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "beta"
+        "track": "internal"
       }
     }
   }

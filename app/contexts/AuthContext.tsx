@@ -8,14 +8,21 @@
  * - Gestione del profilo utente attivo
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import * as authService from '../lib/services/auth.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTranslation } from 'react-i18next';
-import * as profileService from '../lib/services/profile.service';
+import * as authService from '../lib/services/auth.service';
+// import * as profileService from '../lib/services/profile.service';
 import * as sessionService from '../lib/services/session.service';
-import { Profile } from '../types/profile';
+import { useTranslation } from 'react-i18next';
+
+// Interfaccia temporanea per Profile
+interface Profile {
+  id: string;
+  name: string;
+  // Altri campi che potrebbero servire
+  [key: string]: any;
+}
 
 // Tipo per il contesto di autenticazione
 interface AuthContextType {
@@ -25,10 +32,11 @@ interface AuthContextType {
   accessToken: string | null;
   login: (email: string, password: string) => Promise<{success: boolean; error?: string; redirectTo?: string}>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string) => Promise<{success: boolean; error?: string; redirectTo?: string}>;
-  loginWithProvider: (provider: 'google' | 'apple') => Promise<{success: boolean; error?: string}>;
+  signup: (email: string, password: string) => Promise<{success: boolean; error?: string; redirectTo?: string; needsEmailConfirmation?: boolean}>;
+  loginWithProvider: (provider: 'google' | 'apple') => Promise<{success: boolean; error?: string; data?: any}>;
   resetPassword: (email: string) => Promise<{success: boolean; error?: string}>;
   updateCurrentSession: () => Promise<void>;
+  deleteAccount: () => Promise<{success: boolean; error?: string}>;
   activeProfile: Profile | null;
   setActiveProfile: (profile: Profile) => void;
   profileError: string | null;
@@ -54,6 +62,7 @@ const AuthContext = createContext<AuthContextType>({
   loginWithProvider: async () => ({ success: false }),
   resetPassword: async () => ({ success: false }),
   updateCurrentSession: async () => {},
+  deleteAccount: async () => ({ success: false }),
   activeProfile: null,
   setActiveProfile: () => {},
   profileError: null,
@@ -84,112 +93,138 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   
   // Controlla lo stato di autenticazione all'avvio
   useEffect(() => {
-    // Funzione per caricare i dati iniziali
+    // Funzione per caricare i dati iniziali SEMPLIFICATA
     const loadInitialData = async () => {
       try {
         setIsLoading(true);
+        console.log('[AUTH_CONTEXT] Caricamento dati iniziale semplificato...');
         
-        // Verifica se l'utente è autenticato
+        // Controllo semplificato dello stato auth senza operazioni complesse
         const currentUser = await authService.getCurrentUser();
         
-        // Imposta lo stato di autenticazione
         if (currentUser) {
+          console.log('[AUTH_CONTEXT] Utente trovato:', currentUser.id);
           setUser(currentUser);
           setIsAuthenticated(true);
           
-          // Carica i profili dell'utente
+          // 🔧 FIX CRITICO: Riattiva caricamento profili
           await loadUserProfiles(currentUser.id);
           
-          // Verifica se l'utente ha completato la procedura guidata del profilo
-          const wizardCompleted = await authService.hasCompletedProfileWizard();
-          setHasCompletedProfileWizard(wizardCompleted);
+          // Controllo wizard semplificato
+          try {
+            const wizardCompleted = await authService.hasCompletedProfileWizard();
+            setHasCompletedProfileWizard(wizardCompleted);
+          } catch (wizardError) {
+            console.log('[AUTH_CONTEXT] Errore controllo wizard, assumo non completato');
+            setHasCompletedProfileWizard(false);
+          }
           
-          console.log('AuthContext: Utente autenticato con ID', currentUser.id);
         } else {
+          console.log('[AUTH_CONTEXT] Nessun utente autenticato');
           setIsAuthenticated(false);
-          console.log('AuthContext: Nessun utente autenticato');
           setProfiles([]);
           setActiveProfile(null);
+          setHasCompletedProfileWizard(false);
         }
       } catch (error) {
-        console.error('AuthContext: Errore nel caricamento dei dati iniziali:', error);
+        console.error('[AUTH_CONTEXT] Errore caricamento dati iniziali:', error);
+        // In caso di errore, imposta stato sicuro
+        setIsAuthenticated(false);
+        setUser(null);
+        setProfiles([]);
+        setActiveProfile(null);
+        setHasCompletedProfileWizard(false);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    // Avvia il caricamento dei dati
+
+    // Avvia il caricamento
     loadInitialData();
     
-    // Configura il listener per i cambiamenti di stato dell'autenticazione
+    // Listener auth semplificato
     const { data: authListener } = authService.onAuthStateChange(async (event, session) => {
-      console.log('AuthContext: Evento di autenticazione:', event);
+      console.log('[AUTH_CONTEXT] Evento auth:', event);
       
-      // Aggiorna lo stato in base all'evento
-      if (event === 'SIGNED_IN' && session) {
-        const currentUser = session.user;
-        setUser(currentUser);
-        setSession(session);
-        setAccessToken(session.access_token);
-        setIsAuthenticated(true);
-        
-        await loadUserProfiles(currentUser.id);
-        const wizardCompleted = await authService.hasCompletedProfileWizard();
-        setHasCompletedProfileWizard(wizardCompleted);
-      } 
-      else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSession(null);
-        setAccessToken(null);
-        setIsAuthenticated(false);
-        setProfiles([]);
-        setActiveProfile(null);
-        setHasCompletedProfileWizard(false);
+      try {
+        if (event === 'SIGNED_IN' && session) {
+          const currentUser = session.user;
+          setUser(currentUser);
+          setSession(session);
+          setAccessToken(session.access_token);
+          setIsAuthenticated(true);
+          
+          console.log('[AUTH_CONTEXT] ✅ Login completato per:', currentUser.email);
+          
+          // Controllo stato wizard semplificato
+          console.log('[AUTH_CONTEXT] Controllo stato wizard...');
+          
+          try {
+            const wizardCompleted = await authService.hasCompletedProfileWizard();
+            console.log('[AUTH_CONTEXT] Wizard completato:', wizardCompleted);
+            setHasCompletedProfileWizard(wizardCompleted);
+          } catch (wizardError) {
+            console.log('[AUTH_CONTEXT] Errore controllo wizard, assumo non completato');
+            setHasCompletedProfileWizard(false);
+          }
+          
+        } else if (event === 'SIGNED_OUT') {
+          console.log('[AUTH_CONTEXT] ✅ Logout completato');
+          setUser(null);
+          setSession(null);
+          setAccessToken(null);
+          setIsAuthenticated(false);
+          setProfiles([]);
+          setActiveProfile(null);
+          setHasCompletedProfileWizard(false);
+        }
+      } catch (listenerError) {
+        console.error('[AUTH_CONTEXT] Errore nel listener auth:', listenerError);
       }
     });
     
-    // Rimuovi il listener quando il componente viene smontato
     return () => {
       authListener?.subscription?.unsubscribe();
     };
   }, []);
-  
-  // Carica i profili dell'utente
+
+  // 🔧 FIX CRITICO: Implementazione completa loadUserProfiles
   const loadUserProfiles = async (userId: string) => {
     try {
-      console.log('AuthContext: Caricamento profili per utente', userId);
+      console.log('[AUTH_CONTEXT] 🔄 Caricamento profili per utente:', userId);
       
-      // Ottieni i profili dell'utente
-      const userProfiles = await profileService.getProfiles(userId);
-      setProfiles(userProfiles);
+      // Carica profili dal ProfileService 
+      const { getProfiles, getActiveProfile } = require('../lib/services/profile.service');
       
-      // Se non ci sono profili, imposta activeProfile a null
-      if (!userProfiles || userProfiles.length === 0) {
-        setActiveProfile(null);
-        return;
-      }
+      // Forza refresh dei profili
+      const userProfiles = await getProfiles(true);
+      console.log('[AUTH_CONTEXT] ✅ Profili caricati:', userProfiles.length);
       
-      // Ottieni il profilo attivo
-      const activeProfileId = await profileService.getActiveProfileId();
+      setProfiles(userProfiles || []);
       
-      // Se c'è un profilo attivo, trovalo e impostalo
-      if (activeProfileId) {
-        const foundProfile = userProfiles.find(p => p.id === activeProfileId);
-        if (foundProfile) {
-          setActiveProfile(foundProfile);
+      // Carica profilo attivo
+      if (userProfiles && userProfiles.length > 0) {
+        const activeProfile = await getActiveProfile();
+        if (activeProfile) {
+          console.log('[AUTH_CONTEXT] ✅ Profilo attivo:', activeProfile.name);
+          setActiveProfile(activeProfile);
         } else {
-          // Se il profilo attivo non esiste più, usa il primo profilo
+          // Se non c'è profilo attivo ma ci sono profili, usa il primo
+          console.log('[AUTH_CONTEXT] ✅ Usando primo profilo come attivo');
           setActiveProfile(userProfiles[0]);
-          await profileService.setActiveProfile(userProfiles[0].id);
         }
       } else {
-        // Se non c'è un profilo attivo, usa il primo profilo
-        setActiveProfile(userProfiles[0]);
-        await profileService.setActiveProfile(userProfiles[0].id);
+        console.log('[AUTH_CONTEXT] ⚠️ Nessun profilo trovato');
+        setActiveProfile(null);
       }
+      
+      // Reset errore profili
+      setProfileError(null);
+      
     } catch (error) {
-      console.error('AuthContext: Errore nel caricamento dei profili:', error);
+      console.error('[AUTH_CONTEXT] ❌ Errore caricamento profili:', error);
       setProfileError('Errore nel caricamento dei profili');
+      // In caso di errore, non svuotare i profili esistenti
     }
   };
   
@@ -230,20 +265,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         
         setIsAuthenticated(true);
         
-        // Carica i profili dell'utente
+        // 🔧 FIX CRITICO: Forza caricamento profili dopo login
+        console.log('[AUTH_CONTEXT] Caricamento profili dopo login...');
         await loadUserProfiles(result.user.id);
         
         // Verifica se l'utente ha completato la procedura guidata del profilo
         const wizardCompleted = await authService.hasCompletedProfileWizard();
         setHasCompletedProfileWizard(wizardCompleted);
         
-        // Determina dove reindirizzare l'utente
-        let redirectTo = '/dashboard';
-        if (!wizardCompleted) {
-          redirectTo = '/onboarding/profile-wizard';
-        }
-        
-        return { success: true, redirectTo };
+        // Non decidiamo la navigazione qui - lasciamo al NavigationHandler
+        return { success: true };
       } else {
         // Login fallito
         return { success: false, error: result.error || 'Login fallito' };
@@ -255,7 +286,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setIsLoading(false);
     }
   };
-  
+
   // Funzione per il logout
   const logout = async () => {
     try {
@@ -303,7 +334,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         // Reindirizza alla creazione del profilo
         return { 
           success: true, 
-          redirectTo: result.redirectToProfileCreation ? '/onboarding/profile-wizard' : '/dashboard'
+          redirectTo: result.redirectToProfileCreation ? '/onboarding/profile-wizard' : '/dashboard',
+          needsEmailConfirmation: result.needsEmailConfirmation
         };
       } else {
         // Registrazione fallita
@@ -317,21 +349,45 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
   
-  // Funzione per il login con provider (Google, Apple)
+  // Funzione per il login con provider (Google, Apple) - SEMPLIFICATA
   const loginWithProvider = async (provider: 'google' | 'apple') => {
     try {
       setIsLoading(true);
+      console.log(`[AUTH_CONTEXT] Inizio login ${provider}...`);
       
-      // Effettua il login con provider
+      // Delega TUTTO al servizio - nessuna business logic qui
       const result = await authService.signInWithProvider(provider);
       
       if (result.success) {
-        return { success: true };
+        console.log(`[AUTH_CONTEXT] ✅ Login ${provider} completato`);
+        
+        // Solo gestione stato - nessuna logica business
+        if (result.user) {
+          setUser(result.user);
+          setIsAuthenticated(true);
+          
+          if (result.session) {
+            setSession(result.session);
+            setAccessToken(result.session.access_token);
+          }
+          
+          // Usa il servizio per controllare wizard (no duplicazione logica)
+          try {
+            const wizardCompleted = await authService.hasCompletedProfileWizard();
+            setHasCompletedProfileWizard(wizardCompleted);
+          } catch (error) {
+            console.log(`[AUTH_CONTEXT] Errore controllo wizard, assumo non completato`);
+            setHasCompletedProfileWizard(false);
+          }
+        }
+        
+        return { success: true, data: result.data };
       } else {
-        return { success: false, error: result.error || `Login con ${provider} fallito` };
+        console.log(`[AUTH_CONTEXT] Login ${provider} non riuscito:`, result.error);
+        return { success: false, error: result.error || `Errore durante il login con ${provider}`, data: result.data };
       }
     } catch (error: any) {
-      console.error(`AuthContext: Errore durante il login con ${provider}:`, error);
+      console.error(`[AUTH_CONTEXT] Errore durante il login con ${provider}:`, error);
       return { success: false, error: error.message || `Errore durante il login con ${provider}` };
     } finally {
       setIsLoading(false);
@@ -362,13 +418,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
   
-  // Cambia il profilo attivo
+  // Cambia il profilo attivo - PLACEHOLDER
   const handleSetActiveProfile = async (profile: Profile) => {
     try {
-      await profileService.setActiveProfile(profile.id);
+      console.log('[AUTH_CONTEXT] handleSetActiveProfile placeholder:', profile.id);
+      // Per ora solo aggiorna lo stato locale
       setActiveProfile(profile);
     } catch (error) {
-      console.error('AuthContext: Errore nell\'impostazione del profilo attivo:', error);
+      console.error('[AUTH_CONTEXT] Errore nell\'impostazione del profilo attivo:', error);
     }
   };
   
@@ -423,18 +480,46 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
   
+  // Funzione per eliminare l'account
+  const deleteAccount = async () => {
+    try {
+      // Effettua la cancellazione dell'account
+      const result = await authService.deleteAccount();
+      
+      if (result.success) {
+        // Account cancellato con successo
+        setUser(null);
+        setSession(null);
+        setAccessToken(null);
+        setIsAuthenticated(false);
+        setProfiles([]);
+        setActiveProfile(null);
+        setHasCompletedProfileWizard(false);
+        
+        return { success: true };
+      } else {
+        // Errore durante la cancellazione dell'account
+        return { success: false, error: result.error || 'Errore durante la cancellazione dell\'account' };
+      }
+    } catch (error) {
+      console.error('AuthContext: Errore durante la cancellazione dell\'account:', error);
+      return { success: false, error: error.message || 'Errore durante la cancellazione dell\'account' };
+    }
+  };
+  
   // Valore del contesto
   const value = {
-    user,
-    isLoading,
+        user,
+        isLoading,
     isAuthenticated,
     accessToken,
-    login,
-    logout,
+        login,
+        logout,
     signup,
     loginWithProvider,
-    resetPassword,
+        resetPassword,
     updateCurrentSession,
+    deleteAccount,
     activeProfile,
     setActiveProfile: handleSetActiveProfile,
     profileError,
@@ -457,5 +542,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
 // Hook per utilizzare il contesto di autenticazione
 export const useAuth = () => useContext(AuthContext);
+
+// Funzione utilitaria per pulire tutti i flag di navigazione
+export const clearAllNavigationBlocks = () => {
+  console.log('[clearAllNavigationBlocks] Pulizia di tutti i flag di navigazione...');
+  
+  if (typeof global !== 'undefined') {
+    global.__WIZARD_AFTER_REGISTRATION__ = false;
+    global.__LOGIN_REDIRECT_IN_PROGRESS__ = false;
+    global.__PREVENT_ALL_REDIRECTS__ = false;
+    global.__BLOCK_ALL_SCREENS__ = false;
+    global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
+    global.__PREVENT_AUTO_NAVIGATION__ = false;
+    
+    console.log('[clearAllNavigationBlocks] ✅ Tutti i flag di navigazione sono stati puliti');
+  }
+};
 
 export default AuthContext; 

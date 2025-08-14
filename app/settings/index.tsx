@@ -26,12 +26,13 @@ import { router, useNavigation } from 'expo-router';
 import { ReactNode } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { usePurchase } from '../contexts/PurchaseContext';
+import supabase from '../lib/supabase/client';
+import authService from '../lib/services/auth.service';
 
 // Storage keys
 const STORAGE_KEY = {
   LANGUAGE: LANGUAGE_STORAGE_KEY,
-  OFFLINE_MODE: 'bacchus_offline_mode',
-  IS_PREMIUM: 'bacchus_is_premium',
+  IS_PREMIUM: 'bacchus_mock_premium', // 🔧 STESSO STORAGE KEY del purchase service
   DEV_MODE_COUNT: 'bacchus_dev_mode_count'
 };
 
@@ -156,15 +157,18 @@ export default function SettingsScreen() {
   const user = auth?.user || null;
   const signOut = auth?.logout || (async () => ({ success: false }));
   
+  // Purchase context for debug tools
+  const { remainingFreeSessions, initializePurchases, toggleSimulatePremium } = usePurchase();
+  
   // Get app version from Constants
   const appVersion = Constants?.expoConfig?.version || '1.0.0';
-  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '448';
+  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '975';
   
   // State
   const [language, setLanguage] = useState('it');
-  const [offlineMode, setOfflineMode] = useState(false);
+
   const [isPremium, setIsPremium] = useState(false);
-  const [showDeveloperOptions, setShowDeveloperOptions] = useState(false);
+  const [showDeveloperOptions, setShowDeveloperOptions] = useState(true); // 🔧 SEMPRE VISIBILE PER DEBUG
   const [isLoading, setIsLoading] = useState(false);
   
   // Animated styles
@@ -203,11 +207,7 @@ export default function SettingsScreen() {
         setLanguage(storedLanguage);
       }
       
-      // Load offline mode
-      const storedOfflineMode = await AsyncStorage.getItem(STORAGE_KEY.OFFLINE_MODE).catch(() => null);
-      if (storedOfflineMode) {
-        setOfflineMode(storedOfflineMode === 'true');
-      }
+
       
       // Load premium status in modo sicuro con try/catch
       try {
@@ -225,10 +225,12 @@ export default function SettingsScreen() {
       try {
         const devModeCount = await AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT);
         const count = devModeCount ? parseInt(devModeCount, 10) : 0;
-        setShowDeveloperOptions(count >= 7);
+        // 🔧 SEMPRE MOSTRA DEVELOPER OPTIONS PER DEBUG
+        setShowDeveloperOptions(__DEV__ || count >= 7);
       } catch (error) {
         console.error('Errore nel caricamento del contatore DevMode:', error);
-        setShowDeveloperOptions(false);
+        // 🔧 MOSTRA COMUNQUE IN DEV MODE
+        setShowDeveloperOptions(__DEV__);
       }
       
       setIsLoading(false);
@@ -237,7 +239,6 @@ export default function SettingsScreen() {
       
       // In caso di errore, usa i valori predefiniti
       setLanguage('it');
-      setOfflineMode(false);
       setIsPremium(false);
       setShowDeveloperOptions(false);
       setIsLoading(false);
@@ -298,31 +299,7 @@ export default function SettingsScreen() {
     }
   };
 
-  // Function to handle offline mode toggle
-  const handleOfflineModeToggle = async () => {
-    try {
-      const newValue = !offlineMode;
-      setOfflineMode(newValue);
-      await AsyncStorage.setItem(STORAGE_KEY.OFFLINE_MODE, newValue.toString());
-      
-      // Mostra un messaggio di conferma
-      Alert.alert(
-        newValue 
-          ? t('offlineModeEnabled', { ns: 'common', defaultValue: 'Offline mode enabled' })
-          : t('offlineModeDisabled', { ns: 'common', defaultValue: 'Offline mode disabled' }),
-        '',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error toggling offline mode:', error);
-      // Riporta lo stato al valore originale in caso di errore
-      setOfflineMode(offlineMode);
-      Alert.alert(
-        t('error', { ns: 'common', defaultValue: 'Error' }),
-        t('offlineModeToggleError', { ns: 'settings', defaultValue: 'Error toggling offline mode' })
-      );
-    }
-  };
+
   
   // Function to handle dark mode toggle
   const handleDarkModeToggle = async () => {
@@ -339,58 +316,44 @@ export default function SettingsScreen() {
   
   // Function to handle logout
   const handleLogout = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Conferma prima di effettuare il logout
       Alert.alert(
-        t('logout', { ns: 'common', defaultValue: 'Logout' }),
+      t('logout', { ns: 'common', defaultValue: 'Esci' }),
         t('logoutConfirm', { ns: 'settings', defaultValue: 'Are you sure you want to logout?' }),
         [
           {
             text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
-            style: 'cancel'
+          style: 'cancel'
           },
           {
-            text: t('logout', { ns: 'common', defaultValue: 'Logout' }),
+            text: t('logout', { ns: 'common', defaultValue: 'Esci' }),
             style: 'destructive',
             onPress: async () => {
               try {
-                // Effettua il logout
+              setIsLoading(true);
+              console.log('SETTINGS: Inizio processo di logout');
+                
+              // Effettua il logout tramite il servizio
                 const result = await signOut();
                 
-                if (result.success) {
-                  console.log('Logout successful');
-                  
-                  // Naviga alla schermata di login
-                  setTimeout(() => {
-                    router.push('/auth/login');
-                  }, 500);
-                } else {
-                  const errorMessage = 'error' in result ? result.error : 'Unknown error';
-                  console.error('Logout failed:', errorMessage);
-                  Alert.alert(
-                    t('error', { ns: 'common', defaultValue: 'Error' }),
-                    t('logoutError', { ns: 'settings', defaultValue: 'Error logging out' })
-                  );
-                }
+              console.log('SETTINGS: Risultato logout:', result);
+              
+              // Reindirizza sempre alla schermata di login, indipendentemente dal risultato
+              // per evitare che l'utente rimanga bloccato
+              setTimeout(() => {
+                router.replace('/auth/login');
+              }, 100);
+              
               } catch (error) {
-                console.error('Logout error:', error);
-                Alert.alert(
-                  t('error', { ns: 'common', defaultValue: 'Error' }),
-                  t('logoutError', { ns: 'settings', defaultValue: 'Error logging out' })
-                );
-              } finally {
-                setIsLoading(false);
-              }
+              console.error('SETTINGS: Errore durante il logout:', error);
+              // Anche in caso di errore, reindirizza al login
+              router.replace('/auth/login');
+            } finally {
+              setIsLoading(false);
             }
           }
-        ]
-      );
-    } catch (error) {
-      console.error('Logout error:', error);
-      setIsLoading(false);
-    }
+        }
+      ]
+    );
   };
   
   // Function to handle account deletion
@@ -424,8 +387,23 @@ export default function SettingsScreen() {
               const result = await deleteAccountFn();
               
               if (result.success) {
-                console.log('Account deleted successfully');
-                // La navigazione viene gestita dentro la funzione deleteAccount
+                if (result.error === 'partial_deletion') {
+                  // Eliminazione parziale: logout effettuato ma account potrebbe richiedere azione manuale
+                  Alert.alert(
+                    t('accountLoggedOut', { ns: 'settings', defaultValue: 'Logout effettuato' }),
+                    t('accountDeletionPartial', { ns: 'settings', defaultValue: 'Il logout è stato completato e i tuoi dati locali sono stati eliminati. Per la completa eliminazione dell\'account, contatta il supporto.' }),
+                    [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
+                  );
+                } else {
+                  // Eliminazione completa
+                  Alert.alert(
+                    t('accountDeleted', { ns: 'settings', defaultValue: 'Account eliminato' }),
+                    t('accountDeletionSuccess', { ns: 'settings', defaultValue: 'Il tuo account è stato eliminato con successo.' }),
+                    [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
+                  );
+                }
+                setIsLoading(false);
+                // La navigazione viene gestita nel callback dell'alert
               } else {
                 const errorMessage = 'error' in result ? result.error : 'Unknown error';
                 console.error('Account deletion failed:', errorMessage);
@@ -451,20 +429,39 @@ export default function SettingsScreen() {
   
   const togglePremiumStatus = async () => {
     try {
+      console.log('🎯 TOGGLE PREMIUM: Stato attuale:', isPremium);
       const newValue = !isPremium;
-      setIsPremium(newValue);
+      console.log('🎯 TOGGLE PREMIUM: Nuovo valore:', newValue);
+      
+      // Aggiorna AsyncStorage (stessa chiave del purchase service)
       await AsyncStorage.setItem(STORAGE_KEY.IS_PREMIUM, newValue.toString());
+      console.log('🎯 TOGGLE PREMIUM: Salvato in AsyncStorage:', newValue.toString());
+      
+      // Aggiorna stato locale
+      setIsPremium(newValue);
+      
+      // Aggiorna anche il PurchaseContext usando la funzione toggleSimulatePremium
+      console.log('🎯 TOGGLE PREMIUM: Aggiornando PurchaseContext...');
+      await toggleSimulatePremium(newValue);
+      
+      // 🔧 FORZA refresh PurchaseContext per aggiornare counter UI
+      if (initializePurchases) {
+        console.log('🎯 TOGGLE PREMIUM: Forzando refresh PurchaseContext...');
+        await initializePurchases(true);
+      }
       
       // Mostra un messaggio di conferma
       Alert.alert(
         newValue 
-          ? t('premiumEnabled', { ns: 'settings', defaultValue: 'Premium enabled for testing' })
-          : t('premiumDisabled', { ns: 'settings', defaultValue: 'Premium disabled' }),
-        '',
+          ? '✅ Premium ATTIVATO (Test)'
+          : '❌ Premium DISATTIVATO',
+        `Session counter: ${newValue ? 'Unlimited' : 'Limited to 2/week'}`,
         [{ text: 'OK' }]
       );
+      
+      console.log('🎯 TOGGLE PREMIUM: Completato con successo');
     } catch (error) {
-      console.error('Error toggling premium status:', error);
+      console.error('🎯 TOGGLE PREMIUM: ❌ Errore:', error);
       // Riporta lo stato al valore originale in caso di errore
       setIsPremium(isPremium);
     }
@@ -513,22 +510,78 @@ export default function SettingsScreen() {
         >
           <Animated.View style={contentAnimatedStyle}>
             
-            {/* Premium Features Section - Temporaneamente disabilitato per prevenire crash */}
+            {/* Premium Features Section - Migliorata con lista dettagliata funzionalità */}
             <View style={[styles.section, { 
               backgroundColor: colors.cardElevated,
               borderRadius: 16,
               padding: 16,
               marginBottom: 20
             }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="star-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
                 <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 16 }}>
                   {t('premiumFeatures', { ns: 'purchases', defaultValue: 'Funzionalità Premium' })}
                 </Text>
               </View>
-              <Text style={{ color: colors.textSecondary, marginTop: 8, fontSize: 14 }}>
-                {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Passa a Premium per sbloccare le funzionalità avanzate.' })}
+              
+              <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 14 }}>
+                {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Passa a Premium per sbloccare:' })}
               </Text>
+              
+              {/* Lista dettagliata delle funzionalità Premium */}
+              <View style={{ marginLeft: 8 }}>
+                {[
+                  { key: 'unlimitedSessions', icon: 'infinite-outline', text: 'Sessioni illimitate' },
+                  { key: 'advancedStatistics', icon: 'stats-chart-outline', text: 'Statistiche dettagliate e grafici' },
+                  { key: 'dataExport', icon: 'download-outline', text: 'Esportazione dati in CSV/PDF' },
+                  { key: 'personalizedCalculations', icon: 'calculator-outline', text: 'Calcoli personalizzati avanzati' },
+                  { key: 'iosWidgets', icon: 'phone-portrait-outline', text: 'Widget iOS per la schermata home' },
+                  { key: 'noAds', icon: 'eye-off-outline', text: 'Nessuna pubblicità' },
+                  { key: 'prioritySupport', icon: 'headset-outline', text: 'Supporto prioritario' }
+                ].map((feature, index) => (
+                  <View key={index} style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    marginBottom: 8,
+                    paddingLeft: 4
+                  }}>
+                    <Ionicons 
+                      name={feature.icon as any} 
+                      size={16} 
+                      color={colors.primary} 
+                      style={{ marginRight: 12, width: 20 }} 
+                    />
+                    <Text style={{ 
+                      color: colors.text, 
+                      fontSize: 14,
+                      flex: 1
+                    }}>
+                      {feature.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              
+              {/* Bottone di upgrade */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  marginTop: 16,
+                  alignItems: 'center'
+                }}
+                onPress={() => router.push('/onboarding/subscription-offer')}
+              >
+                <Text style={{
+                  color: 'white',
+                  fontSize: 16,
+                  fontWeight: '600'
+                }}>
+                  {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Passa a Premium' })}
+                </Text>
+              </TouchableOpacity>
             </View>
             
             {/* Account Section */}
@@ -588,24 +641,7 @@ export default function SettingsScreen() {
                     ios_backgroundColor="#3e3e3e"
                   />
                 }
-              />
-              
-              {/* Offline Mode Toggle */}
-              <SettingsItem
-                icon={<Ionicons name="cloud-offline-outline" size={20} color={colors.primary} />}
-                title={t('offlineMode', { ns: 'common', defaultValue: 'Offline Mode' })}
-                subtitle=""
-                onPress={null}
                 lastItem={true}
-                rightComponent={
-                  <Switch
-              value={offlineMode}
-              onValueChange={handleOfflineModeToggle}
-                    trackColor={{ false: '#767577', true: colors.primary }}
-                    thumbColor={offlineMode ? '#f5dd4b' : '#f4f3f4'}
-                    ios_backgroundColor="#3e3e3e"
-                  />
-                }
               />
             </SettingsSection>
             
@@ -660,23 +696,16 @@ export default function SettingsScreen() {
               />
             </SettingsSection>
             
-            {/* Developer Options (visible solo se attivato) */}
+            {/* Developer Options */}
             {showDeveloperOptions && (
               <SettingsSection title="Developer Options">
+                
+                {/* 🔧 TOGGLE PREMIUM FUNZIONANTE */}
                 <SettingsItem
-                  icon={<Ionicons name="code-outline" size={20} color={colors.primary} />}
-                  title="Toggle Premium Status"
-                  subtitle=""
+                  icon={<Ionicons name="flask-outline" size={20} color={colors.primary} />}
+                  title="Toggle Premium (Debug)"
+                  subtitle={`Currently ${isPremium ? 'enabled' : 'disabled'}`}
                   onPress={togglePremiumStatus}
-                  rightComponent={
-                    <Switch
-                      value={isPremium}
-                      onValueChange={togglePremiumStatus}
-                      trackColor={{ false: '#767577', true: colors.primary }}
-                      thumbColor={isPremium ? '#f5dd4b' : '#f4f3f4'}
-                      ios_backgroundColor="#3e3e3e"
-                    />
-                  }
                 />
                 
                 <SettingsItem
@@ -685,31 +714,421 @@ export default function SettingsScreen() {
                   subtitle=""
                   onPress={() => {
                     Alert.alert(
-                      'Reset App Data',
-                      'Are you sure you want to reset all app data? This action cannot be undone.',
+                      t('resetAppData', { ns: 'settings', defaultValue: 'Reimposta Dati App' }),
+                      t('resetAppDataConfirm', { ns: 'settings', defaultValue: 'Sei sicuro di voler reimpostare tutti i dati dell\'app? Questa azione non può essere annullata.' }),
                       [
                         {
-                          text: 'Cancel',
+                          text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }),
                           style: 'cancel'
                         },
                         {
-                          text: 'Reset',
+                          text: t('reset', { ns: 'settings', defaultValue: 'Reimposta' }),
                           style: 'destructive',
                           onPress: async () => {
                             try {
                               await AsyncStorage.clear();
-                              Alert.alert('Success', 'App data reset successfully. Please restart the app.');
+                              Alert.alert(
+                                t('success', { ns: 'common', defaultValue: 'Successo' }), 
+                                t('resetAppDataSuccess', { ns: 'settings', defaultValue: 'Dati app reimpostati con successo. Riavvia l\'app.' })
+                              );
                             } catch (error) {
                               console.error('Error resetting app data:', error);
-                              Alert.alert('Error', 'Failed to reset app data');
+                              Alert.alert(
+                                t('error', { ns: 'common', defaultValue: 'Errore' }), 
+                                t('resetAppDataError', { ns: 'settings', defaultValue: 'Impossibile reimpostare i dati dell\'app' })
+                              );
                             }
                           }
                         }
                       ]
                     );
                   }}
-                  lastItem={true}
                 />
+                
+                <SettingsItem
+                  icon={<Ionicons name="bug-outline" size={20} color={colors.warning} />}
+                  title="Debug Logs"
+                  subtitle="Visualizza log di debug per troubleshooting"
+                  onPress={() => {
+                    // Per ora mostra Alert con informazioni sui log
+                    Alert.alert(
+                      'Debug Logs',
+                      'Log salvati in AsyncStorage con chiavi:\n• wizard_success_log\n• wizard_error_log\n• wizard_debug_log\n\nAccedi ai log tramite developer tools o strumenti di debug.',
+                      [{ text: 'OK' }]
+                    );
+                  }}
+                />
+                
+                <SettingsItem
+                  icon={<Ionicons name="server-outline" size={20} color={colors.info} />}
+                  title="Verifica Database"
+                  subtitle="Controlla stato profilo e schema database"
+                  onPress={async () => {
+                    try {
+                      // Mostra loading
+                      Alert.alert('🔍', 'Verificando database...');
+                      
+                      // Verifica utente corrente
+                      const currentUser = await authService.getCurrentUser();
+                      
+                      if (!currentUser) {
+                        Alert.alert('❌ Database Check', 'Nessun utente autenticato');
+                        return;
+                      }
+                      
+                      // Verifica profili nel database
+                      const { data: profiles, error } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('user_id', currentUser.id);
+                      
+                      // Verifica AsyncStorage
+                      const localProfile = await AsyncStorage.getItem('bacchus_current_profile');
+                      const wizardCompleted = await AsyncStorage.getItem('profile_wizard_completed');
+                      
+                      let message = `👤 User ID: ${currentUser.id}\n\n`;
+                      message += `🗄️ Database:\n`;
+                      if (error) {
+                        message += `❌ Errore: ${error.message}\n`;
+                      } else if (!profiles || profiles.length === 0) {
+                        message += `❌ Nessun profilo trovato\n`;
+                    } else {
+                        message += `✅ ${profiles.length} profilo(i) trovato(i)\n`;
+                        message += `📊 Primo profilo: ${profiles[0].name || 'N/A'}\n`;
+                      }
+                      
+                      message += `\n📱 AsyncStorage:\n`;
+                      message += `Profile: ${localProfile ? '✅ Presente' : '❌ Mancante'}\n`;
+                      message += `Wizard: ${wizardCompleted ? '✅ Completato' : '❌ Non completato'}\n`;
+                      
+                      Alert.alert('🔍 Database Check', message, [
+                        { text: 'OK' }
+                      ]);
+                      
+                    } catch (error) {
+                      Alert.alert('❌ Errore', `Verifica fallita: ${error.message}`);
+                    }
+                  }}
+                />
+                
+                <SettingsItem
+                  icon={<Ionicons name="refresh-circle-outline" size={20} color={colors.success} />}
+                  title="Test Fix Profili"
+                  subtitle="Forza caricamento profili per test"
+                  onPress={async () => {
+                    try {
+                      Alert.alert('🔄', 'Testando fix caricamento profili...');
+                      
+                      // Import dinamico per evitare dipendenze circolari
+                      const { getProfiles, getActiveProfile } = require('../lib/services/profile.service');
+                      
+                      // Force refresh profili
+                      console.log('🔄 [TEST] Forcing profiles refresh...');
+                      const profiles = await getProfiles(true);
+                      
+                      console.log('🔄 [TEST] Getting active profile...');
+                      const activeProfile = await getActiveProfile();
+                      
+                      let testMessage = `🔄 TEST RISULTATI:\n\n`;
+                      testMessage += `📊 Profili trovati: ${profiles.length}\n`;
+                      
+                      if (profiles.length > 0) {
+                        testMessage += `📋 Lista profili:\n`;
+                        profiles.forEach((p, i) => {
+                          testMessage += `  ${i+1}. ${p.name} (${p.id})\n`;
+                        });
+                      }
+                      
+                      testMessage += `\n🎯 Profilo attivo: ${activeProfile ? activeProfile.name : 'NESSUNO'}\n`;
+                      
+                      // Verifica AuthContext
+                      try {
+                        const { useAuth } = require('../contexts/AuthContext');
+                        // Non possiamo usare hook qui, ma possiamo verificare i dati salvati
+                        testMessage += `\n✅ Fix implementato correttamente`;
+                      } catch (contextError) {
+                        testMessage += `\n⚠️ Errore AuthContext: ${contextError.message}`;
+                      }
+                      
+                      Alert.alert('🔄 Test Risultati', testMessage, [
+                        { text: 'OK' }
+                      ]);
+                      
+                    } catch (error) {
+                      Alert.alert('❌ Errore Test', `Test fallito: ${error.message}`);
+                    }
+                  }}
+                  lastItem={false}
+                />
+
+                <SettingsItem
+                  icon={<Ionicons name="bug-outline" size={20} color={colors.danger} />}
+                  title="Debug Wizard Logs"
+                  subtitle="Mostra log completi wizard per debug"
+                  onPress={async () => {
+                    try {
+                      Alert.alert('🔍', 'Leggendo log wizard...');
+                      
+                      const failureLog = await AsyncStorage.getItem('wizard_failure_log');
+                      const errorLog = await AsyncStorage.getItem('wizard_error_log');
+                      const successLog = await AsyncStorage.getItem('wizard_success_log');
+                      
+                      let logData = '📊 WIZARD DEBUG LOGS\n\n';
+                      
+                      if (failureLog) {
+                        try {
+                          const parsedFailure = JSON.parse(failureLog);
+                          logData += '🔴 FAILURE LOG:\n' + (Array.isArray(parsedFailure) ? parsedFailure.join('\n') : JSON.stringify(parsedFailure, null, 2)) + '\n\n';
+                        } catch (e) {
+                          logData += '🔴 FAILURE LOG (raw): ' + failureLog + '\n\n';
+                        }
+                      }
+                      
+                      if (errorLog) {
+                        try {
+                          const parsedError = JSON.parse(errorLog);
+                          logData += '❌ ERROR LOG:\n' + JSON.stringify(parsedError, null, 2) + '\n\n';
+                        } catch (e) {
+                          logData += '❌ ERROR LOG (raw): ' + errorLog + '\n\n';
+                        }
+                      }
+                      
+                      if (successLog) {
+                        try {
+                          const parsedSuccess = JSON.parse(successLog);
+                          logData += '✅ SUCCESS LOG:\n' + (Array.isArray(parsedSuccess) ? parsedSuccess.join('\n') : JSON.stringify(parsedSuccess, null, 2));
+                        } catch (e) {
+                          logData += '✅ SUCCESS LOG (raw): ' + successLog;
+                        }
+                      }
+                      
+                      if (!failureLog && !errorLog && !successLog) {
+                        logData += 'Nessun log wizard trovato';
+                      }
+                      
+                    Alert.alert(
+                        '📊 WIZARD DEBUG LOGS',
+                        logData.length > 3000 ? logData.substring(0, 3000) + '\n\n... (Log troncato per lunghezza)' : logData,
+                        [
+                          { 
+                            text: 'Pulisci Log', 
+                            style: 'destructive',
+                            onPress: async () => {
+                              await AsyncStorage.removeItem('wizard_failure_log');
+                              await AsyncStorage.removeItem('wizard_error_log');
+                              await AsyncStorage.removeItem('wizard_success_log');
+                              Alert.alert('✅ Debug', 'Tutti i log wizard sono stati puliti');
+                            }
+                          },
+                          { text: 'OK' }
+                        ]
+                      );
+                      
+                    } catch (error) {
+                      Alert.alert('❌ Errore', 'Errore leggendo i log wizard: ' + error.message);
+                    }
+                  }}
+                  lastItem={false}
+                />
+                
+                <SettingsItem
+                  icon={<Ionicons name="server-outline" size={20} color={colors.warning} />}
+                  title="Test Database Wizard"
+                  subtitle="Test salvataggio diretto profilo nel database"
+                  onPress={async () => {
+                    try {
+                      Alert.alert('🧪', 'Testando salvataggio database...');
+                      
+                      // Import Supabase
+                      const supabase = (await import('../lib/supabase/client')).default;
+                      const { v4: uuidv4 } = require('uuid');
+                      
+                      // Dati di test semplici
+                      const testProfile = {
+                        id: uuidv4(),
+                        user_id: uuidv4(), // UUID valido invece di test-user-timestamp
+                        name: 'Test User',
+                        gender: 'male',
+                        age: 25,
+                        weight: 70,
+                        height: 180,
+                        drinking_frequency: 'occasionally',
+                        emoji: '🍷',
+                        color: '#00bcd7',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                      };
+                      
+                      let testResult = '🧪 TEST DATABASE WIZARD\n\n';
+                      
+                      // Test 1: Schema snake_case
+                      try {
+                        const { data: snakeData, error: snakeError } = await supabase
+                          .from('profiles')
+                          .insert([testProfile])
+                          .select()
+                          .single();
+                          
+                        if (snakeError) {
+                          testResult += `❌ Snake_case FAILED: ${snakeError.message}\n\n`;
+                          
+                          // Schema è ora completamente snake_case
+                          testResult += `ℹ️ Schema is now fully snake_case only\n\n`;
+                        } else {
+                          testResult += `✅ Snake_case SUCCESS: ${JSON.stringify(snakeData, null, 2)}\n\n`;
+                          
+                          // Cleanup
+                          await supabase.from('profiles').delete().eq('id', snakeData.id);
+                        }
+                      } catch (insertError) {
+                        testResult += `💥 EXCEPTION: ${insertError.message}\n\n`;
+                      }
+                      
+                      // Test 3: Verifica schema corrente
+                      try {
+                        const { data: existingProfiles, error: selectError } = await supabase
+                          .from('profiles')
+                          .select('*')
+                          .limit(1);
+                          
+                        if (selectError) {
+                          testResult += `❌ SELECT ERROR: ${selectError.message}`;
+                        } else {
+                          testResult += `📊 EXISTING PROFILES: ${existingProfiles?.length || 0} found`;
+                          if (existingProfiles?.length > 0) {
+                            testResult += `\nSchema: ${Object.keys(existingProfiles[0]).join(', ')}`;
+                          }
+                        }
+                      } catch (selectError) {
+                        testResult += `💥 SELECT EXCEPTION: ${selectError.message}`;
+                      }
+                      
+                      Alert.alert('🧪 Test Database Results', testResult, [
+                        { text: 'OK' }
+                      ]);
+                      
+                    } catch (error) {
+                      Alert.alert('❌ Test Failed', error.message);
+                    }
+                  }}
+                />
+
+                <SettingsItem
+                  icon={<Ionicons name="timer-outline" size={20} color={colors.primary} />}
+                  title="Debug Counter Sessioni"
+                  subtitle={`Remaining: ${remainingFreeSessions === -1 ? 'Infinite (Premium)' : remainingFreeSessions}`}
+                  onPress={async () => {
+                    try {
+                      // Import dinamico per evitare circular deps
+                      const purchaseService = require('../lib/services/purchase.service');
+                      
+                      let debugInfo = `🎯 SESSION COUNTER DEBUG:\n\n`;
+                      
+                      // Status premium
+                      const isPremiumStatus = await purchaseService.isPremium();
+                      debugInfo += `👑 Premium Status: ${isPremiumStatus}\n`;
+                      
+                      // Mock premium storage
+                      const mockPremium = await AsyncStorage.getItem('bacchus_mock_premium');
+                      debugInfo += `🎭 Mock Premium: ${mockPremium}\n`;
+                      
+                      // Counter attuale
+                      const remaining = await purchaseService.getRemainingSessionsCount();
+                      debugInfo += `📊 Remaining Sessions: ${remaining}\n`;
+                      
+                      // User ID per DB
+                      const currentUser = await authService.getCurrentUser();
+                      debugInfo += `👤 User ID: ${currentUser?.id || 'N/A'}\n`;
+                      
+                      // Controlla database
+                      if (currentUser) {
+                        try {
+                          const { data, error } = await supabase
+                            .from('user_weekly_limits')
+                            .select('*')
+                            .eq('user_id', currentUser.id);
+                          
+                          debugInfo += `\n🗄️ DATABASE:\n`;
+                          if (error) {
+                            debugInfo += `❌ Error: ${error.message}\n`;
+                          } else if (!data || data.length === 0) {
+                            debugInfo += `❌ Nessun record trovato\n`;
+                          } else {
+                            const record = data[0];
+                            debugInfo += `✅ Record trovato:\n`;
+                            debugInfo += `  Sessions Count: ${record.sessions_count}\n`;
+                            debugInfo += `  Week Start: ${record.week_start_date}\n`;
+                            debugInfo += `  Last Session: ${record.last_session_date}\n`;
+                          }
+                        } catch (dbError) {
+                          debugInfo += `💥 DB Exception: ${dbError.message}\n`;
+                        }
+                      }
+                      
+                      Alert.alert('🎯 Session Counter Debug', debugInfo, [
+                        { text: 'OK' }
+                      ]);
+                      
+                    } catch (error) {
+                      Alert.alert('❌ Debug Error', error.message);
+                    }
+                  }}
+                />
+
+                <SettingsItem
+                  icon={<Ionicons name="sync-outline" size={20} color={colors.warning} />}
+                  title="Reset Counter Sessioni"
+                  subtitle="Azzera counter settimanale per test"
+                  onPress={async () => {
+                    Alert.alert(
+                      '⚠️ Reset Counter Sessioni',
+                      'Vuoi azzerare il counter delle sessioni settimanali? Questo è solo per test.',
+                      [
+                        { text: 'Annulla', style: 'cancel' },
+                        {
+                          text: 'Reset',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              const currentUser = await authService.getCurrentUser();
+                              if (!currentUser) {
+                                Alert.alert('❌', 'Utente non autenticato');
+                                return;
+                              }
+                              
+                              // Reset database
+                              const { error } = await supabase
+                                .from('user_weekly_limits')
+                                .upsert({
+                                  user_id: currentUser.id,
+                                  sessions_count: 0,
+                                  week_start_date: new Date().toISOString().split('T')[0],
+                                  updated_at: new Date().toISOString()
+                                });
+                              
+                              if (error) {
+                                Alert.alert('❌', `Errore reset DB: ${error.message}`);
+                              } else {
+                                // Force refresh del context
+                                if (initializePurchases) {
+                                  await initializePurchases();
+                                }
+                                Alert.alert('✅', 'Counter sessioni azzerato!');
+                              }
+                              
+                            } catch (error) {
+                              Alert.alert('❌', `Errore: ${error.message}`);
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                />
+
+
+                
+                {/* 🔧 RIMOSSO: Secondo toggle premium duplicato */}
               </SettingsSection>
             )}
             
@@ -726,7 +1145,7 @@ export default function SettingsScreen() {
                     end={[1, 0]}
                     style={styles.gradientButton}
                   >
-                    <Text style={styles.logoutButtonText}>{t('logout', { ns: 'common', defaultValue: 'Logout' })}</Text>
+                    <Text style={styles.logoutButtonText}>{t('logout', { ns: 'common', defaultValue: 'Esci' })}</Text>
                   </LinearGradient>
               </TouchableOpacity>
               

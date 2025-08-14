@@ -12,27 +12,45 @@ import 'react-native-get-random-values';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../supabase/client';
-// Rimuovo l'importazione diretta per evitare cicli di dipendenza
-// import authService from './auth.service';
 import offlineService from './offline.service';
-
-// Variabile per importazione dinamica di authService
-let authService: any = null;
-
-// Funzione per importare authService dinamicamente quando necessario
-const importAuthService = async () => {
-  if (!authService) {
-    const importedModule = await import('./auth.service');
-    // Assegna il modulo importato correttamente, assicurandoci di avere accesso a tutti i metodi
-    authService = importedModule.default || importedModule;
-  }
-};
 
 // Chiavi per lo storage
 const PROFILES_KEY = 'bacchus_profiles';
 const GUEST_PROFILES_KEY = 'bacchus_guest_profiles';
 const ACTIVE_PROFILE_KEY = 'bacchus_active_profile';
 const CURRENT_PROFILE_KEY = 'bacchus_current_profile';
+const USER_DATA_KEY = 'bacchus_user_data';
+
+// Cache invalidation variables
+let _profileCacheTimestamp: number = 0;
+const CACHE_EXPIRY_MS = 1000 * 60 * 5; // 5 minuti
+
+/**
+ * Ottiene l'utente corrente senza dipendenze circolari
+ */
+const getCurrentUserSafe = async () => {
+  try {
+    // Prima verifica offline - controlla AsyncStorage
+    const userJson = await AsyncStorage.getItem(USER_DATA_KEY);
+    if (userJson) {
+      const userData = JSON.parse(userJson);
+      if (userData && userData.id) {
+        return userData;
+      }
+    }
+    
+    // Se non troviamo nulla in AsyncStorage, verifica direttamente con Supabase
+    if (!(await offlineService.isOffline())) {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting current user safely:', error);
+    return null;
+  }
+};
 
 // Funzione alternativa per generare ID univoci senza usare crypto.getRandomValues()
 const generateSimpleId = () => {
@@ -41,10 +59,6 @@ const generateSimpleId = () => {
     return v.toString(16);
   });
 };
-
-// Cache invalidation variables
-let _profileCacheTimestamp: number = 0;
-const CACHE_EXPIRY_MS = 1000 * 60 * 5; // 5 minuti
 
 /**
  * Interfaccia per un profilo utente
@@ -88,125 +102,202 @@ interface ProfileData {
 /**
  * Crea un nuovo profilo
  */
-export const createProfile = async (profileData: Partial<UserProfile>): Promise<UserProfile | null> => {
+export const createProfile = async (profileData: Partial<UserProfile>, isGuest: boolean = false): Promise<UserProfile | null> => {
   try {
-    // Verifica se l'utente è autenticato
-    const currentUser = await authService.getCurrentUser();
-    const isGuest = !currentUser;
+    console.log('🔍 PROFILE_SERVICE: === INIZIO CREAZIONE PROFILO ===');
+    console.log('🔍 PROFILE_SERVICE: Modalità guest:', isGuest);
+    console.log('🔍 PROFILE_SERVICE: Dati ricevuti:', JSON.stringify(profileData, null, 2));
     
-    console.log(`Creazione profilo come ${isGuest ? 'ospite' : 'utente autenticato'}`);
+    // Verifica che i dati richiesti siano presenti
+    if (!profileData.name || !profileData.gender || !profileData.weightKg || !profileData.age || !profileData.height) {
+      console.error('🔴 PROFILE_SERVICE: Dati mancanti per la creazione del profilo');
+      return null;
+    }
     
-    // Converti i valori numerici e verifica che siano validi
-    const weightKg = Number(profileData.weightKg) || 70;
-    const age = Number(profileData.age) || 30;
-    const height = Number(profileData.height) || 170;
+    // Ottieni l'utente corrente solo se non siamo in modalità guest
+    let currentUser = null;
+    if (!isGuest) {
+      currentUser = await getCurrentUserSafe();
+      console.log('🔍 PROFILE_SERVICE: Utente corrente:', currentUser ? currentUser.id : 'NESSUNO');
+    } else {
+      console.log('🔍 PROFILE_SERVICE: Modalità guest - nessun utente richiesto');
+    }
     
-    // Verifica che i valori convertiti siano numeri validi
-    if (isNaN(weightKg) || isNaN(age) || isNaN(height)) {
-      console.error('Valori numerici non validi:', { weightKg, age, height });
-      throw new Error('Valori numerici non validi');
+    // Controlla connessione
+    const isOffline = await offlineService.isOffline();
+    console.log('🔍 PROFILE_SERVICE: È offline?', isOffline);
+    
+    // Validazione e conversione dei dati
+    const weightKg = typeof profileData.weightKg === 'string' ? 
+      parseFloat(profileData.weightKg) : profileData.weightKg;
+    const age = typeof profileData.age === 'string' ? 
+      parseInt(profileData.age) : profileData.age;
+    const height = typeof profileData.height === 'string' ? 
+      parseInt(profileData.height) : profileData.height;
+    
+    // Verifica che i valori convertiti siano numeri validi e nel range accettabile
+    if (isNaN(weightKg) || weightKg < 30 || weightKg > 300) {
+      console.error('🔴 PROFILE_SERVICE: Peso non valido:', weightKg);
+      throw new Error('Peso non valido (deve essere tra 30 e 300 kg)');
+    }
+    
+    if (isNaN(age) || age < 18 || age > 120) {
+      console.error('🔴 PROFILE_SERVICE: Età non valida:', age);
+      throw new Error('Età non valida (deve essere tra 18 e 120 anni)');
+    }
+    
+    if (isNaN(height) || height < 100 || height > 250) {
+      console.error('🔴 PROFILE_SERVICE: Altezza non valida:', height);
+      throw new Error('Altezza non valida (deve essere tra 100 e 250 cm)');
     }
     
     // Crea l'oggetto profilo
     const newProfile: UserProfile = {
-      id: uuidv4(), // Usa uuidv4() invece di generateSimpleId() ora che abbiamo il polyfill
+      id: uuidv4(),
       userId: currentUser?.id,
-      name: profileData.name || 'Utente',
-      gender: profileData.gender || 'male',
+      name: profileData.name.trim(),
+      gender: profileData.gender,
       weightKg: weightKg,
       age: age,
       height: height,
       drinkingFrequency: profileData.drinkingFrequency || 'occasionally',
-      emoji: profileData.emoji || '',
+      emoji: profileData.emoji || '😀',
       color: profileData.color || '#FF5252',
       isDefault: profileData.isDefault !== undefined ? profileData.isDefault : true,
       isGuest: isGuest,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      hasCompletedWizard: false
+      hasCompletedWizard: profileData.hasCompletedWizard !== undefined ? profileData.hasCompletedWizard : true
     };
+    
+    console.log('🟢 PROFILE_SERVICE: Profilo creato con dati:', newProfile);
     
     // Se l'utente è autenticato e online, salva nel database
     if (!isGuest && !(await offlineService.isOffline())) {
-      console.log('Saving profile to database...');
+      console.log('🔍 PROFILE_SERVICE: === INIZIO SALVATAGGIO DATABASE ===');
+      console.log('🔍 PROFILE_SERVICE: User ID per database:', currentUser.id);
       
       try {
-        // Prepara i dati del profilo
-        const profileData: ProfileData = {
+        // CRITICAL: Verifica che l'utente abbia una sessione attiva
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          console.error('🔴 PROFILE_SERVICE: Nessuna sessione attiva per RLS:', sessionError);
+          throw new Error('Sessione non valida per il salvataggio del profilo');
+        }
+        
+        console.log('🔍 PROFILE_SERVICE: Sessione RLS valida:', session.user.id);
+        
+        // Prepara i dati del profilo per il database
+        const dbProfileData: any = {
           id: newProfile.id,
           user_id: currentUser.id,
           name: newProfile.name,
           gender: newProfile.gender,
-          weightKg: newProfile.weightKg,
+          weight: newProfile.weightKg,  // 🔧 FIX: DB usa 'weight' non 'weightKg'
           age: newProfile.age,
           height: newProfile.height,
-          drinkingFrequency: newProfile.drinkingFrequency,
+          drinking_frequency: newProfile.drinkingFrequency,  // 🔧 FIX: DB usa 'drinking_frequency' snake_case
           emoji: newProfile.emoji,
           color: newProfile.color,
-          is_default: newProfile.isDefault,
-          created_at: newProfile.createdAt,
-          updated_at: newProfile.updatedAt
+          is_default: newProfile.isDefault,  // 🔧 FIX: DB usa 'is_default' snake_case
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
         
-        // Aggiungi has_completed_wizard solo se è stato specificato
-        if (newProfile.hasCompletedWizard !== undefined) {
-          profileData.has_completed_wizard = newProfile.hasCompletedWizard;
+        console.log('🔍 PROFILE_SERVICE: Dati per database:', JSON.stringify(dbProfileData, null, 2));
+        
+        // Test connessione Supabase
+        console.log('🔍 PROFILE_SERVICE: Test connessione Supabase...');
+        const { data: testData, error: testError } = await supabase
+          .from('profiles')
+          .select('count')
+          .limit(1);
+        
+        if (testError) {
+          console.error('🔴 PROFILE_SERVICE: Errore test connessione:', testError);
+        } else {
+          console.log('🔍 PROFILE_SERVICE: Connessione Supabase OK');
         }
         
+        console.log('🔍 PROFILE_SERVICE: Tentativo inserimento nel database...');
         const { data, error } = await supabase
           .from('profiles')
-          .insert(profileData)
+          .insert(dbProfileData)
           .select()
           .single();
         
         if (error) {
+          console.error('🔴 PROFILE_SERVICE: Errore database primario:', JSON.stringify(error, null, 2));
+          
           // Se l'errore è dovuto alla mancanza della colonna has_completed_wizard, riproviamo senza
-          if (error.code === 'PGRST204' && 
-              error.message && 
-              error.message.includes('has_completed_wizard')) {
-            console.log('La colonna has_completed_wizard non esiste nel database. Riprovo senza.');
+          if (error.code === '42703' || 
+              (error.message && error.message.includes('has_completed_wizard')) ||
+              (error.message && error.message.includes('column')) ||
+              (error.message && error.message.includes('does not exist'))) {
+            console.log('🟡 PROFILE_SERVICE: Colonna has_completed_wizard non esiste, riprovo senza...');
             
             // Rimuovi has_completed_wizard dai dati
-            delete profileData.has_completed_wizard;
+            delete dbProfileData.has_completed_wizard;
+            console.log('🔍 PROFILE_SERVICE: Dati senza has_completed_wizard:', JSON.stringify(dbProfileData, null, 2));
             
             // Riprova l'inserimento
-            const retryResult = await supabase
+            const { data: retryData, error: retryError } = await supabase
               .from('profiles')
-              .insert(profileData)
+              .insert(dbProfileData)
               .select()
               .single();
             
-            if (retryResult.error) {
-              console.error('Error saving profile to database (retry):', retryResult.error);
-              throw retryResult.error;
+            if (retryError) {
+              console.error('🔴 PROFILE_SERVICE: Errore database retry:', JSON.stringify(retryError, null, 2));
+              console.log('🟡 PROFILE_SERVICE: Continuazione con salvataggio locale...');
+            } else {
+              console.log('🟢 PROFILE_SERVICE: Profilo salvato nel database (senza has_completed_wizard):', retryData);
             }
-            
-            console.log('Profile saved to database (without has_completed_wizard):', retryResult.data);
           } else {
-            console.error('Error saving profile to database:', error);
-            throw error;
+            console.error('🔴 PROFILE_SERVICE: Errore database non recuperabile:', JSON.stringify(error, null, 2));
+            console.log('🟡 PROFILE_SERVICE: Continuazione con salvataggio locale...');
           }
         } else {
-          console.log('Profile saved to database:', data);
+          console.log('🟢 PROFILE_SERVICE: Profilo salvato nel database con successo:', data);
         }
       } catch (dbError) {
-        console.error('Database operation failed:', dbError);
-        // Continua comunque a salvare localmente
+        console.error('🔴 PROFILE_SERVICE: Errore fatale database:', dbError);
+        console.log('🟡 PROFILE_SERVICE: Continuazione con salvataggio locale...');
       }
+    } else {
+      console.log('🟡 PROFILE_SERVICE: Utente ospite o offline, salvataggio solo locale');
     }
     
     // Salva il profilo localmente (sia per ospiti che per utenti autenticati)
-    await saveProfileLocally(newProfile);
+    console.log('🟢 PROFILE_SERVICE: Salvataggio profilo localmente...');
+    const localSaveResult = await saveProfileLocally(newProfile);
+    
+    if (!localSaveResult) {
+      console.error('🔴 PROFILE_SERVICE: Errore nel salvataggio locale');
+      throw new Error('Errore nel salvataggio locale del profilo');
+    }
+    
+    console.log('🟢 PROFILE_SERVICE: Profilo salvato localmente con successo');
     
     // Imposta come profilo attivo se richiesto
     if (newProfile.isDefault) {
-      await setActiveProfile(newProfile.id);
+      console.log('🟢 PROFILE_SERVICE: Impostazione come profilo attivo...');
+      const activeResult = await setActiveProfile(newProfile.id);
+      if (activeResult) {
+        console.log('🟢 PROFILE_SERVICE: Profilo impostato come attivo con successo');
+      } else {
+        console.error('🔴 PROFILE_SERVICE: Errore nell\'impostazione come profilo attivo');
+      }
     }
     
-    console.log('Profile created successfully:', newProfile);
+    // Invalida la cache per forzare il refresh
+    _profileCacheTimestamp = 0;
+    
+    console.log('🟢 PROFILE_SERVICE: Profilo creato completamente con successo:', newProfile.id);
     return newProfile;
   } catch (error) {
-    console.error('Error creating profile:', error);
+    console.error('🔴 PROFILE_SERVICE: Errore nella creazione del profilo:', error);
     return null;
   }
 };
@@ -276,7 +367,7 @@ export const setDefaultProfile = async (profileId: string, isGuest: boolean): Pr
     await AsyncStorage.setItem(storageKey, JSON.stringify(updatedProfiles));
     
     // Se l'utente è autenticato e online, aggiorna anche il database
-    const currentUser = await authService.getCurrentUser();
+    const currentUser = await getCurrentUserSafe();
     if (currentUser && !isGuest && !(await offlineService.isOffline())) {
       // Aggiorna il database: prima resetta tutti i profili dell'utente
       await supabase
@@ -342,20 +433,8 @@ export const getActiveProfile = async (): Promise<UserProfile | null> => {
  */
 export const getProfiles = async (forceRefresh = false): Promise<UserProfile[]> => {
   try {
-    // Importa authService quando necessario
-    await importAuthService();
-    if (!authService) {
-      console.error('Impossibile caricare authService');
-      return [];
-    }
-    
     // Verifica se l'utente è autenticato
-    if (!authService.getCurrentUser) {
-      console.error('Metodo getCurrentUser non disponibile in authService');
-      return [];
-    }
-    
-    const currentUser = await authService.getCurrentUser();
+    const currentUser = await getCurrentUserSafe();
     
     // Forza refresh se: è richiesto esplicitamente, siamo online, l'utente è autenticato
     // e la cache è scaduta o non è mai stata caricata
@@ -378,23 +457,23 @@ export const getProfiles = async (forceRefresh = false): Promise<UserProfile[]> 
       } else if (data && data.length > 0) {
         console.log('Recuperati profili dal database:', data.length);
         
-        // Converti i profili dal formato database al formato app
+        // 🔧 MAPPATO ALLA SCHEMA REALE DEL DATABASE (snake_case → camelCase)
         const profiles: UserProfile[] = data.map(dbProfile => ({
           id: dbProfile.id,
           userId: dbProfile.user_id,
           name: dbProfile.name,
           gender: dbProfile.gender,
-          weightKg: dbProfile.weightKg,
+          weightKg: dbProfile.weight,              // DB: weight → APP: weightKg ✅
           age: dbProfile.age,
           height: dbProfile.height,
-          drinkingFrequency: dbProfile.drinkingFrequency,
-          emoji: dbProfile.emoji,
-          color: dbProfile.color,
-          isDefault: dbProfile.is_default,
+          drinkingFrequency: dbProfile.drinking_frequency, // DB: drinking_frequency → APP: drinkingFrequency ✅
+          emoji: dbProfile.emoji || '😀',          // DB: emoji → APP: emoji ✅ + FALLBACK
+          color: dbProfile.color || '#FF5252',     // DB: color → APP: color ✅ + FALLBACK  
+          isDefault: dbProfile.is_default,         // DB: is_default → APP: isDefault ✅
           isGuest: false,
           createdAt: dbProfile.created_at,
           updatedAt: dbProfile.updated_at,
-          hasCompletedWizard: dbProfile.has_completed_wizard
+          hasCompletedWizard: true                 // 🔧 HARDCODED perché campo non esiste nel DB
         }));
         
         // Aggiorna il timestamp della cache
@@ -510,7 +589,7 @@ export const updateProfile = async (profileId: string, updates: Partial<UserProf
     };
     
     // Se il profilo non è ospite e l'utente è autenticato e online, aggiorna nel database
-    const currentUser = await authService.getCurrentUser();
+    const currentUser = await getCurrentUserSafe();
     if (!updatedProfile.isGuest && currentUser && !(await offlineService.isOffline())) {
       console.log('Updating profile in database:', profileId);
       
@@ -524,10 +603,10 @@ export const updateProfile = async (profileId: string, updates: Partial<UserProf
         .update({
           name: updatedProfile.name,
           gender: updatedProfile.gender,
-          weightKg: Number(updatedProfile.weightKg),
+          weight: Number(updatedProfile.weightKg),
           age: Number(updatedProfile.age),
           height: Number(updatedProfile.height),
-          drinkingFrequency: updatedProfile.drinkingFrequency,
+          drinking_frequency: updatedProfile.drinkingFrequency,
           emoji: updatedProfile.emoji,
           color: updatedProfile.color,
           is_default: updatedProfile.isDefault,
@@ -538,7 +617,38 @@ export const updateProfile = async (profileId: string, updates: Partial<UserProf
       
       if (error) {
         console.error('Error updating profile in database:', error);
-        throw error;
+        
+        // Se l'errore è dovuto alla colonna has_completed_wizard, riprova senza
+        if (error.code === '42703' || 
+            (error.message && error.message.includes('has_completed_wizard')) ||
+            (error.message && error.message.includes('column')) ||
+            (error.message && error.message.includes('does not exist'))) {
+          console.log('Colonna has_completed_wizard non esiste, riprovo senza...');
+          
+          const { error: retryError } = await supabase
+            .from('profiles')
+            .update({
+              name: updatedProfile.name,
+              gender: updatedProfile.gender,
+              weight: Number(updatedProfile.weightKg),
+              age: Number(updatedProfile.age),
+              height: Number(updatedProfile.height),
+              drinking_frequency: updatedProfile.drinkingFrequency,
+              emoji: updatedProfile.emoji,
+              color: updatedProfile.color,
+              is_default: updatedProfile.isDefault,
+              updated_at: updatedProfile.updatedAt
+            })
+            .eq('id', profileId);
+          
+          if (retryError) {
+            console.error('Error updating profile in database (retry):', retryError);
+            // Non lanciare errore, continua con salvataggio locale
+          }
+        } else {
+          // Non lanciare errore per altri tipi di errore, continua con salvataggio locale
+          console.log('Continuazione con salvataggio locale dopo errore database');
+        }
       }
     }
     
@@ -577,7 +687,7 @@ export const deleteProfile = async (profileId: string): Promise<boolean> => {
     }
     
     // Se il profilo non è ospite e l'utente è autenticato e online, elimina dal database
-    const currentUser = await authService.getCurrentUser();
+    const currentUser = await getCurrentUserSafe();
     if (!profileToDelete.isGuest && currentUser && !(await offlineService.isOffline())) {
       console.log('Deleting profile from database:', profileId);
 
@@ -658,10 +768,10 @@ export const convertGuestProfileToUser = async (profileId: string, userId: strin
           user_id: userId,
           name: userProfile.name,
           gender: userProfile.gender,
-          weightKg: userProfile.weightKg,
+          weight: userProfile.weightKg,
           age: userProfile.age,
           height: userProfile.height,
-          drinkingFrequency: userProfile.drinkingFrequency,
+          drinking_frequency: userProfile.drinkingFrequency,
           emoji: userProfile.emoji,
           color: userProfile.color,
           is_default: userProfile.isDefault,
@@ -729,22 +839,6 @@ export const resetLocalProfiles = async (): Promise<boolean> => {
  */
 export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
   try {
-    // Importa authService quando necessario
-    await importAuthService();
-    if (!authService) {
-      console.error('Impossibile caricare authService');
-      return null;
-    }
-    
-    // Verifica se l'utente è autenticato
-    if (!authService.getCurrentUser) {
-      console.error('Metodo getCurrentUser non disponibile in authService');
-      return null;
-    }
-    
-    const currentUser = await authService.getCurrentUser();
-    if (!currentUser) return null;
-
     // Ottieni i profili dell'utente
     const userProfiles = await getProfiles();
     
@@ -791,7 +885,7 @@ export const setCurrentUserProfile = async (profile: UserProfile): Promise<boole
 export const loadProfilesFromSupabase = async (): Promise<UserProfile[]> => {
   try {
     // Verifica se l'utente è autenticato
-    const currentUser = await authService.getCurrentUser();
+    const currentUser = await getCurrentUserSafe();
     if (!currentUser || (await offlineService.isOffline())) {
       return [];
     }
@@ -817,10 +911,10 @@ export const loadProfilesFromSupabase = async (): Promise<UserProfile[]> => {
       userId: dbProfile.user_id,
       name: dbProfile.name,
       gender: dbProfile.gender,
-      weightKg: dbProfile.weightKg,
+      weightKg: dbProfile.weight,
       age: dbProfile.age,
       height: dbProfile.height,
-      drinkingFrequency: dbProfile.drinkingFrequency,
+      drinkingFrequency: dbProfile.drinking_frequency,
       emoji: dbProfile.emoji,
       color: dbProfile.color,
       isDefault: dbProfile.is_default,
@@ -848,20 +942,8 @@ export const syncProfiles = async (): Promise<boolean> => {
   try {
     console.log('=== SINCRONIZZAZIONE PROFILI INIZIATA ===');
     
-    // Importa authService quando necessario
-    await importAuthService();
-    if (!authService) {
-      console.error('Impossibile caricare authService');
-      return false;
-    }
-    
     // Verifica se l'utente è autenticato
-    if (!authService.getCurrentUser) {
-      console.error('Metodo getCurrentUser non disponibile in authService');
-      return false;
-    }
-    
-    const currentUser = await authService.getCurrentUser();
+    const currentUser = await getCurrentUserSafe();
     if (!currentUser || (await offlineService.isOffline())) {
       console.log('Utente non autenticato o offline, sincronizzazione saltata');
       return false;
@@ -913,21 +995,37 @@ export const syncProfiles = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Verifica se l'utente ha almeno un profilo
+ * @returns {Promise<boolean>} - true se l'utente ha almeno un profilo, false altrimenti
+ */
+export const hasProfiles = async (): Promise<boolean> => {
+  try {
+    // Ottieni i profili dell'utente
+    const profiles = await getProfiles();
+    
+    // Verifica se ci sono profili
+    return profiles.length > 0;
+  } catch (error) {
+    console.error('Errore nella verifica dei profili:', error);
+    return false;
+  }
+};
+
 // Esporta le funzioni come oggetto
 export default {
   createProfile,
+  updateProfile,
+  getProfileById,
   getProfiles,
   getGuestProfiles,
-  getProfileById,
-  updateProfile,
-  deleteProfile,
   setActiveProfile,
   getActiveProfile,
-  setDefaultProfile,
-  convertGuestProfileToUser,
+  deleteProfile,
   resetLocalProfiles,
   getCurrentUserProfile,
   setCurrentUserProfile,
   loadProfilesFromSupabase,
-  syncProfiles
+  syncProfiles,
+  hasProfiles
 }; 
