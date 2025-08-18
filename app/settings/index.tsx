@@ -162,7 +162,7 @@ export default function SettingsScreen() {
   
   // Get app version from Constants
   const appVersion = Constants?.expoConfig?.version || '1.0.0';
-  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '982';
+  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '1000';
   
   // State
   const [language, setLanguage] = useState('it');
