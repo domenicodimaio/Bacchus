@@ -42,6 +42,8 @@ import * as sessionService from '../lib/services/session.service';
 import * as sessionServiceDirect from '../lib/services/session.service'; // 🔧 Per loadSessionHistoryFromStorage
 import { DrinkRecord, FoodRecord } from '../lib/bac/visualization';
 import { Session } from '../types/session';
+import liveActivityService from '../lib/services/liveActivity.service';
+import widgetService from '../lib/services/widget.service';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BACChartSimple from '../components/BACChartSimple';
 import { Svg, Circle, Path, Defs, LinearGradient, Stop, Line, Text as SvgText, G, Filter } from 'react-native-svg';
@@ -235,10 +237,10 @@ function SessionScreen() {
       // Carica immediatamente i dati
       handleRefreshData();
       
-      // Create a timer to update data periodically (for time-based BAC decay)
+      // 🔧 TIMER BAC DECADIMENTO: Aggiorna ogni minuto per decadimento naturale dell'alcol
       const timer = setInterval(() => {
-        handleRefreshData(true); // true = aggiornamento periodico, no loading
-      }, 10000); // Update every 10 seconds for time-based changes and UI updates
+        handleRefreshData(true); // true = aggiornamento periodico, no loading/flash
+      }, 60000); // Update every 60 seconds (1 minute) for natural BAC decay
       
       setUpdateTimer(timer);
       
@@ -302,45 +304,25 @@ function SessionScreen() {
               const updatedSession = {...prevSession};
               const updatedDrinks = [...updatedSession.drinks, drinkData];
               
-              // Calcola il nuovo BAC in base ai grammi di alcol
-              const alcoholEffect = 
-                typeof drinkData.alcoholGrams === 'number' 
-                  ? (drinkData.alcoholGrams * 0.002) 
-                  : parseFloat(drinkData.alcoholGrams) * 0.002 || 0.02;
-              
-              // Limitiamo il BAC a 0.5 (5.0 g/L visualizzato)
-              const newBAC = Math.min(updatedSession.currentBAC + alcoholEffect, 0.5);
-              
-              // Determina il nuovo stato in base al BAC
-              const newStatus = 
-                newBAC < 0.03 
-                  ? 'safe' as 'safe'
-                  : newBAC < 0.08 
-                    ? 'caution' as 'caution'
-                    : 'danger' as 'danger';
-              
-              // Aggiorna la sessione con i nuovi valori
+              // 🔧 RICALCOLO BAC IMMEDIATO: Rimuovo limite artificiale e calcolo semplificato
+              // Aggiungi temporaneamente il drink e forza il ricalcolo completo subito
               updatedSession.drinks = updatedDrinks;
-              updatedSession.currentBAC = newBAC;
-              updatedSession.status = newStatus;
+              
+              // Segna che serve refresh immediato
+              const needsImmediateRefresh = true;
+              
+              // 🔧 NON calcolare stato qui - sarà calcolato da handleRefreshData
+              // Aggiorna solo i drinks, il BAC verrà ricalcolato correttamente subito dopo
               
               // Aggiorna anche il servizio di sessione per mantenere i dati sincronizzati
               sessionService.addDrink(drinkData);
               
-              // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver aggiunto la bevanda
-              setTimeout(() => handleRefreshData(), 100);
-              
-              // Calcola il tempo per tornare sobri
-              const hoursToSober = Math.ceil(newBAC / 0.015);
-              updatedSession.soberTime = `${hoursToSober}h ${Math.floor((hoursToSober % 1) * 60)}m`;
-              
-              // Aggiungi timeToSober in minuti per il componente BACDisplay
-              updatedSession.timeToSober = Math.ceil(hoursToSober * 60);
-              
-              // Calcola la durata della sessione
-              const sessionDurationHours = Math.floor(hoursToSober / 60);
-              const sessionDurationMinutes = Math.floor(hoursToSober % 60);
-              updatedSession.sessionDuration = `${sessionDurationHours}h ${sessionDurationMinutes}m`;
+              // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC (senza timeout)
+              // Prima salva lo stato, poi forza il refresh immediato
+              const updateAndRefresh = async () => {
+                await handleRefreshData(false); // false = con loading per update immediato
+              };
+              updateAndRefresh();
               
               return updatedSession;
             });
@@ -398,26 +380,9 @@ function SessionScreen() {
               const updatedSession = {...prevSession};
               const updatedFoods = [...updatedSession.foods, foodData];
               
-              // Il cibo riduce il BAC
-              const foodEffect = 
-                foodData.absorptionFactor ? 
-                (parseFloat(foodData.absorptionFactor) * 0.01) : 0.01;
-              
-              // Minimo 0
-              const newBAC = Math.max(updatedSession.currentBAC - foodEffect, 0);
-              
-              // Determina il nuovo stato
-              const newStatus = 
-                newBAC < 0.03 
-                  ? 'safe' as 'safe'
-                  : newBAC < 0.08 
-                    ? 'caution' as 'caution'
-                    : 'danger' as 'danger';
-              
-              // Aggiorna la sessione con i nuovi valori
+              // 🔧 RICALCOLO BAC IMMEDIATO: Il cibo influenza l'assorbimento, non riduce direttamente il BAC
+              // Aggiungi il cibo e forza il ricalcolo completo subito
               updatedSession.foods = updatedFoods;
-              updatedSession.currentBAC = newBAC;
-              updatedSession.status = newStatus;
               
               // Aggiorna anche il servizio di sessione per mantenere i dati sincronizzati
               const formattedFoodData = {
@@ -433,20 +398,11 @@ function SessionScreen() {
               
               sessionService.addFood(formattedFoodData);
               
-              // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver aggiunto il cibo
-              setTimeout(() => handleRefreshData(), 100);
-              
-              // Calcola il tempo per tornare sobri
-              const hoursToSober = Math.ceil(newBAC / 0.015);
-              updatedSession.soberTime = `${hoursToSober}h ${Math.floor((hoursToSober % 1) * 60)}m`;
-              
-              // Aggiungi timeToSober in minuti per il componente BACDisplay
-              updatedSession.timeToSober = Math.ceil(hoursToSober * 60);
-              
-              // Calcola la durata della sessione
-              const sessionDurationHours = Math.floor(hoursToSober / 60);
-              const sessionDurationMinutes = Math.floor(hoursToSober % 60);
-              updatedSession.sessionDuration = `${sessionDurationHours}h ${sessionDurationMinutes}m`;
+              // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo aver aggiunto il cibo
+              const updateAndRefresh = async () => {
+                await handleRefreshData(false); // false = con loading per update immediato
+              };
+              updateAndRefresh();
               
               return updatedSession;
             });
@@ -540,9 +496,34 @@ function SessionScreen() {
           
           // Aggiorna lo stato con la sessione attiva validata
           setSession(safeSession);
+          
+          // 🔧 LIVE ACTIVITY & WIDGET: Aggiorna entrambi con nuovo BAC
+          try {
+            const userProfile = safeSession.profile ? {
+              name: safeSession.profile.name || 'User',
+              emoji: safeSession.profile.emoji || '👤',
+              color: safeSession.profile.color || '#FF5252'
+            } : { name: 'User', emoji: '👤', color: '#FF5252' };
+            
+            // Aggiorna Live Activity
+            await liveActivityService.updateIfActive(safeSession.currentBAC, userProfile);
+            
+            // Aggiorna Widget iOS
+            await widgetService.updateIfEnabled(safeSession.currentBAC, userProfile);
+          } catch (updateError) {
+            console.error('Live Activity/Widget update failed:', updateError);
+          }
         } else {
           // Invece di reindirizzare alla dashboard, imposta session a null
           setSession(null);
+          
+          // 🔧 LIVE ACTIVITY & WIDGET: Pulisci quando non c'è sessione attiva
+          try {
+            await liveActivityService.stopLiveActivity();
+            await widgetService.clearWidget();
+          } catch (cleanupError) {
+            console.error('Live Activity/Widget cleanup failed:', cleanupError);
+          }
         }
       } catch (sessionError) {
         console.error('Errore specifico nel caricamento della sessione:', sessionError);
@@ -748,36 +729,21 @@ function SessionScreen() {
             const drinkToDelete = updatedDrinks[drinkIndex];
             updatedDrinks.splice(drinkIndex, 1);
             
-            // Calcola l'effetto stimato che questa bevanda aveva sul BAC e rimuovilo
-            const alcoholGrams = typeof drinkToDelete.alcoholGrams === 'string' ? 
-              parseFloat(drinkToDelete.alcoholGrams) : 
-              (drinkToDelete.alcoholGrams || 0);
-            
-            const alcoholEffect = alcoholGrams * 0.002;
-            const newBAC = Math.max(prevSession.currentBAC - alcoholEffect, 0);
-            
-            // Determina il nuovo stato
-            const newStatus = 
-              newBAC < 0.03 
-                ? 'safe' as 'safe'
-                : newBAC < 0.08 
-                  ? 'caution' as 'caution'
-                  : 'danger' as 'danger';
-            
-            // Crea una sessione aggiornata
+            // 🔧 RICALCOLO BAC IMMEDIATO: Non calcolare qui, forza refresh completo
             const updatedSession = {
               ...prevSession,
-              drinks: updatedDrinks,
-              currentBAC: newBAC,
-              status: newStatus
+              drinks: updatedDrinks
             };
             
             // Aggiorna la sessione con sessionService manualmente
             sessionService.updateSessionBAC();
             sessionService.saveSessionLocally(updatedSession, 'active');
             
-            // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver rimosso la bevanda
-            setTimeout(() => handleRefreshData(), 100);
+            // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo rimozione
+            const updateAndRefresh = async () => {
+              await handleRefreshData(false);
+            };
+            updateAndRefresh();
             
             return updatedSession;
           });
@@ -801,8 +767,11 @@ function SessionScreen() {
             const updatedFoods = [...prevSession.foods];
             updatedFoods.splice(foodIndex, 1);
             
-            // 🔧 FIX BAC IMMEDIATO: Aggiorna subito il BAC dopo aver rimosso il cibo
-            setTimeout(() => handleRefreshData(), 100);
+            // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo rimozione cibo
+            const updateAndRefresh = async () => {
+              await handleRefreshData(false);
+            };
+            updateAndRefresh();
             
             return {
               ...prevSession,

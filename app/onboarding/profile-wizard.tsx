@@ -527,7 +527,7 @@ export default function ProfileWizardScreen() {
             drinkingFrequency: drinkingFrequency,
             emoji: emoji,
             color: color,
-            isDefault: true,
+          isDefault: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };

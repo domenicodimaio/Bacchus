@@ -20,27 +20,15 @@ export default function Information() {
     };
   }, []);
 
-  // 🔧 FIX CRASH: Gestione swipe semplificata e sicura
+  // 🔧 FIX DEFINITIVO: Usa ESATTAMENTE la stessa logica del back button che funziona
   const swipeGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      // Solo feedback visivo, niente animazioni complesse
-      if (Math.abs(event.translationX) > 50) {
-        // Mostra feedback visivo
-      }
-    })
     .onEnd((event) => {
       if (!isMounted.current) return;
       
-      try {
-        if (event.translationX > 100) {
-          console.log('🎯 INFORMATION SWIPE: Navigando alla dashboard...');
-          // 🔧 NAVIGAZIONE SICURA: Usa push invece di replace per evitare problemi di stack
-          router.push('/(tabs)/dashboard');
-        }
-      } catch (error) {
-        console.log('Information: Navigation failed, using fallback');
-        // Fallback: navigazione diretta
-        router.push('/(tabs)/dashboard');
+      if (event.translationX > 100) {
+        console.log('🎯 INFORMATION SWIPE: Usando stessa logica del back button...');
+        // 🔧 SOLUZIONE: Usa esattamente router.back() come il back button che funziona
+        router.back();
       }
     });
 

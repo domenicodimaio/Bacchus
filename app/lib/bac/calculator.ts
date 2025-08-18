@@ -117,6 +117,66 @@ export function calculateTimeToLegalLimit(
 }
 
 /**
+ * Calculate BAC progress info for iOS Live Activities and Widget
+ * @param currentBAC - Current BAC in g/L
+ * @returns Progress info with target, time remaining, and percentage
+ */
+export function calculateBACProgress(currentBAC: number): {
+  targetBAC: number;
+  targetDescription: string;
+  timeRemainingHours: number;
+  timeRemainingFormatted: string;
+  progressPercentage: number;
+  isAboveLegalLimit: boolean;
+} {
+  const legalLimit = 0.5;
+  const isAboveLegalLimit = currentBAC > legalLimit;
+  
+  let targetBAC: number;
+  let targetDescription: string;
+  let timeRemainingHours: number;
+  let progressPercentage: number;
+  
+  if (isAboveLegalLimit) {
+    // Sopra soglia legale: target = 0.5 g/L (soglia legale)
+    targetBAC = legalLimit;
+    targetDescription = "Soglia legale (0.5 g/L)";
+    timeRemainingHours = calculateTimeToLegalLimit(currentBAC, legalLimit);
+    
+    // Progress: da currentBAC a 0.5
+    // Se currentBAC = 1.0 e target = 0.5, quando arriviamo a 0.7 siamo al 60%
+    const totalDistance = Math.max(currentBAC - legalLimit, 0.1); // Minimo 0.1 per evitare divisione per 0
+    const remainingDistance = Math.max(currentBAC - legalLimit, 0);
+    progressPercentage = Math.max(0, Math.min(100, ((totalDistance - remainingDistance) / totalDistance) * 100));
+  } else {
+    // Sotto soglia legale: target = 0.0 g/L (sobrio)
+    targetBAC = 0.0;
+    targetDescription = "Completamente sobrio (0.0 g/L)";
+    timeRemainingHours = calculateTimeToSober(currentBAC);
+    
+    // Progress: da currentBAC a 0.0
+    const maxExpectedBAC = 1.0; // Assumiamo che 1.0 sia il massimo ragionevole
+    progressPercentage = Math.max(0, Math.min(100, ((maxExpectedBAC - currentBAC) / maxExpectedBAC) * 100));
+  }
+  
+  // Format time remaining
+  const hours = Math.floor(timeRemainingHours);
+  const minutes = Math.round((timeRemainingHours - hours) * 60);
+  const timeRemainingFormatted = hours > 0 
+    ? `${hours}h ${minutes}m`
+    : `${minutes}m`;
+  
+  return {
+    targetBAC,
+    targetDescription,
+    timeRemainingHours,
+    timeRemainingFormatted,
+    progressPercentage,
+    isAboveLegalLimit
+  };
+}
+
+/**
  * Calculate the BAC at a specific time based on all drinks and food consumed
  * 
  * @param profile - User profile data
@@ -247,12 +307,12 @@ export function calculateBAC(
   const widmarkFactor = gender === 'male' ? 0.68 : 0.55;
   
   // Calculate BAC without time adjustment
-  // BAC = (A / (W * r)) * 100
+  // BAC = (A / (W * r)) per formato g/L (non percentuale)
   // A: alcohol in grams
   // W: weight in grams
   // r: Widmark factor
   const weightGrams = weightKg * 1000;
-  let bac = (alcoholGrams / (weightGrams * widmarkFactor)) * 100;
+  let bac = (alcoholGrams / (weightGrams * widmarkFactor)); // 🔧 RIMOSSO * 100 per formato g/L
   
   // Apply food absorption factor (slower alcohol absorption with food)
   // Food reduces peak BAC - more realistic modeling
