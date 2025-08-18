@@ -3,41 +3,86 @@
  * Placeholder per moduli nativi iOS che saranno implementati in native code
  */
 
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 
-// Placeholder per BACLiveActivity
-// In una implementazione reale, questo sarebbe un modulo nativo React Native
-export const BACLiveActivity = Platform.OS === 'ios' ? {
+// Moduli nativi reali per iOS
+const { BACLiveActivity: NativeBACLiveActivity, BACWidget: NativeBACWidget } = NativeModules;
+
+// BACLiveActivity - usa il modulo nativo se disponibile, altrimenti placeholder
+export const BACLiveActivity = Platform.OS === 'ios' ? (NativeBACLiveActivity ? {
   startActivity: async (data: any): Promise<string> => {
-    console.log('📱 BACLiveActivity.startActivity (placeholder):', data);
-    // Ritorna un ID fittizio per il placeholder
-    return `activity_${Date.now()}`;
+    try {
+      return await NativeBACLiveActivity.startActivity(data);
+    } catch (error) {
+      console.error('📱 BACLiveActivity.startActivity error:', error);
+      throw error;
+    }
   },
   
   updateActivity: async (activityId: string, data: any): Promise<void> => {
-    console.log('📱 BACLiveActivity.updateActivity (placeholder):', activityId, data);
+    try {
+      await NativeBACLiveActivity.updateActivity(activityId, data);
+    } catch (error) {
+      console.error('📱 BACLiveActivity.updateActivity error:', error);
+      throw error;
+    }
   },
   
   endActivity: async (activityId: string): Promise<void> => {
-    console.log('📱 BACLiveActivity.endActivity (placeholder):', activityId);
+    try {
+      await NativeBACLiveActivity.endActivity(activityId);
+    } catch (error) {
+      console.error('📱 BACLiveActivity.endActivity error:', error);
+      throw error;
+    }
   },
   
   isSupported: (): boolean => {
-    // In un'implementazione reale, controllerebbe la versione iOS
     return Platform.Version >= '16.1';
   }
-} : null;
+} : {
+  // Fallback placeholder se il modulo nativo non è disponibile
+  startActivity: async (data: any): Promise<string> => {
+    console.log('📱 BACLiveActivity.startActivity (fallback):', data);
+    return `activity_${Date.now()}`;
+  },
+  updateActivity: async (activityId: string, data: any): Promise<void> => {
+    console.log('📱 BACLiveActivity.updateActivity (fallback):', activityId, data);
+  },
+  endActivity: async (activityId: string): Promise<void> => {
+    console.log('📱 BACLiveActivity.endActivity (fallback):', activityId);
+  },
+  isSupported: (): boolean => Platform.Version >= '16.1'
+}) : null;
 
-// Placeholder per BACWidget
-export const BACWidget = Platform.OS === 'ios' ? {
+// BACWidget - usa il modulo nativo se disponibile, altrimenti placeholder
+export const BACWidget = Platform.OS === 'ios' ? (NativeBACWidget ? {
   updateWidget: async (data: any): Promise<void> => {
-    console.log('📱 BACWidget.updateWidget (placeholder):', data);
+    try {
+      await NativeBACWidget.updateWidget(data);
+    } catch (error) {
+      console.error('📱 BACWidget.updateWidget error:', error);
+      throw error;
+    }
   },
   
   reloadAllTimelines: async (): Promise<void> => {
-    console.log('📱 BACWidget.reloadAllTimelines (placeholder)');
+    try {
+      await NativeBACWidget.reloadAllTimelines();
+    } catch (error) {
+      console.error('📱 BACWidget.reloadAllTimelines error:', error);
+      throw error;
+    }
   }
-} : null;
+} : {
+  // Fallback placeholder se il modulo nativo non è disponibile
+  updateWidget: async (data: any): Promise<void> => {
+    console.log('📱 BACWidget.updateWidget (fallback):', data);
+  },
+  reloadAllTimelines: async (): Promise<void> => {
+    console.log('📱 BACWidget.reloadAllTimelines (fallback)');
+  }
+}) : null;
 
 /**
  * Nota per l'implementazione reale:
