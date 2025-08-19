@@ -41,7 +41,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>1003</string>
+    <string>1004</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
@@ -73,7 +73,6 @@
     <array>
       <string>fetch</string>
       <string>remote-notification</string>
-      <string>background-processing</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
