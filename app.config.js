@@ -18,12 +18,12 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '1001',
+      buildNumber: '1002',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
         NSSupportsLiveActivitiesFrequentUpdates: true,
-        UIBackgroundModes: ['fetch', 'remote-notification'],
+        UIBackgroundModes: ['fetch', 'remote-notification', 'background-processing'],
         NSUserNotificationsUsageDescription: "This app needs notifications to keep you updated on your alcohol consumption.",
         NSCalendarsUsageDescription: "This app needs your calendar to track events.",
         NSCameraUsageDescription: "This app uses your camera for user profile pictures.",
@@ -42,7 +42,7 @@ export default {
     },
     android: {
       package: 'com.bacchusapp.app',
-      versionCode: 1001,
+      versionCode: 1002,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
