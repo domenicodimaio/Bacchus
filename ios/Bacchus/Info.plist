@@ -73,8 +73,7 @@
     <array>
       <string>fetch</string>
       <string>remote-notification</string>
-      <string>background-processing</string>
-      <string>background-refresh</string>
+      <string>background-app-refresh</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
