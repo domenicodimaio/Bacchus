@@ -948,8 +948,8 @@ export function updateSessionBAC(): Session | null {
       
       // BAC finale
       totalBAC = Math.max(0, totalBAC * foodFactor);
-      totalBAC = Math.min(0.5, totalBAC); // Limite sicurezza
-      totalBAC = Math.round(totalBAC * 100) / 100; // Arrotonda
+      // 🔧 RIMOSSO LIMITE ARTIFICIALE: Il BAC può superare 0.5 g/L per calcoli realistici
+      totalBAC = Math.round(totalBAC * 1000) / 1000; // Arrotonda a 3 decimali per maggior precisione
       
       // Aggiorna la sessione
       activeSession.currentBAC = totalBAC;

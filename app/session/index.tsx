@@ -237,10 +237,10 @@ function SessionScreen() {
       // Carica immediatamente i dati
       handleRefreshData();
       
-      // 🔧 TIMER BAC DECADIMENTO: Aggiorna ogni minuto per decadimento naturale dell'alcol
+      // 🔧 TIMER BAC REAL-TIME: Aggiorna ogni secondo per aggiornamento in tempo reale
       const timer = setInterval(() => {
         handleRefreshData(true); // true = aggiornamento periodico, no loading/flash
-      }, 60000); // Update every 60 seconds (1 minute) for natural BAC decay
+      }, 1000); // Update every 1 second for real-time BAC updates
       
       setUpdateTimer(timer);
       
@@ -417,9 +417,14 @@ function SessionScreen() {
   // Handle data refresh
   const handleRefreshData = async (isPeriodicUpdate = false) => {
     try {
-      // Non settare loading per aggiornamenti periodici (evita flash)
+      // 🔧 OTTIMIZZAZIONE: Non settare loading per aggiornamenti periodici (evita flash)
       if (!isPeriodicUpdate) {
         setLoading(true);
+      }
+      
+      // 🔧 OTTIMIZZAZIONE: Per aggiornamenti periodici, salta se non c'è una sessione attiva
+      if (isPeriodicUpdate && !session) {
+        return;
       }
       
       // STEP 1: Verifica che esista almeno un profilo valido
