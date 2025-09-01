@@ -317,12 +317,11 @@ function SessionScreen() {
               // Aggiorna anche il servizio di sessione per mantenere i dati sincronizzati
               sessionService.addDrink(drinkData);
               
-              // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC (senza timeout)
-              // Prima salva lo stato, poi forza il refresh immediato
-              const updateAndRefresh = async () => {
-                await handleRefreshData(false); // false = con loading per update immediato
-              };
-              updateAndRefresh();
+              // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC
+              // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+              setTimeout(() => {
+                handleRefreshData(false); // false = refresh completo per update immediato
+              }, 10);
               
               return updatedSession;
             });
@@ -399,10 +398,10 @@ function SessionScreen() {
               sessionService.addFood(formattedFoodData);
               
               // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo aver aggiunto il cibo
-              const updateAndRefresh = async () => {
-                await handleRefreshData(false); // false = con loading per update immediato
-              };
-              updateAndRefresh();
+              // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+              setTimeout(() => {
+                handleRefreshData(false); // false = refresh completo per update immediato
+              }, 10);
               
               return updatedSession;
             });
@@ -499,8 +498,12 @@ function SessionScreen() {
             timeToSober: activeSession.timeToSober || 0
           };
           
-          // Aggiorna lo stato con la sessione attiva validata
-          setSession(safeSession);
+          // 🔧 FIX UI REFRESH: Aggiorna lo stato con la sessione attiva validata
+          // Forza un nuovo oggetto di riferimento per garantire re-render completo
+          setSession({
+            ...safeSession,
+            _lastUpdate: Date.now() // Timestamp per forzare re-render
+          });
           
           // 🔧 LIVE ACTIVITY & WIDGET: Aggiorna entrambi con nuovo BAC
           try {
@@ -560,8 +563,13 @@ function SessionScreen() {
       // Imposta session a null per mostrare il NoActiveSessionView
       setSession(null);
     } finally {
-      // Imposta loading a false solo se non è un aggiornamento periodico
-      if (!isPeriodicUpdate) {
+      // 🔧 FIX UI REFRESH: Per aggiornamenti periodici, forza re-render senza loading flash
+      if (isPeriodicUpdate) {
+        // Forza un micro re-render per aggiornare il grafico senza mostrare loading
+        setLoading(true);
+        setTimeout(() => setLoading(false), 0);
+      } else {
+        // Per refresh manuali, comportamento normale
         setLoading(false);
       }
     }
@@ -745,10 +753,10 @@ function SessionScreen() {
             sessionService.saveSessionLocally(updatedSession, 'active');
             
             // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo rimozione
-            const updateAndRefresh = async () => {
-              await handleRefreshData(false);
-            };
-            updateAndRefresh();
+            // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+            setTimeout(() => {
+              handleRefreshData(false); // false = refresh completo per update immediato
+            }, 10);
             
             return updatedSession;
           });
@@ -773,10 +781,10 @@ function SessionScreen() {
             updatedFoods.splice(foodIndex, 1);
             
             // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo rimozione cibo
-            const updateAndRefresh = async () => {
-              await handleRefreshData(false);
-            };
-            updateAndRefresh();
+            // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+            setTimeout(() => {
+              handleRefreshData(false); // false = refresh completo per update immediato
+            }, 10);
             
             return {
               ...prevSession,

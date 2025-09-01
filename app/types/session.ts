@@ -102,6 +102,7 @@ export interface Session {
   updated_at?: string | Date;
   isClosed?: boolean;
   isActive?: boolean;
+  _lastUpdate?: number; // Timestamp per forzare re-render UI
   profileId?: string;
   maxBac?: number;
 }
