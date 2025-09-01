@@ -9,13 +9,13 @@ struct BacchusWidgetEntry: TimelineEntry {
     let targetDescription: String
     let timeRemaining: String
     let progressPercentage: Double
-    let status: BACStatus
-    let userProfile: UserProfile
+    let status: WidgetBACStatus
+    let userProfile: WidgetUserProfile
     let lastUpdated: String
 }
 
 // MARK: - Data Models
-enum BACStatus: String, CaseIterable {
+enum WidgetBACStatus: String, CaseIterable {
     case safe = "safe"
     case caution = "caution" 
     case danger = "danger"
@@ -37,7 +37,7 @@ enum BACStatus: String, CaseIterable {
     }
 }
 
-struct UserProfile {
+struct WidgetUserProfile: Codable {
     let name: String
     let emoji: String
     let color: String
@@ -45,6 +45,7 @@ struct UserProfile {
 
 // MARK: - Timeline Provider
 struct BacchusWidgetProvider: TimelineProvider {
+    typealias Entry = BacchusWidgetEntry
     func placeholder(in context: Context) -> BacchusWidgetEntry {
         BacchusWidgetEntry(
             date: Date(),
@@ -54,7 +55,7 @@ struct BacchusWidgetProvider: TimelineProvider {
             timeRemaining: "2h 30m",
             progressPercentage: 65,
             status: .caution,
-            userProfile: UserProfile(name: "Demo", emoji: "🍷", color: "#FF5252"),
+            userProfile: WidgetUserProfile(name: "Demo", emoji: "🍷", color: "#FF5252"),
             lastUpdated: "10:30"
         )
     }
@@ -77,8 +78,8 @@ struct BacchusWidgetProvider: TimelineProvider {
             targetDescription: bacData?.targetDescription ?? "Monitoraggio BAC",
             timeRemaining: bacData?.timeRemaining ?? "0m",
             progressPercentage: bacData?.progressPercentage ?? 0,
-            status: BACStatus(rawValue: bacData?.status ?? "safe") ?? .safe,
-            userProfile: bacData?.userProfile ?? UserProfile(name: "User", emoji: "👤", color: "#FF5252"),
+            status: WidgetBACStatus(rawValue: bacData?.status ?? "safe") ?? .safe,
+            userProfile: bacData?.userProfile ?? WidgetUserProfile(name: "User", emoji: "👤", color: "#FF5252"),
             lastUpdated: bacData?.lastUpdated ?? DateFormatter.localizedString(from: currentDate, dateStyle: .none, timeStyle: .short)
         )
         
@@ -252,7 +253,7 @@ struct LargeBacchusWidgetView: View {
         }
     }
     
-    private func getStatusText(for status: BACStatus, bac: Double) -> String {
+    private func getStatusText(for status: WidgetBACStatus, bac: Double) -> String {
         switch status {
         case .safe:
             return bac > 0 ? "Sotto limite" : "Sobrio"
@@ -289,7 +290,7 @@ struct BacchusWidget: Widget {
 
 struct BacchusWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
-    var entry: BacchusWidgetProvider.Entry
+    var entry: BacchusWidgetEntry
     
     var body: some View {
         switch family {
@@ -306,14 +307,14 @@ struct BacchusWidgetEntryView: View {
 }
 
 // MARK: - Data Loading
-struct BACWidgetData {
+struct BACWidgetData: Codable {
     let currentBAC: Double
     let targetBAC: Double
     let targetDescription: String
     let timeRemaining: String
     let progressPercentage: Double
     let status: String
-    let userProfile: UserProfile
+    let userProfile: WidgetUserProfile
     let lastUpdated: String
 }
 
