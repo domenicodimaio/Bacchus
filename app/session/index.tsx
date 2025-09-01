@@ -317,10 +317,10 @@ function SessionScreen() {
               // Aggiorna anche il servizio di sessione per mantenere i dati sincronizzati
               sessionService.addDrink(drinkData);
               
-              // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC
-              // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+              // 🔧 FIX BAC IMMEDIATO: Replica ESATTAMENTE il comportamento del bottone refresh
+              // Usa la stessa chiamata del bottone refresh manuale (senza parametri)
               setTimeout(() => {
-                handleRefreshData(false); // false = refresh completo per update immediato
+                handleRefreshData(); // IDENTICO al bottone refresh - refresh completo con loading
               }, 10);
               
               return updatedSession;
@@ -397,10 +397,10 @@ function SessionScreen() {
               
               sessionService.addFood(formattedFoodData);
               
-              // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo aver aggiunto il cibo
-              // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+              // 🔧 FIX BAC IMMEDIATO: Replica ESATTAMENTE il comportamento del bottone refresh
+              // Usa la stessa chiamata del bottone refresh manuale (senza parametri)
               setTimeout(() => {
-                handleRefreshData(false); // false = refresh completo per update immediato
+                handleRefreshData(); // IDENTICO al bottone refresh - refresh completo con loading
               }, 10);
               
               return updatedSession;
@@ -498,12 +498,8 @@ function SessionScreen() {
             timeToSober: activeSession.timeToSober || 0
           };
           
-          // 🔧 FIX UI REFRESH: Aggiorna lo stato con la sessione attiva validata
-          // Forza un nuovo oggetto di riferimento per garantire re-render completo
-          setSession({
-            ...safeSession,
-            _lastUpdate: Date.now() // Timestamp per forzare re-render
-          });
+          // Aggiorna lo stato con la sessione attiva validata
+          setSession(safeSession);
           
           // 🔧 LIVE ACTIVITY & WIDGET: Aggiorna entrambi con nuovo BAC
           try {
@@ -563,13 +559,8 @@ function SessionScreen() {
       // Imposta session a null per mostrare il NoActiveSessionView
       setSession(null);
     } finally {
-      // 🔧 FIX UI REFRESH: Per aggiornamenti periodici, forza re-render senza loading flash
-      if (isPeriodicUpdate) {
-        // Forza un micro re-render per aggiornare il grafico senza mostrare loading
-        setLoading(true);
-        setTimeout(() => setLoading(false), 0);
-      } else {
-        // Per refresh manuali, comportamento normale
+      // Imposta loading a false solo se non è un aggiornamento periodico
+      if (!isPeriodicUpdate) {
         setLoading(false);
       }
     }
@@ -752,10 +743,10 @@ function SessionScreen() {
             sessionService.updateSessionBAC();
             sessionService.saveSessionLocally(updatedSession, 'active');
             
-            // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo rimozione
-            // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+            // 🔧 FIX BAC IMMEDIATO: Replica ESATTAMENTE il comportamento del bottone refresh
+            // Usa la stessa chiamata del bottone refresh manuale (senza parametri)
             setTimeout(() => {
-              handleRefreshData(false); // false = refresh completo per update immediato
+              handleRefreshData(); // IDENTICO al bottone refresh - refresh completo con loading
             }, 10);
             
             return updatedSession;
@@ -780,10 +771,10 @@ function SessionScreen() {
             const updatedFoods = [...prevSession.foods];
             updatedFoods.splice(foodIndex, 1);
             
-            // 🔧 FIX BAC IMMEDIATO: Aggiorna ISTANTANEAMENTE il BAC dopo rimozione cibo
-            // Usa setTimeout per garantire che lo stato sia aggiornato prima del refresh
+            // 🔧 FIX BAC IMMEDIATO: Replica ESATTAMENTE il comportamento del bottone refresh
+            // Usa la stessa chiamata del bottone refresh manuale (senza parametri)
             setTimeout(() => {
-              handleRefreshData(false); // false = refresh completo per update immediato
+              handleRefreshData(); // IDENTICO al bottone refresh - refresh completo con loading
             }, 10);
             
             return {
