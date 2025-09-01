@@ -64,16 +64,3 @@ target 'Bacchus' do
     end
   end
 end
-
-# TODO: Widget Extension Target - Temporaneamente commentato per risolvere build
-# target 'BacchusWidgetExtension' do
-#   # Widget extensions should be minimal and not include React Native
-#   # Only include essential pods that widget needs
-#   
-#   # Must use the same framework settings as the main app
-#   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
-#   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
-#   
-#   # No use_expo_modules! or use_react_native! for widget extensions
-#   # Widgets are standalone Swift/SwiftUI components
-# end
