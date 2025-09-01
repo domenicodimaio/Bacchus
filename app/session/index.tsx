@@ -42,8 +42,8 @@ import * as sessionService from '../lib/services/session.service';
 import * as sessionServiceDirect from '../lib/services/session.service'; // 🔧 Per loadSessionHistoryFromStorage
 import { DrinkRecord, FoodRecord } from '../lib/bac/visualization';
 import { Session } from '../types/session';
-import liveActivityService from '../lib/services/liveActivity.service';
-import widgetService from '../lib/services/widget.service';
+import { liveActivityService } from '../lib/services/liveActivity.service';
+import { widgetService } from '../lib/services/widget.service';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BACChartSimple from '../components/BACChartSimple';
 import { Svg, Circle, Path, Defs, LinearGradient, Stop, Line, Text as SvgText, G, Filter } from 'react-native-svg';
