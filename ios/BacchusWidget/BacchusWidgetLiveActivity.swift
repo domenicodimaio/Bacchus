@@ -4,79 +4,53 @@ import SwiftUI
 
 // MARK: - Live Activity Attributes
 struct BacchusActivityAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
-        // Dati dinamici che cambiano durante l'attività
+    public typealias ContentState = ContentStateData
+
+    public struct ContentStateData: Codable, Hashable {
+        // Dynamic stateful properties about the activity go here
         var currentBAC: Double
-        var targetBAC: Double // 0.00 se < 0.5, altrimenti 0.51 (limite legale)
-        var timeToTarget: String // "2h 15min"
+        var timeToSober: String
+        var targetBAC: Double // e.g., 0.51 g/L for legal limit, 0.00 for sober
         var lastUpdated: Date
     }
-    
-    // Dati statici che non cambiano
-    var sessionId: String
+
+    // Fixed non-changing properties about the activity go here
     var userName: String
 }
 
 // MARK: - Live Activity Views
+@available(iOS 16.1, *)
 struct BacchusLiveActivityView: View {
     let context: ActivityViewContext<BacchusActivityAttributes>
-    
+
     var body: some View {
-        HStack(spacing: 12) {
-            // BAC Icon
-            ZStack {
-                Circle()
-                    .fill(bacColor.opacity(0.2))
-                    .frame(width: 40, height: 40)
-                Circle()
-                    .stroke(bacColor, lineWidth: 2)
-                    .frame(width: 40, height: 40)
-                
+        VStack(alignment: .leading) {
+            HStack {
                 Image(systemName: "wineglass.fill")
                     .foregroundColor(bacColor)
-                    .font(.system(size: 16, weight: .semibold))
-            }
-            
-            // BAC Info
-            VStack(alignment: .leading, spacing: 2) {
-                Text("BAC Level")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Text(String(format: "%.2f g/L", context.state.currentBAC))
+                Text("BAC: \(String(format: "%.2f", context.state.currentBAC)) g/L")
                     .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
+                Spacer()
+                Text(context.state.lastUpdated, style: .time)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
             }
-            
-            Spacer()
-            
-            // Progress/Time Info
-            VStack(alignment: .trailing, spacing: 2) {
-                if context.state.targetBAC <= 0.01 {
-                    // Countdown to sober
-                    Text("To Sober")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    // Countdown to legal limit
-                    Text("To 0.51 g/L")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Text(context.state.timeToTarget)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
+            .padding(.bottom, 2)
+
+            ProgressView(value: progressValue) {
+                Text("Tempo alla sobrietà: \(context.state.timeToSober)")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.8))
             }
+            .progressViewStyle(.linear)
+            .tint(bacColor)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .activitySystemActionForegroundColor(.primary)
-        .activityBackgroundTint(.clear)
+        .padding()
+        .activityBackgroundTint(.black)
+        .activitySystemActionForegroundColor(.white)
     }
-    
+
     private var bacColor: Color {
         if context.state.currentBAC >= 0.8 {
             return .red
@@ -88,94 +62,54 @@ struct BacchusLiveActivityView: View {
             return .green
         }
     }
+
+    private var progressValue: Double {
+        if context.state.targetBAC <= 0.01 {
+            // Progress to sobriety (reverse: high BAC = low progress)
+            return max(0, 1 - (context.state.currentBAC / 1.0))
+        } else {
+            // Progress to legal limit
+            if context.state.currentBAC <= context.state.targetBAC {
+                return 1.0 // Already at target
+            } else {
+                return max(0, 1 - ((context.state.currentBAC - context.state.targetBAC) / (1.0 - context.state.targetBAC)))
+            }
+        }
+    }
 }
 
-// MARK: - Dynamic Island Views
-struct BacchusLiveActivityDynamicIsland: View {
+@available(iOS 16.1, *)
+struct BacchusLiveActivityDynamicIsland {
     let context: ActivityViewContext<BacchusActivityAttributes>
-    
-    var body: some View {
+
+    var body: DynamicIsland {
         DynamicIsland {
             // Expanded view
             DynamicIslandExpandedRegion(.leading) {
                 HStack {
                     Image(systemName: "wineglass.fill")
                         .foregroundColor(bacColor)
-                        .font(.title3)
-                    
-                    VStack(alignment: .leading) {
-                        Text("Bacchus")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(context.attributes.userName)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                }
-                .padding(.leading)
-            }
-            
-            DynamicIslandExpandedRegion(.trailing) {
-                VStack(alignment: .trailing) {
                     Text(String(format: "%.2f", context.state.currentBAC))
                         .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(bacColor)
-                    
-                    Text("g/L")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                 }
-                .padding(.trailing)
             }
-            
-            DynamicIslandExpandedRegion(.center) {
-                VStack {
-                    // Progress bar
-                    ProgressView(value: progressValue, total: 1.0)
-                        .progressViewStyle(LinearProgressViewStyle(tint: bacColor))
-                        .scaleEffect(x: 1, y: 2, anchor: .center)
-                    
-                    Text(context.state.timeToTarget)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 4)
-                }
-                .padding(.horizontal)
+            DynamicIslandExpandedRegion(.trailing) {
+                Text(context.state.timeToSober)
+                    .font(.title2)
+                    .foregroundColor(.white)
             }
-            
             DynamicIslandExpandedRegion(.bottom) {
-                HStack {
-                    Image(systemName: "clock")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                    
-                    Text("Updated \(context.state.lastUpdated, style: .relative) ago")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Text(context.state.targetBAC <= 0.01 ? "To Sober" : "To Legal")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
+                ProgressView(value: progressValue)
+                    .tint(bacColor)
             }
-            
         } compactLeading: {
-            // Compact leading (bubble)
             Image(systemName: "wineglass.fill")
                 .foregroundColor(bacColor)
-                .font(.system(size: 16, weight: .semibold))
-            
         } compactTrailing: {
-            // Compact trailing (bubble)
             Text(String(format: "%.2f", context.state.currentBAC))
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(bacColor)
-            
+                .font(.caption2)
+                .foregroundColor(.white)
         } minimal: {
             // Minimal view (dot)
             Circle()
@@ -183,7 +117,7 @@ struct BacchusLiveActivityDynamicIsland: View {
                 .frame(width: 12, height: 12)
         }
     }
-    
+
     private var bacColor: Color {
         if context.state.currentBAC >= 0.8 {
             return .red
@@ -195,7 +129,7 @@ struct BacchusLiveActivityDynamicIsland: View {
             return .green
         }
     }
-    
+
     private var progressValue: Double {
         if context.state.targetBAC <= 0.01 {
             // Progress to sobriety (reverse: high BAC = low progress)

@@ -1,12 +1,6 @@
-//
-//  BacchusWidgetBundle.swift
-//  BacchusWidget
-//
-//  Created by Domenico Di Maio on 01/09/25.
-//
-
 import WidgetKit
 import SwiftUI
+import ActivityKit // Added for Live Activities
 
 @main
 struct BacchusWidgetBundle: WidgetBundle {
@@ -27,7 +21,7 @@ struct BacchusLiveActivity: Widget {
             BacchusLiveActivityView(context: context)
         } dynamicIsland: { context in
             // Dynamic Island UI
-            BacchusLiveActivityDynamicIsland(context: context)
+            BacchusLiveActivityDynamicIsland(context: context).body
         }
     }
 }

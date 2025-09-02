@@ -20,7 +20,7 @@ struct BacchusWidgetData: Codable {
 // MARK: - Timeline Provider
 struct BacchusWidgetProvider: TimelineProvider {
     typealias Entry = BacchusWidgetEntry
-    
+
     func placeholder(in context: Context) -> BacchusWidgetEntry {
         BacchusWidgetEntry(
             date: Date(),
@@ -30,7 +30,7 @@ struct BacchusWidgetProvider: TimelineProvider {
             timeToSober: "2h 30min"
         )
     }
-    
+
     func getSnapshot(in context: Context, completion: @escaping (BacchusWidgetEntry) -> ()) {
         let entry = BacchusWidgetEntry(
             date: Date(),
@@ -41,13 +41,13 @@ struct BacchusWidgetProvider: TimelineProvider {
         )
         completion(entry)
     }
-    
+
     func getTimeline(in context: Context, completion: @escaping (Timeline<BacchusWidgetEntry>) -> ()) {
         let currentDate = Date()
-        
+
         // Caricare i dati reali dal UserDefaults/App Groups
         let data = loadWidgetData()
-        
+
         let entry = BacchusWidgetEntry(
             date: currentDate,
             currentBAC: data.currentBAC,
@@ -55,14 +55,14 @@ struct BacchusWidgetProvider: TimelineProvider {
             userName: data.userName,
             timeToSober: data.timeToSober
         )
-        
+
         // Aggiornamento ogni 5 minuti per la decay del BAC
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: currentDate)!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-        
+
         completion(timeline)
     }
-    
+
     private func loadWidgetData() -> BacchusWidgetData {
         guard let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app.widget"),
               let data = userDefaults.data(forKey: "BacchusWidgetData"),
@@ -82,7 +82,7 @@ struct BacchusWidgetProvider: TimelineProvider {
 // MARK: - Widget Views
 struct BacchusWidgetEntryView: View {
     var entry: BacchusWidgetProvider.Entry
-    
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -94,7 +94,7 @@ struct BacchusWidgetEntryView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            
+
             VStack(spacing: 4) {
                 // Header
                 HStack {
@@ -107,9 +107,9 @@ struct BacchusWidgetEntryView: View {
                         .fontWeight(.semibold)
                     Spacer()
                 }
-                
+
                 Spacer()
-                
+
                 // BAC Value
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -124,9 +124,9 @@ struct BacchusWidgetEntryView: View {
                             .foregroundColor(.white.opacity(0.8))
                             .font(.caption2)
                     }
-                    
+
                     Spacer()
-                    
+
                     // Status indicator
                     VStack(alignment: .trailing, spacing: 2) {
                         Circle()
@@ -139,9 +139,9 @@ struct BacchusWidgetEntryView: View {
                         }
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // User name
                 HStack {
                     Text(entry.userName)
@@ -165,13 +165,25 @@ struct BacchusWidgetEntryView: View {
 // MARK: - Widget Configuration
 struct BacchusWidget: Widget {
     let kind: String = "BacchusWidget"
-    
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: BacchusWidgetProvider()) { entry in
-            BacchusWidgetEntryView(entry: entry)
+            if #available(iOS 17.0, *) {
+                BacchusWidgetEntryView(entry: entry)
+                    .containerBackground(.clear, for: .widget)
+            } else {
+                BacchusWidgetEntryView(entry: entry)
+            }
         }
         .configurationDisplayName("Bacchus BAC")
         .description("Monitora il tuo livello di alcol nel sangue.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
+}
+
+#Preview(as: .systemSmall) {
+    BacchusWidget()
+} timeline: {
+    BacchusWidgetEntry(date: .now, currentBAC: 0.15, sessionActive: true, userName: "Domenico", timeToSober: "2h 30min")
+    BacchusWidgetEntry(date: .now, currentBAC: 0.08, sessionActive: true, userName: "Domenico", timeToSober: "1h 15min")
 }
