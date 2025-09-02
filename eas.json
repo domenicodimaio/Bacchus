@@ -43,6 +43,28 @@
       },
       "channel": "production"
     },
+    "production-widget": {
+      "autoIncrement": false,
+      "distribution": "store",
+      "env": {
+        "APP_ENVIRONMENT": "production",
+        "EAS_BUILD_VERBOSE": "true",
+        "COCOAPODS_DISABLE_STATS": "true"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "resourceClass": "medium",
+        "buildConfiguration": "Release",
+        "image": "macos-sequoia-15.6-xcode-16.4",
+        "scheme": "Bacchus",
+        "cache": {
+          "disabled": true
+        }
+      },
+      "channel": "production"
+    },
     "development-simulator": {
       "developmentClient": true,
       "distribution": "internal",
