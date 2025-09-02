@@ -509,11 +509,36 @@ function SessionScreen() {
               color: safeSession.profile.color || '#FF5252'
             } : { name: 'User', emoji: '👤', color: '#FF5252' };
             
-            // Aggiorna Live Activity
-            await liveActivityService.updateIfActive(safeSession.currentBAC, userProfile);
+            const timeToSober = safeSession.timeToSober > 0 
+              ? `${Math.floor(safeSession.timeToSober / 60)}h ${safeSession.timeToSober % 60}min`
+              : '0min';
             
             // Aggiorna Widget iOS
-            await widgetService.updateIfEnabled(safeSession.currentBAC, userProfile);
+            await widgetService.updateWidget({
+              currentBAC: safeSession.currentBAC,
+              sessionActive: true,
+              userName: userProfile.name,
+              timeToSober
+            });
+            
+            // Aggiorna Live Activity se non è già attiva, avviala
+            if (!liveActivityService.hasActiveActivity && safeSession.currentBAC > 0) {
+              const targetBAC = safeSession.currentBAC > 0.5 ? 0.51 : 0.0;
+              await liveActivityService.startLiveActivity({
+                currentBAC: safeSession.currentBAC,
+                timeToSober,
+                userName: userProfile.name,
+                targetBAC
+              });
+            } else if (liveActivityService.hasActiveActivity) {
+              const targetBAC = safeSession.currentBAC > 0.5 ? 0.51 : 0.0;
+              await liveActivityService.updateLiveActivity({
+                currentBAC: safeSession.currentBAC,
+                timeToSober,
+                userName: userProfile.name,
+                targetBAC
+              });
+            }
           } catch (updateError) {
             console.error('Live Activity/Widget update failed:', updateError);
           }
@@ -523,8 +548,8 @@ function SessionScreen() {
           
           // 🔧 LIVE ACTIVITY & WIDGET: Pulisci quando non c'è sessione attiva
           try {
-            await liveActivityService.stopLiveActivity();
-            await widgetService.clearWidget();
+            await liveActivityService.endLiveActivity();
+            await widgetService.clearWidgets();
           } catch (cleanupError) {
             console.error('Live Activity/Widget cleanup failed:', cleanupError);
           }

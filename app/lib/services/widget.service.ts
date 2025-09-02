@@ -1,13 +1,12 @@
-/**
- * Widget Service - iOS Widget Management
- * Gestisce l'aggiornamento dei widget iOS dell'app Bacchus
- */
+import { NativeModules, Platform } from 'react-native';
+
+const { BacchusNativeModules } = NativeModules;
 
 export interface WidgetData {
   currentBAC: number;
   sessionActive: boolean;
   userName: string;
-  lastUpdated: string;
+  timeToSober: string;
 }
 
 class WidgetService {
@@ -15,13 +14,22 @@ class WidgetService {
    * Aggiorna i dati del widget iOS
    */
   async updateWidget(data: WidgetData): Promise<void> {
+    if (Platform.OS !== 'ios' || !BacchusNativeModules) {
+      console.log('🍎 Widget not available on this platform');
+      return;
+    }
+
     try {
-      // TODO: Implementare bridge con iOS quando il widget sarà configurato
       console.log('📱 Widget Update:', data);
       
-      // Per ora solo log, sarà sostituito con:
-      // await NativeModules.BacchusWidgetModule?.updateWidget(data);
+      await BacchusNativeModules.updateWidget({
+        currentBAC: data.currentBAC,
+        sessionActive: data.sessionActive,
+        userName: data.userName,
+        timeToSober: data.timeToSober,
+      });
       
+      console.log('✅ Widget updated: BAC', data.currentBAC, 'Active:', data.sessionActive);
     } catch (error) {
       console.error('❌ Widget Update Error:', error);
     }
@@ -31,11 +39,15 @@ class WidgetService {
    * Rimuove tutti i widget dalla home screen
    */
   async clearWidgets(): Promise<void> {
+    if (Platform.OS !== 'ios' || !BacchusNativeModules) {
+      return;
+    }
+
     try {
       console.log('🗑️ Widget Clear');
       
-      // TODO: Implementare rimozione widget
-      // await NativeModules.BacchusWidgetModule?.clearWidgets();
+      await BacchusNativeModules.clearWidget();
+      console.log('✅ Widget cleared');
       
     } catch (error) {
       console.error('❌ Widget Clear Error:', error);
