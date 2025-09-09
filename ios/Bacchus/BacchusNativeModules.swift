@@ -15,26 +15,37 @@ class BacchusNativeModules: NSObject {
     // MARK: - Widget Methods
     @objc
     func updateWidget(_ data: NSDictionary, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+        print("🔵 updateWidget called with data: \(data)")
+        
         guard let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app.widget") else {
+            print("❌ Cannot access app group: group.com.bacchusapp.app.widget")
             reject("WIDGET_ERROR", "Cannot access app group", nil)
             return
         }
         
+        let currentBAC = data["currentBAC"] as? Double ?? 0.0
+        let sessionActive = data["sessionActive"] as? Bool ?? false
+        let userName = data["userName"] as? String ?? "User"
+        let timeToSober = data["timeToSober"] as? String ?? "0min"
+        
         let widgetData = [
-            "currentBAC": data["currentBAC"] as? Double ?? 0.0,
-            "sessionActive": data["sessionActive"] as? Bool ?? false,
-            "userName": data["userName"] as? String ?? "User",
-            "timeToSober": data["timeToSober"] as? String ?? "0min"
+            "currentBAC": currentBAC,
+            "sessionActive": sessionActive,
+            "userName": userName,
+            "timeToSober": timeToSober
         ]
+        
+        print("📊 Widget data to save: BAC=\(currentBAC), Active=\(sessionActive), User=\(userName), Time=\(timeToSober)")
         
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: widgetData)
             userDefaults.set(jsonData, forKey: "BacchusWidgetData")
+            userDefaults.synchronize() // Force sync
             
             // Richiedi aggiornamento widget
             WidgetCenter.shared.reloadAllTimelines()
             
-            print("✅ Widget data updated: BAC \(widgetData["currentBAC"] ?? 0.0)")
+            print("✅ Widget data updated successfully: BAC \(currentBAC)")
             resolve(true)
         } catch {
             print("❌ Widget data encoding error: \(error)")

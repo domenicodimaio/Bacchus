@@ -64,10 +64,10 @@ struct BacchusWidgetProvider: TimelineProvider {
     }
 
     private func loadWidgetData() -> BacchusWidgetData {
-        guard let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app.widget"),
-              let data = userDefaults.data(forKey: "BacchusWidgetData"),
-              let widgetData = try? JSONDecoder().decode(BacchusWidgetData.self, from: data) else {
-            // Dati di fallback
+        print("🔍 Widget: Loading data from app group...")
+        
+        guard let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app.widget") else {
+            print("❌ Widget: Cannot access app group")
             return BacchusWidgetData(
                 currentBAC: 0.00,
                 sessionActive: false,
@@ -75,7 +75,30 @@ struct BacchusWidgetProvider: TimelineProvider {
                 timeToSober: "0min"
             )
         }
-        return widgetData
+        
+        guard let data = userDefaults.data(forKey: "BacchusWidgetData") else {
+            print("⚠️ Widget: No data found in UserDefaults")
+            return BacchusWidgetData(
+                currentBAC: 0.00,
+                sessionActive: false,
+                userName: "User",
+                timeToSober: "0min"
+            )
+        }
+        
+        do {
+            let widgetData = try JSONDecoder().decode(BacchusWidgetData.self, from: data)
+            print("✅ Widget: Data loaded - BAC: \(widgetData.currentBAC), Active: \(widgetData.sessionActive), User: \(widgetData.userName)")
+            return widgetData
+        } catch {
+            print("❌ Widget: JSON decode error: \(error)")
+            return BacchusWidgetData(
+                currentBAC: 0.00,
+                sessionActive: false,
+                userName: "User",
+                timeToSober: "0min"
+            )
+        }
     }
 }
 

@@ -14,6 +14,8 @@ import supabase from '../supabase/client';
 import { calculateBAC, calculateTimeToSober, calculateTimeToLegalLimit } from '../../utils/bacCalculator';
 import { DrinkRecord } from '../bac/visualization';
 import { Session, UserProfile, Drink, FoodRecord } from '../../types/session';
+import { liveActivityService } from './liveActivity.service';
+import { widgetService } from './widget.service';
 
 // ===== STATO SEMPLIFICATO =====
 let _initialized = false;
@@ -818,6 +820,19 @@ export async function endSession(): Promise<boolean> {
       console.log('Sessione attiva rimossa con successo dalla memoria e dallo storage');
     }
     
+    // 🔴 TERMINA LIVE ACTIVITY E PULISCI WIDGET
+    try {
+      // Termina Live Activity se attiva
+      await liveActivityService.endLiveActivity();
+      
+      // Pulisci Widget
+      await widgetService.clearWidgets();
+      
+      console.log('✅ Live Activity e Widget puliti per sessione terminata');
+    } catch (cleanupError) {
+      console.error('❌ Errore pulizia Live Activity/Widget:', cleanupError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error ending session:', error);
@@ -1508,6 +1523,23 @@ export async function createSession(profile: UserProfile): Promise<Session | nul
     // Sincronizza con Supabase se l'utente è autenticato
     if (user_id) {
       await saveSessionToSupabase(newSession, true);
+    }
+    
+    // 🔴 AVVIA LIVE ACTIVITY E WIDGET per la nuova sessione
+    try {
+      const userName = profileToUse.name || 'User';
+      
+      // Aggiorna Widget con sessione appena iniziata
+      await widgetService.updateWidget({
+        currentBAC: 0.0,
+        sessionActive: true,
+        userName,
+        timeToSober: '0min'
+      });
+      
+      console.log('✅ Widget aggiornato per nuova sessione');
+    } catch (widgetError) {
+      console.error('❌ Errore aggiornamento widget per nuova sessione:', widgetError);
     }
     
     return newSession;
