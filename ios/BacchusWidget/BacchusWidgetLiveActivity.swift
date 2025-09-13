@@ -2,6 +2,20 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
+// MARK: - Live Activity Widget Configuration
+@available(iOS 16.1, *)
+struct BacchusLiveActivityWidget: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: BacchusActivityAttributes.self) { context in
+            // Lock screen/banner UI
+            BacchusLiveActivityView(context: context)
+        } dynamicIsland: { context in
+            // Dynamic Island UI
+            BacchusLiveActivityDynamicIsland(context: context).body
+        }
+    }
+}
+
 // MARK: - Live Activity Attributes
 struct BacchusActivityAttributes: ActivityAttributes {
     public typealias ContentState = ContentStateData

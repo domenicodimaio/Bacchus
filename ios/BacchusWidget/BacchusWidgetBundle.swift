@@ -7,7 +7,7 @@ struct BacchusWidgetBundle: WidgetBundle {
     var body: some Widget {
         BacchusWidget()
         if #available(iOS 16.1, *) {
-            BacchusLiveActivity()
+            BacchusLiveActivityWidget()
         }
     }
 }
