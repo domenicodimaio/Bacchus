@@ -38,7 +38,7 @@
         "image": "latest",
         "scheme": "Bacchus",
         "cache": {
-          "disabled": false
+          "disabled": true
         }
       },
       "channel": "production"
