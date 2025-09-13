@@ -73,13 +73,11 @@
     </array>
     <key>NSUserNotificationsUsageDescription</key>
     <string>This app needs notifications to keep you updated on your alcohol consumption.</string>
-    	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>fetch</string>
+      <string>remote-notification</string>
+    </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
