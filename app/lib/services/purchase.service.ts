@@ -15,13 +15,16 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
+// TEMPORANEO: RevenueCat disabilitato per build senza dipendenze
 try {
   // Importa dinamicamente solo se non siamo in Expo Go
   if (!isExpoGo) {
-    const RevenueCat = require('react-native-purchases');
-    Purchases = RevenueCat.default;
-    LOG_LEVEL = RevenueCat.LOG_LEVEL;
-    isRevenueCatAvailable = true;
+    // const RevenueCat = require('react-native-purchases');
+    // Purchases = RevenueCat.default;
+    // LOG_LEVEL = RevenueCat.LOG_LEVEL;
+    // isRevenueCatAvailable = true;
+    console.log('RevenueCat temporaneamente disabilitato');
+    isRevenueCatAvailable = false;
   }
 } catch (error) {
   console.log('RevenueCat non disponibile, usando modalità mock', error);
