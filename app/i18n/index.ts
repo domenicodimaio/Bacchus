@@ -210,4 +210,22 @@ export const verifyTranslations = (): boolean => {
   }
 };
 
+// Funzioni per la gestione del linguaggio in storage
+export const loadLanguageFromStorage = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+  } catch (error) {
+    console.error('🌐 [i18n] Error loading language from storage:', error);
+    return null;
+  }
+};
+
+export const saveLanguageToStorage = async (language: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch (error) {
+    console.error('🌐 [i18n] Error saving language to storage:', error);
+  }
+};
+
 export default i18n; 

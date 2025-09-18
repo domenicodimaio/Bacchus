@@ -150,7 +150,7 @@ export const scheduleLoggingReminder = async (minutes = 60) => {
     'Have you had any drinks recently? Log them to keep your BAC tracking accurate.',
     { type: 'logging_reminder' },
       { 
-        type: 'timeInterval', 
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, 
         seconds: safeMinutes * 60,
         repeats: false
       }
@@ -183,7 +183,7 @@ export const scheduleSoberTimeNotification = async (soberTime: Date) => {
     `Based on your current consumption, your BAC should return to 0.00 by approximately ${soberTimeString}.`,
     { type: 'sober_time_notification' },
       { 
-        type: 'date', 
+        type: Notifications.SchedulableTriggerInputTypes.DATE, 
         date: soberTime
       }
   );

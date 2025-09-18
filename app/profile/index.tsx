@@ -16,7 +16,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import UserProfile from '../components/UserProfile';
 import AppHeader from '../components/AppHeader';
 import { requireAuth } from '../lib/supabase/middleware';
-import { supabase } from '../lib/supabase/client';
+import supabase from '../lib/supabase/client';
 
 export default function ProfileScreen() {
   const { t } = useTranslation(['profile', 'common']);

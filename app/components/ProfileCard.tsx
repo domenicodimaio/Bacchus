@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { UserProfile } from '../lib/services/session.service';
+import { UserProfile } from '../types/session';
 import { formatTimeToSober } from '../utils/bacCalculator';
 
 interface ProfileCardProps {

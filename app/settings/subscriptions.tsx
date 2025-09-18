@@ -20,6 +20,8 @@ import { usePurchase } from '../contexts/PurchaseContext';
 import { SIZES } from '../constants/theme';
 import AppHeader from '../components/AppHeader';
 import Toast from 'react-native-toast-message';
+
+// RevenueCat temporaneamente disabilitato - usiamo le funzioni dal PurchaseContext
 import Constants from 'expo-constants';
 import * as purchaseService from '../lib/services/purchase.service';
 
@@ -62,18 +64,18 @@ export default function SubscriptionsScreen() {
     try {
       setProcessingPayment(true);
       
-      const isYearly = selectedPlan === 'yearly';
-      const result = await purchaseSubscription(isYearly);
+      const planType = selectedPlan === 'yearly' ? 'annual' : 'monthly';
+      const result = await purchaseSubscription(planType);
       
       setProcessingPayment(false);
       
-      if (result.success) {
+      if (result) {
         Toast.show({
           type: 'success',
           text1: t('successTitle'),
           text2: t('successPurchase'),
         });
-      } else if (result.error && !result.error.userCancelled) {
+      } else {
         Toast.show({
           type: 'error',
           text1: t('errorTitle'),
@@ -99,13 +101,13 @@ export default function SubscriptionsScreen() {
       
       setProcessingPayment(false);
       
-      if (result.success) {
+      if (result) {
         Toast.show({
           type: 'success',
           text1: t('successTitle'),
           text2: t('successPurchase'),
         });
-      } else if (result.error && !result.error.userCancelled) {
+      } else {
         Toast.show({
           type: 'error',
           text1: t('errorTitle'),
@@ -129,18 +131,12 @@ export default function SubscriptionsScreen() {
     try {
       const result = await restorePurchases();
       
-      if (result.success) {
-        if (result.isPremium) {
-          Alert.alert(
-            t('restoreSuccessTitle', { ns: 'purchases', defaultValue: 'Ripristino completato' }),
-            t('restoreSuccessMessage', { ns: 'purchases', defaultValue: 'I tuoi acquisti sono stati ripristinati con successo.' })
-          );
-        } else {
-          Alert.alert(
-            t('restoreNoSubscriptionsTitle', { ns: 'purchases', defaultValue: 'Nessun abbonamento' }),
-            t('restoreNoSubscriptionsMessage', { ns: 'purchases', defaultValue: 'Non sono stati trovati abbonamenti attivi sul tuo account.' })
-          );
-        }
+      if (result) {
+        // Mock: simula che l'utente ha premium
+        Alert.alert(
+          t('restoreSuccessTitle', { ns: 'purchases', defaultValue: 'Ripristino completato' }),
+          t('restoreSuccessMessage', { ns: 'purchases', defaultValue: 'I tuoi acquisti sono stati ripristinati con successo.' })
+        );
       } else {
         Alert.alert(
           t('restoreErrorTitle', { ns: 'purchases', defaultValue: 'Errore di ripristino' }),
@@ -591,6 +587,9 @@ const styles = StyleSheet.create({
   content: {
     padding: SIZES.padding,
     paddingBottom: 40,
+  },
+  section: {
+    marginBottom: 24,
   },
   loadingContainer: {
     flex: 1,
