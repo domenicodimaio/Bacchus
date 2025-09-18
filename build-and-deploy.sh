@@ -75,15 +75,23 @@ else
     exit 1
 fi
 
-# STEP 4: Build iOS
+# STEP 4: Build iOS (con retry automatico)
 log_info "STEP 4: Avviando build iOS..."
-eas build --platform ios --profile production --non-interactive
-if [ $? -eq 0 ]; then
-    log_success "Build iOS completata"
-else
-    log_error "Errore nella build iOS"
-    exit 1
-fi
+for i in {1..3}; do
+    log_info "Tentativo $i/3..."
+    eas build --platform ios --profile production --non-interactive --clear-cache
+    if [ $? -eq 0 ]; then
+        log_success "Build iOS completata al tentativo $i"
+        break
+    elif [ $i -eq 3 ]; then
+        log_error "Build iOS fallita dopo 3 tentativi. Prova build locale in Xcode."
+        log_warning "Comando per build locale: cd ios && xcodebuild -workspace Bacchus.xcworkspace -scheme Bacchus archive"
+        exit 1
+    else
+        log_warning "Tentativo $i fallito, riprovo..."
+        sleep 10
+    fi
+done
 
 # STEP 5: Submit su App Store
 log_info "STEP 5: Submitting su App Store..."
