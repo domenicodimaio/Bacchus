@@ -39,8 +39,7 @@
         "scheme": "Bacchus",
         "cache": {
           "disabled": true
-        },
-        "prebuildCommand": "npx expo prebuild --platform ios --clean"
+        }
       },
       "channel": "production"
     },
