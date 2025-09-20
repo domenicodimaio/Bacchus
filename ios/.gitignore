@@ -28,3 +28,6 @@ project.xcworkspace
 
 # CocoaPods
 /Pods/
+# EXCEPTION: Include Target Support Files for EAS Build
+!/Pods/Target Support Files/
+!/Pods/Manifest.lock
