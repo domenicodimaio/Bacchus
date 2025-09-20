@@ -35,7 +35,7 @@
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
-        "image": "latest",
+        "image": "macos-ventura-13.6-xcode-15.0",
         "scheme": "Bacchus",
         "cache": {
           "disabled": true
