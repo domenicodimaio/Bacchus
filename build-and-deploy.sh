@@ -75,32 +75,24 @@ else
     exit 1
 fi
 
-# STEP 4: Build iOS (LOCALE - più veloce e affidabile)
-log_info "STEP 4: Avviando build iOS locale..."
-cd ios
-log_info "Pulizia build precedenti..."
-rm -rf build
-xcodebuild clean -workspace Bacchus.xcworkspace -scheme Bacchus
-log_info "Creazione archivio iOS..."
-xcodebuild archive -workspace Bacchus.xcworkspace -scheme Bacchus -configuration Release -archivePath build/Bacchus.xcarchive
+# STEP 4: Build iOS con EAS
+log_info "STEP 4: Avviando build iOS con EAS..."
+eas build --platform ios --profile production --non-interactive
 if [ $? -eq 0 ]; then
-    log_success "Build iOS locale completata"
-    log_info "Archivio creato in: ios/build/Bacchus.xcarchive"
-    cd ..
+    log_success "Build iOS con EAS completata"
 else
-    log_error "Errore nella build iOS locale"
-    cd ..
+    log_error "Errore nella build iOS con EAS"
     exit 1
 fi
 
-# STEP 5: Submit su App Store (usando archivio locale)
+# STEP 5: Submit su App Store (usando ultima build EAS)
 log_info "STEP 5: Submitting su App Store..."
-eas submit -p ios --path ios/build/Bacchus.xcarchive
+eas submit -p ios --latest
 if [ $? -eq 0 ]; then
     log_success "Submit su App Store completato"
 else
     log_error "Errore nel submit su App Store"
-    log_info "Puoi anche usare Xcode Organizer per fare upload manuale dell'archivio"
+    log_info "Puoi riprovare manualmente con: eas submit -p ios --latest"
     exit 1
 fi
 
