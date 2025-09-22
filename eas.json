@@ -28,7 +28,7 @@
       "env": {
         "APP_ENVIRONMENT": "production",
         "EAS_BUILD_VERBOSE": "true",
-        "SWIFT_VERSION": "6.0"
+        "COCOAPODS_VERSION": "1.15.2"
       },
       "android": {
         "buildType": "app-bundle"
