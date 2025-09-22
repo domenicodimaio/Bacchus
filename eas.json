@@ -27,7 +27,8 @@
       "distribution": "store",
       "env": {
         "APP_ENVIRONMENT": "production",
-        "EAS_BUILD_VERBOSE": "true"
+        "EAS_BUILD_VERBOSE": "true",
+        "SWIFT_VERSION": "6.0"
       },
       "android": {
         "buildType": "app-bundle"
@@ -35,7 +36,7 @@
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
-        "image": "macos-ventura-13.6-xcode-15.0",
+        "image": "latest",
         "scheme": "Bacchus",
         "cache": {
           "disabled": true
