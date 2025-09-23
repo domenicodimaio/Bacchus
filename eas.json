@@ -22,21 +22,22 @@
       },
       "channel": "preview"
     },
-    "production": {
-      "autoIncrement": false,
-      "distribution": "store",
-      "env": {
-        "APP_ENVIRONMENT": "production",
-        "EAS_BUILD_VERBOSE": "true",
-        "COCOAPODS_VERSION": "1.15.2"
-      },
+        "production": {
+            "autoIncrement": false,
+            "distribution": "store",
+            "env": {
+                "APP_ENVIRONMENT": "production",
+                "EAS_BUILD_VERBOSE": "true",
+                "COCOAPODS_VERSION": "1.15.2",
+                "SWIFT_VERSION": "5.0"
+            },
       "android": {
         "buildType": "app-bundle"
       },
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
-        "image": "latest",
+        "image": "macos-ventura-13.6-xcode-15.0",
         "scheme": "Bacchus",
         "cache": {
           "disabled": true
