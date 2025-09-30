@@ -26,8 +26,8 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
   @objc func updateWidget(_ bacData: [String: Any], resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
     print("🟢 [BacchusNativeModules] updateWidget chiamato con dati: \(bacData)")
     
-    // Salva i dati nel UserDefaults per il widget
-    if let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app") {
+    // Salva i dati nel UserDefaults standard (temporaneamente senza App Groups)
+    let userDefaults = UserDefaults.standard
       do {
         let jsonData = try JSONSerialization.data(withJSONObject: bacData)
         userDefaults.set(jsonData, forKey: "BACData")
@@ -42,28 +42,20 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
         print("🔴 [BacchusNativeModules] Errore serializzazione JSON: \(error)")
         rejecter("SERIALIZATION_ERROR", "Errore nella serializzazione dei dati", error)
       }
-    } else {
-      print("🔴 [BacchusNativeModules] Impossibile accedere a UserDefaults con suiteName")
-      rejecter("USERDEFAULTS_ERROR", "Impossibile accedere ai UserDefaults condivisi", nil)
-    }
   }
   
   @objc func clearWidget(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
     print("🟢 [BacchusNativeModules] clearWidget chiamato")
     
-    if let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app") {
-      userDefaults.removeObject(forKey: "BACData")
-      print("🟢 [BacchusNativeModules] Dati widget rimossi da UserDefaults")
-      
-      // Ricarica i widget
-      WidgetCenter.shared.reloadAllTimelines()
-      print("🟢 [BacchusNativeModules] Widget ricaricati dopo pulizia")
-      
-      resolver(["success": true])
-    } else {
-      print("🔴 [BacchusNativeModules] Impossibile accedere a UserDefaults per clearWidget")
-      rejecter("USERDEFAULTS_ERROR", "Impossibile accedere ai UserDefaults condivisi", nil)
-    }
+    let userDefaults = UserDefaults.standard
+    userDefaults.removeObject(forKey: "BACData")
+    print("🟢 [BacchusNativeModules] Dati widget rimossi da UserDefaults")
+    
+    // Ricarica i widget
+    WidgetCenter.shared.reloadAllTimelines()
+    print("🟢 [BacchusNativeModules] Widget ricaricati dopo pulizia")
+    
+    resolver(["success": true])
   }
   
   // MARK: - Live Activity Methods
@@ -74,7 +66,7 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
     if #available(iOS 16.1, *) {
       // Implementazione Live Activity per iOS 16.1+
       // Per ora, salviamo solo i dati
-      if let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app") {
+      let userDefaults = UserDefaults.standard
         do {
           let jsonData = try JSONSerialization.data(withJSONObject: bacData)
           userDefaults.set(jsonData, forKey: "LiveActivityData")
@@ -84,9 +76,6 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
           print("🔴 [BacchusNativeModules] Errore serializzazione Live Activity: \(error)")
           rejecter("SERIALIZATION_ERROR", "Errore nella serializzazione dei dati Live Activity", error)
         }
-      } else {
-        rejecter("USERDEFAULTS_ERROR", "Impossibile accedere ai UserDefaults per Live Activity", nil)
-      }
     } else {
       print("🔴 [BacchusNativeModules] Live Activities non supportate su questa versione iOS")
       rejecter("UNSUPPORTED_VERSION", "Live Activities richiedono iOS 16.1+", nil)
@@ -98,7 +87,7 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
     
     if #available(iOS 16.1, *) {
       // Aggiorna i dati per Live Activity
-      if let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app") {
+      let userDefaults = UserDefaults.standard
         do {
           let jsonData = try JSONSerialization.data(withJSONObject: bacData)
           userDefaults.set(jsonData, forKey: "LiveActivityData")
@@ -108,9 +97,6 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
           print("🔴 [BacchusNativeModules] Errore aggiornamento Live Activity: \(error)")
           rejecter("SERIALIZATION_ERROR", "Errore nell'aggiornamento Live Activity", error)
         }
-      } else {
-        rejecter("USERDEFAULTS_ERROR", "Impossibile accedere ai UserDefaults per Live Activity", nil)
-      }
     } else {
       print("🔴 [BacchusNativeModules] Live Activities non supportate per update")
       rejecter("UNSUPPORTED_VERSION", "Live Activities richiedono iOS 16.1+", nil)
@@ -122,13 +108,10 @@ class BacchusNativeModules: NSObject, RCTBridgeModule {
     
     if #available(iOS 16.1, *) {
       // Termina Live Activity
-      if let userDefaults = UserDefaults(suiteName: "group.com.bacchusapp.app") {
-        userDefaults.removeObject(forKey: "LiveActivityData")
-        print("🟢 [BacchusNativeModules] Live Activity terminata")
-        resolver(["success": true])
-      } else {
-        rejecter("USERDEFAULTS_ERROR", "Impossibile accedere ai UserDefaults per terminare Live Activity", nil)
-      }
+      let userDefaults = UserDefaults.standard
+      userDefaults.removeObject(forKey: "LiveActivityData")
+      print("🟢 [BacchusNativeModules] Live Activity terminata")
+      resolver(["success": true])
     } else {
       print("🔴 [BacchusNativeModules] Live Activities non supportate per end")
       rejecter("UNSUPPORTED_VERSION", "Live Activities richiedono iOS 16.1+", nil)
