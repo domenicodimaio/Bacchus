@@ -249,7 +249,7 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (7.0.5):
     - ExpoModulesCore
-  - ExpoLocalization (16.0.1):
+  - ExpoLocalization (16.1.6):
     - ExpoModulesCore
   - ExpoModulesCore (2.2.3):
     - DoubleConversion
@@ -276,7 +276,7 @@ PODS:
     - Yoga
   - ExpoSharing (13.0.1):
     - ExpoModulesCore
-  - ExpoSplashScreen (0.29.24):
+  - ExpoSplashScreen (31.0.10):
     - ExpoModulesCore
   - ExpoWebBrowser (14.0.2):
     - ExpoModulesCore
@@ -2454,10 +2454,10 @@ SPEC CHECKSUMS:
   ExpoKeepAwake: b0171a73665bfcefcfcc311742a72a956e6aa680
   ExpoLinearGradient: 35ebd83b16f80b3add053a2fd68cc328ed927f60
   ExpoLinking: 8d12bee174ba0cdf31239706578e29e74a417402
-  ExpoLocalization: 7776ea3bdb112125390745bbaf919b734b2ad1c7
+  ExpoLocalization: 999a1ff61a7f5917d65c2bd9234883009019ca9f
   ExpoModulesCore: 2d8d1c8e238bd5e1448b06c284ac896b162fb856
   ExpoSharing: 849a5ce9985c22598c16ec027e32969be8062e8e
-  ExpoSplashScreen: 399ee9f85b6c8a61b965e13a1ecff8384db591c2
+  ExpoSplashScreen: 311698c4861eea16635e4b99ffe747678125f3be
   ExpoWebBrowser: a212e6b480d8857d3e441fba51e0c968333803b3
   EXStructuredHeaders: 09c70347b282e3d2507e25fb4c747b1b885f87f6
   EXUpdates: c151eb61b7360986fff0561c4c25f869afada16c

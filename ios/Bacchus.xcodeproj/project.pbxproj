@@ -3,38 +3,38 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		30A247354DB7459C9210F96B /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86145BF57E546B8B90BDAF4 /* noop-file.swift */; };
+		1AE18FABF5F0014F37D3FCC3 /* Pods_Bacchus.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9020FC383545679FE2C00BB7 /* Pods_Bacchus.framework */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		74DA5D7193A737AE2ECE8654 /* Pods_Bacchus.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 338D315DF9E8D108947ED90C /* Pods_Bacchus.framework */; };
+		4244F5414C0EAE7CB8796F91 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F8E417C7B20FB63724A6DFF6 /* PrivacyInfo.xcprivacy */; };
+		49C6699D80AB46DE899D6F3F /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7858D6834C4863976650D5 /* noop-file.swift */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		F87F82E02B2260A6BEBD4BB8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BED2A1E6A63EFB4BC0B01656 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0A4AA052BC454F7F861D4E39 /* Bacchus-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "Bacchus-Bridging-Header.h"; path = "Bacchus/Bacchus-Bridging-Header.h"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Bacchus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bacchus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = Bacchus/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = Bacchus/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Bacchus/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Bacchus/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = Bacchus/main.m; sourceTree = "<group>"; };
-		338D315DF9E8D108947ED90C /* Pods_Bacchus.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Bacchus.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C2E3173556A471DD304B334 /* Pods-Bacchus.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Bacchus.debug.xcconfig"; path = "Target Support Files/Pods-Bacchus/Pods-Bacchus.debug.xcconfig"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-Bacchus.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Bacchus.release.xcconfig"; path = "Target Support Files/Pods-Bacchus/Pods-Bacchus.release.xcconfig"; sourceTree = "<group>"; };
+		9020FC383545679FE2C00BB7 /* Pods_Bacchus.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Bacchus.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Bacchus/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BED2A1E6A63EFB4BC0B01656 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Bacchus/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		C0EFA3F642E44E959B63B4C5 /* Bacchus-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "Bacchus-Bridging-Header.h"; path = "Bacchus/Bacchus-Bridging-Header.h"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F86145BF57E546B8B90BDAF4 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "Bacchus/noop-file.swift"; sourceTree = "<group>"; };
+		F8E417C7B20FB63724A6DFF6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Bacchus/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Bacchus/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		FE7858D6834C4863976650D5 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "Bacchus/noop-file.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,7 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				74DA5D7193A737AE2ECE8654 /* Pods_Bacchus.framework in Frameworks */,
+				1AE18FABF5F0014F37D3FCC3 /* Pods_Bacchus.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,9 +59,9 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				F86145BF57E546B8B90BDAF4 /* noop-file.swift */,
-				C0EFA3F642E44E959B63B4C5 /* Bacchus-Bridging-Header.h */,
-				BED2A1E6A63EFB4BC0B01656 /* PrivacyInfo.xcprivacy */,
+				FE7858D6834C4863976650D5 /* noop-file.swift */,
+				0A4AA052BC454F7F861D4E39 /* Bacchus-Bridging-Header.h */,
+				F8E417C7B20FB63724A6DFF6 /* PrivacyInfo.xcprivacy */,
 			);
 			name = Bacchus;
 			sourceTree = "<group>";
@@ -70,7 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				338D315DF9E8D108947ED90C /* Pods_Bacchus.framework */,
+				9020FC383545679FE2C00BB7 /* Pods_Bacchus.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -147,13 +147,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Bacchus" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				25BC42140F343D13080E4A7A /* [Expo] Configure project */,
+				E78FD019CC4D13F20A015E7A /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				E350B71C5F2858081FFFA581 /* [CP] Embed Pods Frameworks */,
+				7B33D1F3F8787388248360E6 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -203,7 +203,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				F87F82E02B2260A6BEBD4BB8 /* PrivacyInfo.xcprivacy in Resources */,
+				4244F5414C0EAE7CB8796F91 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,24 +247,23 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		25BC42140F343D13080E4A7A /* [Expo] Configure project */ = {
+		7B33D1F3F8787388248360E6 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputFileListPaths = (
-			);
 			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Bacchus/Pods-Bacchus-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
 			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
+			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Bacchus/expo-configure-project.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Bacchus/Pods-Bacchus-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -320,23 +319,24 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Bacchus/Pods-Bacchus-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		E350B71C5F2858081FFFA581 /* [CP] Embed Pods Frameworks */ = {
+		E78FD019CC4D13F20A015E7A /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Bacchus/Pods-Bacchus-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			inputFileListPaths = (
 			);
-			name = "[CP] Embed Pods Frameworks";
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Bacchus/Pods-Bacchus-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Bacchus/expo-configure-project.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -348,7 +348,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				30A247354DB7459C9210F96B /* noop-file.swift in Sources */,
+				49C6699D80AB46DE899D6F3F /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,7 +362,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Bacchus/Bacchus.entitlements;
-				CURRENT_PROJECT_VERSION = 1464;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -395,7 +395,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Bacchus/Bacchus.entitlements;
-				CURRENT_PROJECT_VERSION = 1464;
+				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = Bacchus/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
