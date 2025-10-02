@@ -47,7 +47,9 @@ export const ALL_NAMESPACES = ['common', 'settings', 'session', 'auth', 'dashboa
 // Ottieni la lingua del dispositivo
 const getDeviceLanguage = () => {
   try {
-    const locale = Localization.locale || 'en';
+    const locales = Localization.getLocales();
+    const primaryLocale = locales[0];
+    const locale = primaryLocale?.languageTag || 'en';
     const languageCode = locale.split('-')[0].toLowerCase();
     
     // Se la lingua del dispositivo è supportata, usala

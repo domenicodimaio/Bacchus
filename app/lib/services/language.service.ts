@@ -17,19 +17,26 @@ const ITALIAN_COUNTRIES = ['IT', 'CH', 'SM', 'VA'];
  * Determina la lingua predefinita in base alla regione dell'utente
  */
 export const getDefaultLanguage = (): string => {
-  // Ottieni la regione del dispositivo
-  const region = Localization.region;
-  const deviceLanguage = Localization.locale.split('-')[0];
-  
-  console.log(`Device region: ${region}, language: ${deviceLanguage}`);
-  
-  // Se la regione è l'Italia o un altro paese di lingua italiana, usa l'italiano
-  if (region && ITALIAN_COUNTRIES.includes(region)) {
-    return 'it';
+  try {
+    // Ottieni i locales del dispositivo
+    const locales = Localization.getLocales();
+    const primaryLocale = locales[0];
+    const region = primaryLocale?.regionCode;
+    const deviceLanguage = primaryLocale?.languageCode;
+    
+    console.log(`Device region: ${region}, language: ${deviceLanguage}`);
+    
+    // Se la regione è l'Italia o un altro paese di lingua italiana, usa l'italiano
+    if (region && ITALIAN_COUNTRIES.includes(region)) {
+      return 'it';
+    }
+    
+    // Altrimenti usa l'inglese come default
+    return 'en';
+  } catch (error) {
+    console.error('Error getting device locale:', error);
+    return 'en';
   }
-  
-  // Altrimenti usa l'inglese come default
-  return 'en';
 };
 
 /**
