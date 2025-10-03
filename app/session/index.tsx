@@ -237,10 +237,11 @@ function SessionScreen() {
       // Carica immediatamente i dati
       handleRefreshData();
       
-      // 🔧 TIMER BAC REAL-TIME: Aggiorna ogni secondo per aggiornamento in tempo reale
+      // 🔧 TIMER BAC AUTO-UPDATE: Aggiorna ogni 60 secondi per aggiornamento automatico BAC
       const timer = setInterval(() => {
+        console.log('🕐 Timer automatico: aggiornamento BAC ogni 60 secondi...');
         handleRefreshData(true); // true = aggiornamento periodico, no loading/flash
-      }, 1000); // Update every 1 second for real-time BAC updates
+      }, 60000); // Update every 60 seconds for automatic BAC updates
       
       setUpdateTimer(timer);
       
@@ -513,32 +514,19 @@ function SessionScreen() {
               ? `${Math.floor(safeSession.timeToSober / 60)}h ${safeSession.timeToSober % 60}min`
               : '0min';
             
-        // Aggiorna Widget iOS - TEMPORARILY DISABLED FOR EAS BUILD
+        // Aggiorna Widget iOS e Live Activity usando le nuove funzioni helper
         try {
-          await widgetService.updateWidget({
-            currentBAC: safeSession.currentBAC,
-            sessionActive: true,
-            userName: userProfile.name,
-            timeToSober
-          });
+          // Aggiorna Widget con i dati calcolati
+          const widgetData = widgetService.calculateWidgetData(safeSession);
+          await widgetService.updateWidget(widgetData);
 
           // Aggiorna Live Activity se non è già attiva, avviala
           if (!liveActivityService.hasActiveActivity && safeSession.currentBAC > 0) {
-            const targetBAC = safeSession.currentBAC > 0.5 ? 0.51 : 0.0;
-            await liveActivityService.startLiveActivity({
-              currentBAC: safeSession.currentBAC,
-              timeToSober,
-              userName: userProfile.name,
-              targetBAC
-            });
+            const liveActivityData = liveActivityService.calculateLiveActivityData(safeSession);
+            await liveActivityService.startLiveActivity(liveActivityData);
           } else if (liveActivityService.hasActiveActivity) {
-            const targetBAC = safeSession.currentBAC > 0.5 ? 0.51 : 0.0;
-            await liveActivityService.updateLiveActivity({
-              currentBAC: safeSession.currentBAC,
-              timeToSober,
-              userName: userProfile.name,
-              targetBAC
-            });
+            const liveActivityData = liveActivityService.calculateLiveActivityData(safeSession);
+            await liveActivityService.updateLiveActivity(liveActivityData);
           }
         } catch (widgetError) {
           console.log('⚠️ Widget/Live Activity not available:', widgetError);

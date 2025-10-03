@@ -6,7 +6,10 @@ export interface LiveActivityData {
   currentBAC: number;
   targetBAC: number; // 0.00 se < 0.5, altrimenti 0.51 (limite legale)
   timeToSober: string; // "2h 15min" 
+  timeToLegal: string; // "1h 30min" - tempo per tornare sotto 0.5g/l
   userName: string;
+  status: 'safe' | 'caution' | 'danger';
+  progressPercentage: number; // 0-100 per la barra di progresso
 }
 
 class LiveActivityService {
@@ -27,8 +30,11 @@ class LiveActivityService {
       const activityId = await BacchusNativeModules.startLiveActivity({
         currentBAC: data.currentBAC,
         timeToSober: data.timeToSober,
+        timeToLegal: data.timeToLegal,
         userName: data.userName,
         targetBAC: data.targetBAC,
+        status: data.status,
+        progressPercentage: data.progressPercentage,
       });
       
       this.activeActivityId = activityId;
@@ -60,7 +66,10 @@ class LiveActivityService {
       await BacchusNativeModules.updateLiveActivity({
         currentBAC: data.currentBAC,
         timeToSober: data.timeToSober,
+        timeToLegal: data.timeToLegal,
         targetBAC: data.targetBAC,
+        status: data.status,
+        progressPercentage: data.progressPercentage,
       });
       
       console.log('✅ Live Activity updated: BAC', data.currentBAC);
@@ -98,6 +107,51 @@ class LiveActivityService {
    */
   get hasActiveActivity(): boolean {
     return this.activeActivityId !== null;
+  }
+
+  /**
+   * Calcola i dati per la Live Activity basati sulla sessione corrente
+   */
+  calculateLiveActivityData(session: any): LiveActivityData {
+    const currentBAC = session.currentBAC || 0;
+    const timeToSober = session.soberTime || '0h 0m';
+    const timeToLegal = session.legalTime || '0h 0m';
+    const userName = session.profile?.name || 'User';
+    const status = session.status || 'safe';
+    
+    // Determina il target BAC e il tempo appropriato
+    let targetBAC = 0.0;
+    let displayTime = timeToSober;
+    let progressPercentage = 0;
+    
+    if (currentBAC > 0.05) {
+      // Se sopra il limite legale (0.5g/l), mostra tempo per tornare sotto 0.5g/l
+      targetBAC = 0.05;
+      displayTime = timeToLegal;
+      
+      // Calcola progresso: da currentBAC a 0.05
+      const totalProgress = Math.max(currentBAC - 0.05, 0);
+      const maxBAC = Math.max(currentBAC, 0.1); // Assumiamo un max ragionevole
+      progressPercentage = Math.min(100, (totalProgress / (maxBAC - 0.05)) * 100);
+    } else {
+      // Se sotto 0.5g/l, mostra tempo per tornare a 0.0g/l
+      targetBAC = 0.0;
+      displayTime = timeToSober;
+      
+      // Calcola progresso: da currentBAC a 0.0
+      const maxBAC = Math.max(currentBAC, 0.05);
+      progressPercentage = Math.min(100, (currentBAC / maxBAC) * 100);
+    }
+    
+    return {
+      currentBAC,
+      targetBAC,
+      timeToSober: displayTime,
+      timeToLegal,
+      userName,
+      status,
+      progressPercentage: Math.round(progressPercentage)
+    };
   }
 }
 

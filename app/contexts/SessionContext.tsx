@@ -497,11 +497,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       setActiveSessions(updatedActiveSessions);
       
-      // Aggiorna immediatamente i dati BAC
+      // 🔧 FIX CRITICO: Aggiorna BAC usando lo stesso meccanismo del tasto refresh
       try {
+        console.log('🔄 Aggiornamento BAC dopo aggiunta bevanda...');
+        
+        // Importa e usa il sessionService per aggiornare il BAC (stesso meccanismo del refresh)
+        const sessionService = require('../lib/services/session.service');
+        await sessionService.updateSessionBAC();
+        
+        // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
+        
+        console.log('✅ BAC aggiornato con successo dopo aggiunta bevanda');
       } catch (error) {
-        console.error('Error refreshing BAC data after adding drink:', error);
+        console.error('❌ Errore aggiornamento BAC dopo aggiunta bevanda:', error);
       }
     }
   };
@@ -521,11 +530,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       setActiveSessions(updatedActiveSessions);
       
-      // Aggiorna immediatamente i dati BAC
+      // 🔧 FIX CRITICO: Aggiorna BAC usando lo stesso meccanismo del tasto refresh
       try {
+        console.log('🔄 Aggiornamento BAC dopo rimozione bevanda...');
+        
+        // Importa e usa il sessionService per aggiornare il BAC (stesso meccanismo del refresh)
+        const sessionService = require('../lib/services/session.service');
+        await sessionService.updateSessionBAC();
+        
+        // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
+        
+        console.log('✅ BAC aggiornato con successo dopo rimozione bevanda');
       } catch (error) {
-        console.error('Error refreshing BAC data after removing drink:', error);
+        console.error('❌ Errore aggiornamento BAC dopo rimozione bevanda:', error);
       }
     }
   };
@@ -553,11 +571,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       setActiveSessions(updatedActiveSessions);
       
-      // Aggiorna immediatamente i dati BAC
+      // 🔧 FIX CRITICO: Aggiorna BAC usando lo stesso meccanismo del tasto refresh
       try {
+        console.log('🔄 Aggiornamento BAC dopo aggiunta cibo...');
+        
+        // Importa e usa il sessionService per aggiornare il BAC (stesso meccanismo del refresh)
+        const sessionService = require('../lib/services/session.service');
+        await sessionService.updateSessionBAC();
+        
+        // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
+        
+        console.log('✅ BAC aggiornato con successo dopo aggiunta cibo');
       } catch (error) {
-        console.error('Error refreshing BAC data after adding food:', error);
+        console.error('❌ Errore aggiornamento BAC dopo aggiunta cibo:', error);
       }
     }
   };
@@ -577,11 +604,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       setActiveSessions(updatedActiveSessions);
       
-      // Aggiorna immediatamente i dati BAC
+      // 🔧 FIX CRITICO: Aggiorna BAC usando lo stesso meccanismo del tasto refresh
       try {
+        console.log('🔄 Aggiornamento BAC dopo rimozione cibo...');
+        
+        // Importa e usa il sessionService per aggiornare il BAC (stesso meccanismo del refresh)
+        const sessionService = require('../lib/services/session.service');
+        await sessionService.updateSessionBAC();
+        
+        // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
+        
+        console.log('✅ BAC aggiornato con successo dopo rimozione cibo');
       } catch (error) {
-        console.error('Error refreshing BAC data after removing food:', error);
+        console.error('❌ Errore aggiornamento BAC dopo rimozione cibo:', error);
       }
     }
   };
