@@ -29,7 +29,7 @@
                 "APP_ENVIRONMENT": "production",
                 "EAS_BUILD_VERBOSE": "true",
                 "COCOAPODS_VERSION": "1.15.2",
-                "SWIFT_VERSION": "6.0"
+                "SWIFT_VERSION": "5.0"
             },
       "android": {
         "buildType": "app-bundle"
