@@ -234,7 +234,9 @@ function SessionScreen() {
   // Carica la sessione quando la schermata è montata e quando ritorna in focus
   useEffect(() => {
     if (isFocused) {
-      // Carica immediatamente i dati
+      // 🔧 FIX CRITICO: Aggiorna sempre quando la schermata torna in focus
+      // Questo cattura i cambiamenti fatti dalle schermate di aggiunta bevande/cibo
+      console.log('🔄 Schermata sessione in focus - aggiornamento dati...');
       handleRefreshData();
       
       // 🔧 TIMER BAC AUTO-UPDATE: Aggiorna ogni 60 secondi per aggiornamento automatico BAC

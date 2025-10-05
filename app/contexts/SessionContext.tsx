@@ -508,6 +508,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
         
+        // 🔧 NOTA: L'aggiornamento della UI avverrà quando la schermata tornerà in focus
+        
         console.log('✅ BAC aggiornato con successo dopo aggiunta bevanda');
       } catch (error) {
         console.error('❌ Errore aggiornamento BAC dopo aggiunta bevanda:', error);
@@ -540,6 +542,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
+        
+        // 🔧 NOTA: L'aggiornamento della UI avverrà quando la schermata tornerà in focus
         
         console.log('✅ BAC aggiornato con successo dopo rimozione bevanda');
       } catch (error) {
@@ -582,6 +586,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
         
+        // 🔧 NOTA: L'aggiornamento della UI avverrà quando la schermata tornerà in focus
+        
         console.log('✅ BAC aggiornato con successo dopo aggiunta cibo');
       } catch (error) {
         console.error('❌ Errore aggiornamento BAC dopo aggiunta cibo:', error);
@@ -614,6 +620,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         // Poi aggiorna anche i dati BAC del contesto
         await refreshBacData();
+        
+        // 🔧 NOTA: L'aggiornamento della UI avverrà quando la schermata tornerà in focus
         
         console.log('✅ BAC aggiornato con successo dopo rimozione cibo');
       } catch (error) {
