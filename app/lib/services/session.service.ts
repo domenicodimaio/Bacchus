@@ -1005,6 +1005,14 @@ export async function updateSessionBAC(): Promise<Session | null> {
       const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
       activeSession.sessionDuration = `${hours}h ${minutes}m`;
       
+      // 🔧 GENERA DATI GRAFICO BAC
+      try {
+        generateBacSeriesForChart(activeSession, drinks, now, r, weightKg, metabolismRate);
+        console.log('✅ Dati grafico BAC generati correttamente');
+      } catch (chartError) {
+        console.error('❌ Errore generazione dati grafico:', chartError);
+      }
+      
     } catch (bacError) {
       console.error('updateSessionBAC: Errore nel calcolo BAC:', bacError);
       
@@ -1086,12 +1094,11 @@ function generateBacSeriesForChart(session: Session, drinks: Drink[], currentTim
     // Punti iniziali per il grafico
     const bacSeries = [];
     
-    // 1. Punto iniziale 15 minuti prima del primo drink (BAC = 0)
-    const firstDrinkTime = new Date(sortedDrinks[0].time);
-    const startTime = new Date(firstDrinkTime.getTime() - 15 * 60 * 1000);
+    // 1. Punto iniziale all'inizio della sessione (BAC = 0)
+    const sessionStartTime = new Date(session.startTime || session.sessionStartTime);
     
     bacSeries.push({
-      time: startTime.toISOString(),
+      time: sessionStartTime.toISOString(),
       bac: 0,
       isDrinkPoint: false,
       drinksCount: 0
@@ -1156,49 +1163,16 @@ function generateBacSeriesForChart(session: Session, drinks: Drink[], currentTim
       runningBAC = totalBAC;
     }
     
-    // 3. Punto per il momento attuale
-    // Calcola il BAC al momento attuale basato sull'ultima bevanda e il tempo passato
-    let currentBAC = 0;
-    for (const drink of sortedDrinks) {
-      const drinkTime = new Date(drink.time);
-      
-      // Calcola i grammi di alcol
-      let alcoholGrams = typeof drink.alcoholGrams === 'string'
-        ? parseFloat(drink.alcoholGrams)
-        : (drink.alcoholGrams as number || 0);
-      
-      // Ricalcola i grammi se sembrano troppo bassi
-      if (alcoholGrams < 0.1) {
-        const volume = parseFloat(drink.volume);
-        const alcoholPercentage = typeof drink.alcoholPercentage === 'string'
-          ? parseFloat(drink.alcoholPercentage)
-          : (drink.alcoholPercentage as number || 0);
-        
-        alcoholGrams = (volume * alcoholPercentage * 0.789) / 100;
-      }
-      
-      // Calcola il BAC iniziale per questo drink
-      const initialBac = alcoholGrams / (r * weightKg);
-      
-      // Calcola quanto tempo è passato da quando è stato consumato questo drink (in ore)
-      const hoursSinceDrink = (currentTime.getTime() - drinkTime.getTime()) / (1000 * 60 * 60);
-      
-      // Calcola il BAC metabolizzato
-      const metabolizedBac = Math.max(0, metabolismRate * hoursSinceDrink);
-      
-      // BAC rimanente = BAC iniziale - metabolizzato
-      const remainingBac = Math.max(0, initialBac - metabolizedBac);
-      
-      // Aggiungi al BAC totale
-      currentBAC += remainingBac;
-    }
-    
-    // Aggiungi punto per il momento attuale se è diverso dall'ultimo drink
+    // 3. Punto per il momento attuale (solo se significativamente diverso dall'ultimo drink)
     const lastDrinkTime = new Date(sortedDrinks[sortedDrinks.length - 1].time);
-    if (Math.abs(currentTime.getTime() - lastDrinkTime.getTime()) > 60000) { // Se passato più di 1 minuto
+    const timeSinceLastDrink = currentTime.getTime() - lastDrinkTime.getTime();
+    
+    // Aggiungi punto attuale solo se sono passati almeno 5 minuti dall'ultimo drink
+    if (timeSinceLastDrink > 5 * 60 * 1000) {
+      // Usa il BAC della sessione corrente (già calcolato correttamente)
       bacSeries.push({
         time: currentTime.toISOString(),
-        bac: parseFloat(currentBAC.toFixed(4)),
+        bac: parseFloat((session.currentBAC || 0).toFixed(4)),
         isDrinkPoint: false,
         drinksCount: sortedDrinks.length
       });
