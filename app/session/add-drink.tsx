@@ -622,8 +622,15 @@ export default function AddDrinkScreen() {
       setAlcoholPercentage("");
       setConsumptionTime(new Date());
       
-      // Naviga alla dashboard principale
-      router.back();
+      // 🔧 FIX CRITICO: Passa parametro per forzare refresh della schermata sessione
+      // Questo forza l'aggiornamento dell'indicatore BAC
+      const timestamp = Date.now().toString();
+      
+      // Naviga alla schermata sessione con parametro di refresh
+      router.push({
+        pathname: '/(tabs)/session',
+        params: { forceRefresh: timestamp }
+      });
     } catch (error) {
       console.error('Eccezione durante l\'aggiunta della bevanda:', error);
       setError('Si è verificato un errore durante l\'aggiunta della bevanda');

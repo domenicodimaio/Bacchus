@@ -272,7 +272,23 @@ function SessionScreen() {
 
   // Modifichiamo la funzione che processa i parametri per evitare duplicazioni
   useEffect(() => {
-    if (!params || !session) return;
+    if (!params) return;
+    
+    // 🔧 FIX CRITICO: Gestione parametro forceRefresh (aggiunta bevande)
+    if (params.forceRefresh) {
+      const paramKey = `forceRefresh_${params.forceRefresh}`;
+      
+      if (!processedParamsRef.current.has(paramKey)) {
+        processedParamsRef.current.add(paramKey);
+        console.log('🔄 Parametro forceRefresh rilevato - aggiornamento forzato...');
+        setTimeout(() => {
+          handleRefreshData(); // IDENTICO al bottone refresh - refresh completo con loading
+        }, 100);
+      }
+      return;
+    }
+    
+    if (!session) return;
     
     // Funzione per generare una chiave univoca per i parametri
     const getParamKey = (prefix, timestamp) => `${prefix}_${timestamp}`;
