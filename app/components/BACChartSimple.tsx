@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { DARK_THEME } from '../constants/theme';
+import { DARK_THEME, LIGHT_THEME } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 import Svg, { Circle } from 'react-native-svg';
 
 const screenWidth = Dimensions.get('window').width;
@@ -24,6 +25,8 @@ export default function BACChartSimple({
   foods = [], 
   legalLimit = 0.5 
 }: BACChartSimpleProps) {
+  // 🎨 Hook per il tema corrente
+  const { currentTheme, isDarkMode } = useTheme();
   // Verifica che ci siano dati
   if (!bacSeries || bacSeries.length === 0) {
     return (
@@ -128,25 +131,31 @@ export default function BACChartSimple({
     ],
   };
 
-  // Configurazione del grafico
+  // 🎨 Configurazione del grafico basata sul tema corrente
   const chartConfig = {
-    backgroundColor: DARK_THEME.COLORS.background,
-    backgroundGradientFrom: DARK_THEME.COLORS.background,
-    backgroundGradientTo: DARK_THEME.COLORS.background,
+    backgroundColor: currentTheme.COLORS.background,
+    backgroundGradientFrom: currentTheme.COLORS.background,
+    backgroundGradientTo: currentTheme.COLORS.background,
     decimalPlaces: 2,
-    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    color: (opacity = 1) => isDarkMode 
+      ? `rgba(0, 247, 255, ${opacity})` // Ciano per tema scuro
+      : `rgba(0, 120, 212, ${opacity})`, // Blu Microsoft per tema chiaro
+    labelColor: (opacity = 1) => isDarkMode
+      ? `rgba(179, 197, 229, ${opacity})` // Azzurrino per tema scuro
+      : `rgba(91, 107, 124, ${opacity})`, // Grigio blu per tema chiaro
     style: {
       borderRadius: 16,
     },
     propsForDots: {
       r: 4,
       strokeWidth: 2,
-      stroke: DARK_THEME.COLORS.background,
-      fill: '#00D9D9',
+      stroke: currentTheme.COLORS.background,
+      fill: isDarkMode ? '#00F7FF' : '#0078D4', // Colori tema-specifici
     },
     propsForBackgroundLines: {
-      stroke: 'rgba(255, 255, 255, 0.2)',
+      stroke: isDarkMode 
+        ? 'rgba(45, 61, 89, 0.8)' // Linee più visibili tema scuro
+        : 'rgba(225, 235, 245, 0.8)', // Linee più visibili tema chiaro
       strokeWidth: 1,
       strokeDasharray: ''
     },
@@ -173,6 +182,86 @@ export default function BACChartSimple({
     const yPosition = 200 - (bac / roundedMaxValue) * chartHeight - 10;
     return yPosition;
   };
+
+  // 🎨 Stili dinamici basati sul tema corrente
+  const styles = StyleSheet.create({
+    container: {
+      backgroundColor: currentTheme.COLORS.background,
+      borderRadius: 16,
+      padding: 16,
+      marginVertical: 8,
+    },
+    legendContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      marginTop: 12,
+      paddingHorizontal: 8
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: 8,
+      marginVertical: 4
+    },
+    legendDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: 6
+    },
+    legendText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: currentTheme.COLORS.text // Usa il colore del testo del tema
+    },
+    noDataContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 30,
+      backgroundColor: currentTheme.COLORS.background,
+      borderRadius: 16,
+    },
+    noDataText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: currentTheme.COLORS.text, // Usa il colore del testo del tema
+      marginBottom: 8
+    },
+    // Stili aggiuntivi per il grafico
+    title: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      textAlign: 'center',
+      color: currentTheme.COLORS.text,
+    },
+    chartContainer: {
+      alignItems: 'center',
+      marginVertical: 8,
+      position: 'relative',
+    },
+    chart: {
+      marginVertical: 8,
+      borderRadius: 16
+    },
+    decorator: {
+      position: 'absolute',
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: currentTheme.COLORS.background,
+      marginLeft: -6,
+      marginTop: -6,
+    },
+    legendColor: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: 6
+    }
+  });
 
   return (
     <View style={styles.container}>
@@ -210,74 +299,4 @@ export default function BACChartSimple({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    backgroundColor: DARK_THEME.COLORS.background,
-    borderWidth: 0,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#FFFFFF',
-  },
-  chartContainer: {
-    alignItems: 'center',
-    marginVertical: 8,
-    position: 'relative',
-  },
-  chart: {
-    marginVertical: 8,
-    borderRadius: 16
-  },
-  decorator: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: DARK_THEME.COLORS.background,
-    marginLeft: -6,
-    marginTop: -6,
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 4,
-    flexWrap: 'wrap'
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 8,
-    marginVertical: 4
-  },
-  legendColor: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6
-  },
-  legendText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#FFFFFF'
-  },
-  noDataContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 30,
-    backgroundColor: DARK_THEME.COLORS.background,
-    borderRadius: 16,
-  },
-  noDataText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8
-  }
-}); 
+// 🎨 Stili rimossi - ora sono dinamici dentro il componente per supportare entrambi i temi 

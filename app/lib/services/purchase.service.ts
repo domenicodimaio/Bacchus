@@ -15,26 +15,35 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// TEMPORANEO: RevenueCat disabilitato per build senza dipendenze
+// 🔧 SISTEMA ACQUISTI MIGLIORATO: RevenueCat abilitato per build di produzione
 try {
   // Importa dinamicamente solo se non siamo in Expo Go
   if (!isExpoGo) {
-    // const RevenueCat = require('react-native-purchases');
-    // Purchases = RevenueCat.default;
-    // LOG_LEVEL = RevenueCat.LOG_LEVEL;
-    // isRevenueCatAvailable = true;
-    console.log('RevenueCat temporaneamente disabilitato');
+    console.log('🛒 PURCHASES: Tentativo di importazione RevenueCat...');
+    const RevenueCat = require('react-native-purchases');
+    Purchases = RevenueCat.default;
+    LOG_LEVEL = RevenueCat.LOG_LEVEL;
+    isRevenueCatAvailable = true;
+    console.log('✅ PURCHASES: RevenueCat importato con successo');
+  } else {
+    console.log('🛒 PURCHASES: Expo Go rilevato - usando modalità mock');
     isRevenueCatAvailable = false;
   }
 } catch (error) {
-  console.log('RevenueCat non disponibile, usando modalità mock', error);
+  console.log('⚠️ PURCHASES: RevenueCat non disponibile, usando modalità mock:', error);
   isRevenueCatAvailable = false;
 }
 
-// Chiavi API RevenueCat per iOS e Android
+// 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {
-  ios: 'dummy_key', // Using a dummy key in development to avoid API errors
-  android: 'dummy_key', // Using a dummy key in development to avoid API errors
+  // 🍎 iOS: Inserisci la tua chiave RevenueCat per iOS qui
+  ios: __DEV__ ? 'dummy_key' : 'appl_YOUR_REVENUECAT_IOS_KEY_HERE',
+  
+  // 🤖 Android: Inserisci la tua chiave RevenueCat per Android qui  
+  android: __DEV__ ? 'dummy_key' : 'goog_YOUR_REVENUECAT_ANDROID_KEY_HERE',
+  
+  // 🛠️ NOTA: Sostituisci 'YOUR_REVENUECAT_IOS_KEY_HERE' e 'YOUR_REVENUECAT_ANDROID_KEY_HERE'
+  // con le tue chiavi reali da RevenueCat Dashboard
 };
 
 // Chiavi AsyncStorage per gli acquisti
@@ -66,10 +75,20 @@ export const initPurchases = async () => {
       return true;
     }
     
-    // Initializing RevenueCat
+    // 🛒 INIZIALIZZAZIONE REVENUECAT MIGLIORATA
     const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
     
+    // Verifica se abbiamo chiavi API valide
+    if (apiKey === 'dummy_key' || apiKey.includes('YOUR_REVENUECAT')) {
+      console.log('🛒 PURCHASES: Chiavi API non configurate - usando modalità mock');
+      isRevenueCatAvailable = false;
+      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
+      return true;
+    }
+    
     try {
+      console.log('🛒 PURCHASES: Inizializzazione RevenueCat con chiave:', apiKey.substring(0, 10) + '...');
+      
       // Configura RevenueCat in modalità debug in ambiente di sviluppo
       if (__DEV__) {
         Purchases.setLogLevel(LOG_LEVEL.DEBUG);
@@ -81,12 +100,22 @@ export const initPurchases = async () => {
         appUserID: null, // L'ID utente sarà impostato dopo la login
       });
       
-      console.log('RevenueCat initialized successfully');
+      console.log('✅ PURCHASES: RevenueCat inizializzato con successo');
+      
+      // Verifica che RevenueCat sia effettivamente funzionante
+      try {
+        const offerings = await Purchases.getOfferings();
+        console.log('✅ PURCHASES: Offerings caricate:', Object.keys(offerings.all).length);
+      } catch (offeringsError) {
+        console.warn('⚠️ PURCHASES: Impossibile caricare offerings:', offeringsError);
+        // Non bloccare l'app, ma nota il problema
+      }
+      
     } catch (revenueCatError) {
-      console.warn('Failed to initialize RevenueCat:', revenueCatError);
+      console.warn('❌ PURCHASES: Fallimento inizializzazione RevenueCat:', revenueCatError);
       // Se RevenueCat fallisce, passiamo alla modalità mock
       isRevenueCatAvailable = false;
-      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
     }
     
     // Verifica e reset il contatore sessioni settimanali

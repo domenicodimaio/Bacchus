@@ -1211,19 +1211,18 @@ function SessionScreen() {
     const weight = profile.weightKg || 70; // Peso in kg, default 70 se mancante
     const metabolismRate = 0.015; // Tasso di metabolismo in g/L per ora (valore medio standard)
     
-    // Punto di partenza: 15 minuti prima del primo evento, con BAC = 0
-    const firstEventTime = consumptionEvents[0].time;
-    const startTime = new Date(firstEventTime.getTime() - 15 * 60 * 1000);
+    // 🔧 FIX: Punto di partenza all'inizio della sessione, NON prima del primo evento
+    const sessionStartTime = new Date(session.startTime || session.sessionStartTime);
     
-    // Aggiungi il primo punto con BAC = 0
+    // Aggiungi il primo punto con BAC = 0 all'inizio della sessione
     bacSeries.push({
-      time: startTime.toISOString(),
+      time: sessionStartTime.toISOString(),
       bac: 0
     });
     
     // Calcola il BAC per ogni evento e crea i punti del grafico
     let currentBac = 0;
-    let previousEventTime = startTime;
+    let previousEventTime = sessionStartTime;
     
     consumptionEvents.forEach(event => {
       // Calcola il metabolismo dall'evento precedente
@@ -1258,34 +1257,50 @@ function SessionScreen() {
       previousEventTime = event.time;
     });
     
-    // Aggiungi un punto per il momento attuale
+    // 🔧 FIX: Aggiungi punto attuale solo se significativamente diverso dall'ultimo evento
     const now = new Date();
     
     // Se c'è almeno un evento passato
     if (consumptionEvents.length > 0) {
-      // Calcola il metabolismo dal momento dell'ultimo evento ad ora
-      const hoursSinceLastEvent = Math.max(0, (now.getTime() - previousEventTime.getTime()) / (1000 * 60 * 60));
-      const metabolizedAmount = metabolismRate * hoursSinceLastEvent;
+      const lastEventTime = consumptionEvents[consumptionEvents.length - 1].time;
+      const timeSinceLastEvent = now.getTime() - lastEventTime.getTime();
       
-      // Aggiorna il BAC con il metabolismo
-      const calculatedBac = Math.max(0, currentBac - metabolizedAmount);
-      
-      // Se il valore della sessione è disponibile e recente, usalo per maggiore precisione
-      if (session.currentBAC !== undefined) {
-        currentBac = session.currentBAC;
+      // Aggiungi punto attuale solo se sono passati almeno 5 minuti dall'ultimo evento
+      if (timeSinceLastEvent > 5 * 60 * 1000) {
+        // Calcola il metabolismo dal momento dell'ultimo evento ad ora
+        const hoursSinceLastEvent = Math.max(0, timeSinceLastEvent / (1000 * 60 * 60));
+        const metabolizedAmount = metabolismRate * hoursSinceLastEvent;
+        
+        // Aggiorna il BAC con il metabolismo
+        const calculatedBac = Math.max(0, currentBac - metabolizedAmount);
+        
+        // Usa il valore della sessione se disponibile (più preciso)
+        const finalBac = session.currentBAC !== undefined ? session.currentBAC : calculatedBac;
+        
+        // Aggiungi il punto per il momento attuale
+        bacSeries.push({
+          time: now.toISOString(),
+          bac: parseFloat(finalBac.toFixed(3))
+        });
+        
+        currentBac = finalBac;
       } else {
-        currentBac = parseFloat(calculatedBac.toFixed(3));
+        // Se non aggiungiamo punto attuale, usa comunque il BAC della sessione
+        currentBac = session.currentBAC !== undefined ? session.currentBAC : currentBac;
       }
-      
-      // Aggiungi il punto per il momento attuale
-      bacSeries.push({
-        time: now.toISOString(),
-        bac: currentBac
-      });
     }
     
-    // Se il BAC attuale è > 0, aggiungi un punto di sobrietà futuro
-    if (currentBac > 0) {
+    // 🔧 FIX: Usa i dati di sobrietà della sessione per maggiore precisione
+    if (currentBac > 0 && session.timeToSober && session.timeToSober > 0) {
+      // Usa il tempo di sobrietà calcolato dalla sessione (più preciso)
+      const soberTime = new Date(now.getTime() + (session.timeToSober * 60 * 1000));
+      
+      bacSeries.push({
+        time: soberTime.toISOString(),
+        bac: 0
+      });
+    } else if (currentBac > 0) {
+      // Fallback al calcolo locale se i dati della sessione non sono disponibili
       const hoursToZero = currentBac / metabolismRate;
       const soberTime = new Date(now.getTime() + (hoursToZero * 60 * 60 * 1000));
       

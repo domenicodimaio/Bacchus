@@ -168,8 +168,73 @@ export default function SettingsScreen() {
   const [language, setLanguage] = useState('it');
 
   const [isPremium, setIsPremium] = useState(false);
-  const [showDeveloperOptions, setShowDeveloperOptions] = useState(true); // 🔧 SEMPRE VISIBILE PER DEBUG
+  const [showDeveloperOptions, setShowDeveloperOptions] = useState(false); // 🔧 NASCOSTO di default per release
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 🛠️ SISTEMA ACCESSO SEGRETO DEVELOPER TOOLS
+  const [secretTapCount, setSecretTapCount] = useState(0);
+  const [secretTapTimer, setSecretTapTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  // 🔐 FUNZIONE ACCESSO SEGRETO DEVELOPER TOOLS
+  const handleSecretAccess = async () => {
+    // Reset timer precedente
+    if (secretTapTimer) {
+      clearTimeout(secretTapTimer);
+    }
+    
+    const newCount = secretTapCount + 1;
+    setSecretTapCount(newCount);
+    
+    // Sequenza segreta: 7 tap rapidi sulla versione
+    if (newCount === 7) {
+      // Verifica se siamo in modalità sviluppo o build di test
+      const isDev = __DEV__ || Constants.appOwnership === 'expo';
+      
+      if (isDev) {
+        // Accesso immediato in sviluppo
+        setShowDeveloperOptions(true);
+        await AsyncStorage.setItem('BACCHUS_DEV_TOOLS_ENABLED', 'true');
+        
+        Alert.alert(
+          '🛠️ Developer Tools',
+          'Developer tools attivati!\n\nQuesti strumenti sono disponibili solo in modalità sviluppo.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        // In produzione, richiedi conferma aggiuntiva
+        Alert.alert(
+          '🔐 Accesso Developer',
+          'Vuoi attivare gli strumenti per sviluppatori?\n\n⚠️ Questi strumenti sono destinati solo agli sviluppatori e possono influire sul funzionamento dell\'app.',
+          [
+            { text: 'Annulla', style: 'cancel' },
+            { 
+              text: 'Attiva', 
+              style: 'destructive',
+              onPress: async () => {
+                setShowDeveloperOptions(true);
+                await AsyncStorage.setItem('BACCHUS_DEV_TOOLS_ENABLED', 'true');
+                
+                Alert.alert(
+                  '🛠️ Developer Tools Attivati',
+                  'Gli strumenti per sviluppatori sono ora disponibili nelle impostazioni.\n\nPer disattivarli, riavvia l\'app.',
+                  [{ text: 'OK', style: 'default' }]
+                );
+              }
+            }
+          ]
+        );
+      }
+      
+      // Reset contatore
+      setSecretTapCount(0);
+    } else {
+      // Imposta timer per reset automatico dopo 2 secondi
+      const timer = setTimeout(() => {
+        setSecretTapCount(0);
+      }, 2000);
+      setSecretTapTimer(timer);
+    }
+  };
   
   // Animated styles
   const contentAnimatedStyle = useAnimatedStyle(() => {
@@ -221,15 +286,24 @@ export default function SettingsScreen() {
         setIsPremium(false);
       }
       
-      // Check for developer mode con try/catch
+      // 🛠️ Check for developer tools status
       try {
+        const devToolsEnabled = await AsyncStorage.getItem('BACCHUS_DEV_TOOLS_ENABLED');
         const devModeCount = await AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT);
         const count = devModeCount ? parseInt(devModeCount, 10) : 0;
-        // 🔧 SEMPRE MOSTRA DEVELOPER OPTIONS PER DEBUG
-        setShowDeveloperOptions(__DEV__ || count >= 7);
+        
+        // Mostra developer tools se:
+        // 1. Esplicitamente abilitati tramite accesso segreto
+        // 2. In modalità sviluppo (__DEV__)
+        // 3. Vecchio sistema (count >= 7) per retrocompatibilità
+        setShowDeveloperOptions(
+          devToolsEnabled === 'true' || 
+          __DEV__ || 
+          count >= 7
+        );
       } catch (error) {
-        console.error('Errore nel caricamento del contatore DevMode:', error);
-        // 🔧 MOSTRA COMUNQUE IN DEV MODE
+        console.error('Errore nel caricamento del stato developer tools:', error);
+        // Fallback: mostra solo in dev mode
         setShowDeveloperOptions(__DEV__);
       }
       
@@ -685,25 +759,45 @@ export default function SettingsScreen() {
                 icon={<Ionicons name="information-circle-outline" size={20} color={colors.primary} />}
                 title={t('version', { ns: 'common', defaultValue: 'Version' })}
                 subtitle={`${appVersion} (${appBuild})`}
-                onPress={() => {
-                  // Incrementa il contatore per modalità sviluppatore
-                  AsyncStorage.getItem(STORAGE_KEY.DEV_MODE_COUNT).then(count => {
-                    const newCount = parseInt(count || '0', 10) + 1;
-                    AsyncStorage.setItem(STORAGE_KEY.DEV_MODE_COUNT, newCount.toString()).then(() => {
-                      if (newCount === 7) {
-                        setShowDeveloperOptions(true);
-                        Alert.alert('Developer Mode', 'Developer options enabled!');
-                      }
-                    });
-                  });
-                }}
+                onPress={handleSecretAccess}
                 lastItem={true}
               />
             </SettingsSection>
             
             {/* Developer Options */}
             {showDeveloperOptions && (
-              <SettingsSection title="Developer Options">
+              <SettingsSection title="🛠️ Developer Tools">
+                
+                {/* 🔧 DISABILITA DEVELOPER TOOLS */}
+                <SettingsItem
+                  icon={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />}
+                  title="Disabilita Developer Tools"
+                  subtitle="Nasconde questi strumenti (richiede riavvio app)"
+                  onPress={() => {
+                    Alert.alert(
+                      '🛠️ Disabilita Developer Tools',
+                      'Vuoi nascondere gli strumenti per sviluppatori?\n\nDovrai riattivare l\'accesso segreto (7 tap sulla versione) per rivederli.',
+                      [
+                        { text: 'Annulla', style: 'cancel' },
+                        { 
+                          text: 'Disabilita', 
+                          style: 'destructive',
+                          onPress: async () => {
+                            await AsyncStorage.removeItem('BACCHUS_DEV_TOOLS_ENABLED');
+                            await AsyncStorage.removeItem(STORAGE_KEY.DEV_MODE_COUNT);
+                            setShowDeveloperOptions(false);
+                            
+                            Alert.alert(
+                              '✅ Developer Tools Disabilitati',
+                              'Gli strumenti per sviluppatori sono stati nascosti.\n\nPer riattivarli, tocca 7 volte rapidamente sulla versione dell\'app.',
+                              [{ text: 'OK', style: 'default' }]
+                            );
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                />
                 
                 {/* 🔧 TOGGLE PREMIUM FUNZIONANTE */}
                 <SettingsItem

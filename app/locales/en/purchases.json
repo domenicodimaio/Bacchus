@@ -91,8 +91,8 @@
   "detailedStatsDesc": "Get advanced and detailed statistics about your consumption",
   "personalizedMetabolismDesc": "Personalized alcohol metabolism calculation",
   "subscription": {
-    "terms": "Iscrivendoti accetti i nostri Termini di servizio e la Privacy Policy"
+    "terms": "By subscribing you accept our Terms of Service and Privacy Policy"
   },
-  "viewPlans": "Vedi piani",
-  "upgradeMessage": "Per accedere a questa funzionalità è necessario un abbonamento premium."
+  "viewPlans": "View Plans",
+  "upgradeMessage": "A premium subscription is required to access this feature."
 }

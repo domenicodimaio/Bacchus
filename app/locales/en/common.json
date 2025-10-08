@@ -135,13 +135,13 @@
     "history": "History",
     "profiles": "Profiles"
   },
-  "selectLanguage": "Seleziona lingua",
-  "version": "Versione",
-  "preferences": "Preferenze",
-  "mode": "Modalità",
-  "size": "Dimensione",
-  "switchToTabs": "Passa alla navigazione a schede",
-  "close": "Chiudi",
-  "info": "Informazioni",
+  "selectLanguage": "Select Language",
+  "version": "Version",
+  "preferences": "Preferences",
+  "mode": "Mode",
+  "size": "Size",
+  "switchToTabs": "Switch to Tab Navigation",
+  "close": "Close",
+  "info": "Information",
   "email": "Email"
 }

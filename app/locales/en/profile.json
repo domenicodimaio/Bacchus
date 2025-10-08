@@ -125,11 +125,11 @@
   "next": "Avanti",
   "back": "Indietro",
   "getStarted": "Inizia",
-  "addProfile": "Aggiungi profilo",
+  "addProfile": "Add Profile",
   "selectDefault": "Imposta come predefinito",
   "deleteSelectedProfiles": "Elimina Profilo Selezionato",
   "deleteSelectedProfilesConfirmation": "Sei sicuro di voler eliminare il profilo selezionato?",
-  "selectProfiles": "Seleziona Profilo",
+  "selectProfiles": "Select Profile",
   "welcome": "Benvenuto",
   "profileEmoji": "Avatar del profilo",
   "emojiStepTitle": "Scegli un emoji per il tuo profilo",
@@ -158,7 +158,7 @@
   "wizardMandatoryExplanation": "Devi completare la configurazione del profilo per continuare.",
   "exitWizard": "Uscire dal Wizard?",
   "exitWizardConfirmation": "Sei sicuro di voler uscire? I tuoi progressi andranno persi.",
-  "removeEmoji": "Rimuovi Emoji",
+  "removeEmoji": "Remove Emoji",
   "namePlaceholder": "Es. Mario",
   "cancel": "Annulla"
 }
