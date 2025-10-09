@@ -15,16 +15,16 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 SISTEMA ACQUISTI MIGLIORATO: RevenueCat abilitato per build di produzione
+// 🔧 SISTEMA ACQUISTI: RevenueCat con versione stabile (7.28.1)
 try {
   // Importa dinamicamente solo se non siamo in Expo Go
   if (!isExpoGo) {
-    console.log('🛒 PURCHASES: Tentativo di importazione RevenueCat...');
+    console.log('🛒 PURCHASES: Tentativo di importazione RevenueCat v7.28.1 (versione stabile)...');
     const RevenueCat = require('react-native-purchases');
     Purchases = RevenueCat.default;
     LOG_LEVEL = RevenueCat.LOG_LEVEL;
     isRevenueCatAvailable = true;
-    console.log('✅ PURCHASES: RevenueCat importato con successo');
+    console.log('✅ PURCHASES: RevenueCat v7.28.1 importato con successo');
   } else {
     console.log('🛒 PURCHASES: Expo Go rilevato - usando modalità mock');
     isRevenueCatAvailable = false;
@@ -36,14 +36,15 @@ try {
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {
-  // 🍎 iOS: Inserisci la tua chiave RevenueCat per iOS qui
-  ios: __DEV__ ? 'dummy_key' : 'appl_YOUR_REVENUECAT_IOS_KEY_HERE',
+  // 🍎 iOS: Chiave RevenueCat per iOS
+  ios: __DEV__ 
+    ? 'dummy_key' 
+    : process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || 'appl_YOUR_REVENUECAT_IOS_KEY_HERE',
   
-  // 🤖 Android: Inserisci la tua chiave RevenueCat per Android qui  
-  android: __DEV__ ? 'dummy_key' : 'goog_YOUR_REVENUECAT_ANDROID_KEY_HERE',
-  
-  // 🛠️ NOTA: Sostituisci 'YOUR_REVENUECAT_IOS_KEY_HERE' e 'YOUR_REVENUECAT_ANDROID_KEY_HERE'
-  // con le tue chiavi reali da RevenueCat Dashboard
+  // 🤖 Android: Chiave RevenueCat per Android
+  android: __DEV__ 
+    ? 'dummy_key' 
+    : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || 'goog_YOUR_REVENUECAT_ANDROID_KEY_HERE',
 };
 
 // Chiavi AsyncStorage per gli acquisti
