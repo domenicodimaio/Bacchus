@@ -15,24 +15,10 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 SISTEMA ACQUISTI: RevenueCat con versione stabile (7.28.1)
-try {
-  // Importa dinamicamente solo se non siamo in Expo Go
-  if (!isExpoGo) {
-    console.log('🛒 PURCHASES: Tentativo di importazione RevenueCat v7.28.1 (versione stabile)...');
-    const RevenueCat = require('react-native-purchases');
-    Purchases = RevenueCat.default;
-    LOG_LEVEL = RevenueCat.LOG_LEVEL;
-    isRevenueCatAvailable = true;
-    console.log('✅ PURCHASES: RevenueCat v7.28.1 importato con successo');
-  } else {
-    console.log('🛒 PURCHASES: Expo Go rilevato - usando modalità mock');
-    isRevenueCatAvailable = false;
-  }
-} catch (error) {
-  console.log('⚠️ PURCHASES: RevenueCat non disponibile, usando modalità mock:', error);
-  isRevenueCatAvailable = false;
-}
+// 🔧 SISTEMA ACQUISTI: Solo modalità mock per release stabile
+console.log('🛒 PURCHASES: Modalità mock attiva - acquisti disabilitati per release stabile');
+console.log('💡 PURCHASES: Gli acquisti in-app saranno aggiunti in un update successivo');
+isRevenueCatAvailable = false;
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {

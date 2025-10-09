@@ -81,6 +81,11 @@ export default {
         {
           ios: {
             useFrameworks: 'static',
+            deploymentTarget: '15.1',
+            // 🔧 FIX: Risolve conflitto SubscriptionPeriod con StoreKit 2
+            infoPlist: {
+              RCTEnableStoreKit2: false,
+            },
           },
         },
       ],
