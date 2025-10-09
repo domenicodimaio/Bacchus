@@ -76,33 +76,6 @@ export default {
     plugins: [
       'expo-router',
       'expo-localization',
-      [
-        'expo-build-properties',
-        {
-          ios: {
-            useFrameworks: 'static',
-            deploymentTarget: '13.0',
-            // 🔧 FIX DEFINITIVO: Configurazione minima per evitare conflitti
-            infoPlist: {
-              // Disabilita tutte le funzionalità che potrebbero causare conflitti
-              RCTEnableStoreKit2: false,
-              NSSupportsLiveActivities: false,
-              NSSupportsLiveActivitiesFrequentUpdates: false,
-            },
-            // 🔧 FIX: Configurazione Xcode sicura
-            xcodeProps: {
-              SWIFT_VERSION: '5.0',
-              IPHONEOS_DEPLOYMENT_TARGET: '13.0',
-              SWIFT_TREAT_WARNINGS_AS_ERRORS: 'NO',
-              GCC_TREAT_WARNINGS_AS_ERRORS: 'NO',
-              CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER: 'NO',
-              // Disabilita ottimizzazioni che potrebbero causare problemi
-              SWIFT_OPTIMIZATION_LEVEL: '-Onone',
-              GCC_OPTIMIZATION_LEVEL: '0',
-            },
-          },
-        },
-      ],
     ],
     scheme: 'bacchus',
     experiments: {

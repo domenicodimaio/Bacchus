@@ -15,10 +15,24 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 SISTEMA ACQUISTI: Solo modalità mock per release stabile
-console.log('🛒 PURCHASES: Modalità mock attiva - acquisti disabilitati per release stabile');
-console.log('💡 PURCHASES: Gli acquisti in-app saranno aggiunti in un update successivo');
-isRevenueCatAvailable = false;
+// 🔧 SISTEMA ACQUISTI: StoreKit nativo Expo (ZERO conflitti!)
+let ExpoStoreKit: any = null;
+let isStoreKitAvailable = false;
+
+try {
+  if (!isExpoGo) {
+    console.log('🛒 PURCHASES: Caricamento Expo StoreKit nativo...');
+    ExpoStoreKit = require('expo-store-kit');
+    isStoreKitAvailable = true;
+    console.log('✅ PURCHASES: Expo StoreKit caricato con successo!');
+  } else {
+    console.log('🛒 PURCHASES: Expo Go rilevato - modalità mock');
+    isStoreKitAvailable = false;
+  }
+} catch (error) {
+  console.log('⚠️ PURCHASES: StoreKit non disponibile, modalità mock:', error);
+  isStoreKitAvailable = false;
+}
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {
@@ -46,21 +60,51 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
-    // In development mode or Expo Go, always use mock implementation
-    if (__DEV__ || isExpoGo || !isRevenueCatAvailable) {
-      console.log('Inizializzazione servizio acquisti in modalità mock (Dev/Expo Go/RevenueCat non disponibile)');
+    // 🔧 NUOVO SISTEMA: StoreKit nativo Expo
+    if (isStoreKitAvailable && !isExpoGo) {
+      console.log('🛒 INIT: Inizializzazione StoreKit nativo...');
       
-      // 🔧 FIX: Non impostare automaticamente premium in dev per testare counter sessioni gratuite
-      // Solo se non è già stato impostato manualmente
-      const existingMockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
-      if (!existingMockPremium) {
-        console.log('🔧 DEV MODE: Impostando modalità gratuita per testare counter sessioni');
-        await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
-      } else {
-        console.log(`🔧 DEV MODE: Mantenendo stato premium esistente: ${existingMockPremium}`);
+      try {
+        // Configura i prodotti StoreKit
+        await ExpoStoreKit.connectAsync();
+        console.log('✅ INIT: StoreKit connesso con successo!');
+        
+        // Carica i prodotti configurati
+        const productIds = [
+          PRODUCT_IDS.PREMIUM_MONTHLY,
+          PRODUCT_IDS.PREMIUM_YEARLY
+        ];
+        
+        const products = await ExpoStoreKit.getProductsAsync(productIds);
+        console.log('✅ INIT: Prodotti StoreKit caricati:', products.length);
+        
+        return true;
+      } catch (storeKitError) {
+        console.error('❌ INIT: Errore StoreKit, fallback a mock:', storeKitError);
+        return await initMockMode();
       }
-      return true;
     }
+    
+    // Fallback a modalità mock
+    return await initMockMode();
+  } catch (error) {
+    console.error('❌ INIT: Errore generale inizializzazione acquisti:', error);
+    return await initMockMode();
+  }
+};
+
+// Funzione helper per modalità mock
+const initMockMode = async () => {
+  console.log('🔧 INIT: Modalità mock attiva');
+  
+  const existingMockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
+  if (!existingMockPremium) {
+    console.log('🔧 MOCK: Impostando modalità gratuita per testare counter sessioni');
+    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
+  } else {
+    console.log(`🔧 MOCK: Mantenendo stato premium esistente: ${existingMockPremium}`);
+  }
+  return true;
     
     // 🛒 INIZIALIZZAZIONE REVENUECAT MIGLIORATA
     const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
@@ -109,13 +153,6 @@ export const initPurchases = async () => {
     await checkAndResetWeeklySessionCount();
     
     return true;
-  } catch (error) {
-    console.error('Failed to initialize purchases:', error);
-    // Passa alla modalità mock in caso di errore
-    isRevenueCatAvailable = false;
-    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
-    return true; // Return true anche in caso di errore per non bloccare l'app
-  }
 };
 
 /**
@@ -293,33 +330,58 @@ export const getProducts = async () => {
  */
 export const purchasePackage = async (pkg: any) => {
   try {
-    if (isExpoGo) {
-      // In Expo Go, simula un acquisto riuscito
-      console.log('Mock purchase in Expo Go:', pkg.identifier);
-      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
-      return { 
-        success: true, 
-        customerInfo: { 
-          entitlements: { 
-            active: { 
-              premium: pkg.identifier.includes('premium'),
-              ad_free: true 
+    // 🔧 STOREKIT NATIVO: Acquisto reale
+    if (isStoreKitAvailable && !isExpoGo) {
+      console.log('🛒 PURCHASE: Acquisto StoreKit per:', pkg.identifier || pkg.productId);
+      
+      try {
+        const productId = pkg.identifier || pkg.productId;
+        const result = await ExpoStoreKit.purchaseItemAsync(productId);
+        
+        if (result.responseCode === ExpoStoreKit.IAPResponseCode.OK) {
+          console.log('✅ PURCHASE: Acquisto StoreKit completato!');
+          
+          // Salva lo stato premium
+          await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+          
+          return { 
+            success: true, 
+            customerInfo: { 
+              entitlements: { 
+                active: { 
+                  premium: true,
+                  ad_free: true 
+                } 
+              } 
             } 
+          };
+        } else {
+          console.log('❌ PURCHASE: Acquisto StoreKit fallito:', result.responseCode);
+          return { success: false, error: 'Purchase failed' };
+        }
+      } catch (storeKitError) {
+        console.error('❌ PURCHASE: Errore StoreKit:', storeKitError);
+        return { success: false, error: storeKitError };
+      }
+    }
+    
+    // Modalità mock per Expo Go o fallback
+    console.log('🔧 PURCHASE: Mock purchase per:', pkg.identifier || pkg.productId);
+    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+    return { 
+      success: true, 
+      customerInfo: { 
+        entitlements: { 
+          active: { 
+            premium: true,
+            ad_free: true 
           } 
         } 
-      };
-    }
-    
-    if (Purchases) {
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOMER_INFO, JSON.stringify(customerInfo));
-      return { success: true, customerInfo };
-    }
-    
-    return { success: false, error: 'Purchases SDK not available' };
+      } 
+    };
   } catch (error: any) {
     if (error && !error.userCancelled) {
-      console.error('Purchase failed:', error);
+      console.error('❌ PURCHASE: Errore generale:', error);
     }
     return { success: false, error };
   }

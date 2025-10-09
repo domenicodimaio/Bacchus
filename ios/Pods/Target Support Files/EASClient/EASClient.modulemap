@@ -1,6 +1,0 @@
-framework module EASClient {
-  umbrella header "EASClient-umbrella.h"
-
-  export *
-  module * { export * }
-}
