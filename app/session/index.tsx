@@ -42,8 +42,9 @@ import * as sessionService from '../lib/services/session.service';
 import * as sessionServiceDirect from '../lib/services/session.service'; // 🔧 Per loadSessionHistoryFromStorage
 import { DrinkRecord, FoodRecord } from '../lib/bac/visualization';
 import { Session } from '../types/session';
-import { liveActivityService } from '../lib/services/liveActivity.service';
-import { widgetService } from '../lib/services/widget.service';
+// 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+// import { liveActivityService } from '../lib/services/liveActivity.service';
+// import { widgetService } from '../lib/services/widget.service';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BACChartSimple from '../components/BACChartSimple';
 import { Svg, Circle, Path, Defs, LinearGradient, Stop, Line, Text as SvgText, G, Filter } from 'react-native-svg';
@@ -534,18 +535,11 @@ function SessionScreen() {
             
         // Aggiorna Widget iOS e Live Activity usando le nuove funzioni helper
         try {
-          // Aggiorna Widget con i dati calcolati
-          const widgetData = widgetService.calculateWidgetData(safeSession);
-          await widgetService.updateWidget(widgetData);
+          // 🔧 WIDGET DISABILITATO per build stabile
+          console.log('📱 Widget disabilitato per release stabile');
 
-          // Aggiorna Live Activity se non è già attiva, avviala
-          if (!liveActivityService.hasActiveActivity && safeSession.currentBAC > 0) {
-            const liveActivityData = liveActivityService.calculateLiveActivityData(safeSession);
-            await liveActivityService.startLiveActivity(liveActivityData);
-          } else if (liveActivityService.hasActiveActivity) {
-            const liveActivityData = liveActivityService.calculateLiveActivityData(safeSession);
-            await liveActivityService.updateLiveActivity(liveActivityData);
-          }
+          // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+          console.log('📱 Live Activities disabilitate per release stabile');
         } catch (widgetError) {
           console.log('⚠️ Widget/Live Activity not available:', widgetError);
         }
@@ -556,10 +550,9 @@ function SessionScreen() {
           // Invece di reindirizzare alla dashboard, imposta session a null
           setSession(null);
           
-          // 🔧 LIVE ACTIVITY & WIDGET: Pulisci quando non c'è sessione attiva
+          // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
           try {
-            await liveActivityService.endLiveActivity();
-            await widgetService.clearWidgets();
+            console.log('📱 Live Activities disabilitate per release stabile');
           } catch (cleanupError) {
             console.error('Live Activity/Widget cleanup failed:', cleanupError);
           }

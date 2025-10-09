@@ -14,8 +14,9 @@ import supabase from '../supabase/client';
 import { calculateBAC, calculateTimeToSober, calculateTimeToLegalLimit } from '../../utils/bacCalculator';
 import { DrinkRecord } from '../bac/visualization';
 import { Session, UserProfile, Drink, FoodRecord } from '../../types/session';
-import { liveActivityService } from './liveActivity.service';
-import { widgetService } from './widget.service';
+// 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+// import { liveActivityService } from './liveActivity.service';
+// import { widgetService } from './widget.service';
 
 // ===== STATO SEMPLIFICATO =====
 let _initialized = false;
@@ -820,18 +821,8 @@ export async function endSession(): Promise<boolean> {
       console.log('Sessione attiva rimossa con successo dalla memoria e dallo storage');
     }
     
-    // 🔴 TERMINA LIVE ACTIVITY E PULISCI WIDGET
-    try {
-      // Termina Live Activity se attiva
-      await liveActivityService.endLiveActivity();
-      
-      // Pulisci Widget
-      await widgetService.clearWidgets();
-      
-      console.log('✅ Live Activity e Widget puliti per sessione terminata');
-    } catch (cleanupError) {
-      console.error('❌ Errore pulizia Live Activity/Widget:', cleanupError);
-    }
+    // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+    console.log('📱 Live Activities disabilitate per release stabile');
     
     return true;
   } catch (error) {
@@ -1041,23 +1032,8 @@ export async function updateSessionBAC(): Promise<Session | null> {
       console.error('Errore nel salvataggio sessione:', saveError);
     }
     
-    // 🔴 AGGIORNA LIVE ACTIVITY E WIDGET AUTOMATICAMENTE
-    try {
-      // Aggiorna Live Activity se attiva
-      if (liveActivityService.hasActiveActivity) {
-        const liveActivityData = liveActivityService.calculateLiveActivityData(activeSession);
-        await liveActivityService.updateLiveActivity(liveActivityData);
-        console.log('✅ Live Activity aggiornata automaticamente');
-      }
-      
-      // Aggiorna sempre il Widget
-      const widgetData = widgetService.calculateWidgetData(activeSession);
-      await widgetService.updateWidget(widgetData);
-      console.log('✅ Widget aggiornato automaticamente');
-      
-    } catch (updateError) {
-      console.error('❌ Errore aggiornamento Live Activity/Widget:', updateError);
-    }
+    // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+    console.log('📱 Live Activities disabilitate per release stabile');
     
     return activeSession;
     
@@ -1518,22 +1494,8 @@ export async function createSession(profile: UserProfile): Promise<Session | nul
     }
     
     // 🔴 AVVIA LIVE ACTIVITY E WIDGET per la nuova sessione
-    try {
-      const userName = profileToUse.name || 'User';
-      
-      // Avvia Live Activity per la nuova sessione
-      const liveActivityData = liveActivityService.calculateLiveActivityData(newSession);
-      await liveActivityService.startLiveActivity(liveActivityData);
-      console.log('✅ Live Activity avviata per nuova sessione');
-      
-      // Aggiorna Widget con sessione appena iniziata
-      const widgetData = widgetService.calculateWidgetData(newSession);
-      await widgetService.updateWidget(widgetData);
-      console.log('✅ Widget aggiornato per nuova sessione');
-      
-    } catch (activityError) {
-      console.error('❌ Errore avvio Live Activity/Widget per nuova sessione:', activityError);
-    }
+    // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+    console.log('📱 Live Activities disabilitate per release stabile');
     
     return newSession;
   } catch (error) {
@@ -1813,23 +1775,8 @@ export async function addDrink(drink: Drink): Promise<boolean> {
       }
     }
     
-    // 🔴 AGGIORNA LIVE ACTIVITY E WIDGET dopo aggiunta bevanda
-    try {
-      // Aggiorna Live Activity se attiva
-      if (liveActivityService.hasActiveActivity) {
-        const liveActivityData = liveActivityService.calculateLiveActivityData(activeSession);
-        await liveActivityService.updateLiveActivity(liveActivityData);
-        console.log('✅ Live Activity aggiornata dopo aggiunta bevanda');
-      }
-      
-      // Aggiorna sempre il Widget
-      const widgetData = widgetService.calculateWidgetData(activeSession);
-      await widgetService.updateWidget(widgetData);
-      console.log('✅ Widget aggiornato dopo aggiunta bevanda');
-      
-    } catch (updateError) {
-      console.error('❌ Errore aggiornamento Live Activity/Widget dopo aggiunta bevanda:', updateError);
-    }
+    // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+    console.log('📱 Live Activities disabilitate per release stabile');
     
     console.log('Bevanda aggiunta con successo');
     return true;
@@ -1855,23 +1802,8 @@ export async function addFood(food: FoodRecord): Promise<boolean> {
     // Salva la sessione aggiornata
     await saveSessionLocally(activeSession, 'active');
     
-    // 🔴 AGGIORNA LIVE ACTIVITY E WIDGET dopo aggiunta cibo
-    try {
-      // Aggiorna Live Activity se attiva
-      if (liveActivityService.hasActiveActivity) {
-        const liveActivityData = liveActivityService.calculateLiveActivityData(activeSession);
-        await liveActivityService.updateLiveActivity(liveActivityData);
-        console.log('✅ Live Activity aggiornata dopo aggiunta cibo');
-      }
-      
-      // Aggiorna sempre il Widget
-      const widgetData = widgetService.calculateWidgetData(activeSession);
-      await widgetService.updateWidget(widgetData);
-      console.log('✅ Widget aggiornato dopo aggiunta cibo');
-      
-    } catch (updateError) {
-      console.error('❌ Errore aggiornamento Live Activity/Widget dopo aggiunta cibo:', updateError);
-    }
+    // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+    console.log('📱 Live Activities disabilitate per release stabile');
     
     console.log('Food added to session, absorption factor:', food.absorptionFactor);
     console.log('Updated session BAC:', activeSession.currentBAC);
@@ -1906,23 +1838,8 @@ export async function removeFood(foodId: string): Promise<boolean> {
     // Salva la sessione aggiornata
     await saveSessionLocally(activeSession, 'active');
     
-    // 🔴 AGGIORNA LIVE ACTIVITY E WIDGET dopo rimozione cibo
-    try {
-      // Aggiorna Live Activity se attiva
-      if (liveActivityService.hasActiveActivity) {
-        const liveActivityData = liveActivityService.calculateLiveActivityData(activeSession);
-        await liveActivityService.updateLiveActivity(liveActivityData);
-        console.log('✅ Live Activity aggiornata dopo rimozione cibo');
-      }
-      
-      // Aggiorna sempre il Widget
-      const widgetData = widgetService.calculateWidgetData(activeSession);
-      await widgetService.updateWidget(widgetData);
-      console.log('✅ Widget aggiornato dopo rimozione cibo');
-      
-    } catch (updateError) {
-      console.error('❌ Errore aggiornamento Live Activity/Widget dopo rimozione cibo:', updateError);
-    }
+    // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
+    console.log('📱 Live Activities disabilitate per release stabile');
     
     console.log('Food removed successfully');
     return true;
