@@ -24,16 +24,16 @@ export interface StoreProductIds {
  */
 export const PRODUCT_IDS: Record<ProductType, StoreProductIds> = {
   [ProductType.PREMIUM_SUBSCRIPTION_MONTHLY]: {
-    ios: 'com.bacchus.app.premium.monthly',
-    android: 'com.bacchus.app.premium.monthly',
+    ios: 'com.bacchusapp.app.premium.monthly',
+    android: 'com.bacchusapp.app.premium.monthly',
   },
   [ProductType.PREMIUM_SUBSCRIPTION_YEARLY]: {
-    ios: 'com.bacchus.app.premium.yearly',
-    android: 'com.bacchus.app.premium.yearly',
+    ios: 'com.bacchusapp.app.premium.yearly',
+    android: 'com.bacchusapp.app.premium.yearly',
   },
   [ProductType.REMOVE_ADS]: {
-    ios: 'com.bacchus.app.removeads',
-    android: 'com.bacchus.app.removeads',
+    ios: 'com.bacchusapp.app.removeads',
+    android: 'com.bacchusapp.app.removeads',
   },
 };
 

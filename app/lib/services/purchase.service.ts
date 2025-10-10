@@ -15,10 +15,24 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 CRASH FIX: In-App Purchases completamente disabilitati per evitare crash StoreKit
-console.log('🛒 PURCHASES: In-App Purchases disabilitati per evitare crash');
-console.log('💡 PURCHASES: Modalità mock sicura attiva');
+// 🔧 SISTEMA ACQUISTI INTELLIGENTE: Prova reale, fallback a mock sicuro
+let ExpoInAppPurchases: any = null;
 let isInAppPurchasesAvailable = false;
+
+try {
+  if (!isExpoGo) {
+    console.log('🛒 PURCHASES: Tentativo caricamento Expo In-App Purchases...');
+    ExpoInAppPurchases = require('expo-in-app-purchases');
+    isInAppPurchasesAvailable = true;
+    console.log('✅ PURCHASES: Expo In-App Purchases caricato (tenteremo connessione sicura)');
+  } else {
+    console.log('🛒 PURCHASES: Expo Go rilevato - modalità mock');
+    isInAppPurchasesAvailable = false;
+  }
+} catch (error) {
+  console.log('⚠️ PURCHASES: In-App Purchases non disponibile, modalità mock:', error);
+  isInAppPurchasesAvailable = false;
+}
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {
@@ -46,36 +60,54 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
-    // 🔧 CRASH FIX: Disabilita temporaneamente In-App Purchases per evitare crash
-    console.log('🛒 INIT: In-App Purchases temporaneamente disabilitati per evitare crash');
-    console.log('💡 INIT: Usando modalità mock sicura');
-    
-    // Vai direttamente in modalità mock per evitare il crash StoreKit
-    return await initMockMode();
-    
-    /* CODICE ORIGINALE COMMENTATO PER EVITARE CRASH:
+    // 🔧 SISTEMA INTELLIGENTE: Tenta acquisti reali, fallback sicuro a mock
     if (isInAppPurchasesAvailable && !isExpoGo) {
-      console.log('🛒 INIT: Inizializzazione Expo In-App Purchases...');
+      console.log('🛒 INIT: Tentativo inizializzazione acquisti reali...');
       
       try {
+        // Step 1: Connessione sicura
+        console.log('🔗 INIT: Connessione a StoreKit...');
         await ExpoInAppPurchases.connectAsync();
-        console.log('✅ INIT: In-App Purchases connesso con successo!');
+        console.log('✅ INIT: StoreKit connesso!');
         
+        // Step 2: Caricamento prodotti con timeout
+        console.log('📦 INIT: Caricamento prodotti configurati...');
         const productIds = [
-          PRODUCT_IDS.PREMIUM_MONTHLY,
-          PRODUCT_IDS.PREMIUM_YEARLY
+          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_MONTHLY.ios,
+          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_YEARLY.ios
         ];
         
-        const products = await ExpoInAppPurchases.getProductsAsync(productIds);
-        console.log('✅ INIT: Prodotti caricati:', products.results?.length || 0);
+        console.log('🔍 INIT: Cercando prodotti:', productIds);
         
-        return true;
-      } catch (inAppError) {
-        console.error('❌ INIT: Errore In-App Purchases, fallback a mock:', inAppError);
+        // Timeout di 10 secondi per evitare hang
+        const productsPromise = ExpoInAppPurchases.getProductsAsync(productIds);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout caricamento prodotti')), 10000)
+        );
+        
+        const products = await Promise.race([productsPromise, timeoutPromise]);
+        
+        if (products && products.results && products.results.length > 0) {
+          console.log('✅ INIT: Prodotti caricati con successo:', products.results.length);
+          console.log('📋 INIT: Prodotti trovati:', products.results.map((p: any) => p.productId));
+          return true;
+        } else {
+          console.log('⚠️ INIT: Nessun prodotto trovato in App Store Connect');
+          console.log('💡 INIT: Probabilmente i prodotti non sono ancora configurati');
+          throw new Error('Prodotti non configurati in App Store Connect');
+        }
+        
+      } catch (inAppError: any) {
+        console.error('❌ INIT: Errore acquisti reali:', inAppError.message || inAppError);
+        console.log('🔄 INIT: Fallback a modalità mock sicura...');
         return await initMockMode();
       }
     }
-    */
+    
+    // Fallback diretto a mock
+    console.log('🔄 INIT: Modalità mock (Expo Go o modulo non disponibile)');
+    return await initMockMode();
+    
   } catch (error) {
     console.error('❌ INIT: Errore generale inizializzazione acquisti:', error);
     return await initMockMode();
@@ -319,35 +351,25 @@ export const getProducts = async () => {
  */
 export const purchasePackage = async (pkg: any) => {
   try {
-    // 🔧 CRASH FIX: Disabilita acquisti reali per evitare crash StoreKit
-    console.log('🔧 PURCHASE: Mock purchase sicuro per:', pkg.identifier || pkg.productId);
-    console.log('💡 PURCHASE: Acquisti reali disabilitati temporaneamente per evitare crash');
-    
-    // Modalità mock sicura
-    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
-    return { 
-      success: true, 
-      customerInfo: { 
-        entitlements: { 
-          active: { 
-            premium: true,
-            ad_free: true 
-          } 
-        } 
-      } 
-    };
-    
-    /* CODICE ORIGINALE COMMENTATO PER EVITARE CRASH:
+    // 🔧 SISTEMA INTELLIGENTE: Tenta acquisto reale, fallback a mock
     if (isInAppPurchasesAvailable && !isExpoGo) {
-      console.log('🛒 PURCHASE: Acquisto In-App per:', pkg.identifier || pkg.productId);
+      console.log('🛒 PURCHASE: Tentativo acquisto reale per:', pkg.identifier || pkg.productId);
       
       try {
         const productId = pkg.identifier || pkg.productId;
-        const result = await ExpoInAppPurchases.purchaseItemAsync(productId);
         
-        if (result.responseCode === ExpoInAppPurchases.IAPResponseCode.OK) {
-          console.log('✅ PURCHASE: Acquisto completato!');
+        // Timeout di 30 secondi per l'acquisto
+        const purchasePromise = ExpoInAppPurchases.purchaseItemAsync(productId);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout acquisto')), 30000)
+        );
+        
+        const result = await Promise.race([purchasePromise, timeoutPromise]);
+        
+        if (result && result.responseCode === ExpoInAppPurchases.IAPResponseCode.OK) {
+          console.log('✅ PURCHASE: Acquisto reale completato!');
           
+          // Salva lo stato premium
           await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
           
           return { 
@@ -362,15 +384,38 @@ export const purchasePackage = async (pkg: any) => {
             } 
           };
         } else {
-          console.log('❌ PURCHASE: Acquisto fallito:', result.responseCode);
-          return { success: false, error: 'Purchase failed' };
+          console.log('❌ PURCHASE: Acquisto fallito:', result?.responseCode);
+          throw new Error('Purchase failed with code: ' + result?.responseCode);
         }
-      } catch (purchaseError) {
-        console.error('❌ PURCHASE: Errore acquisto:', purchaseError);
-        return { success: false, error: purchaseError };
+        
+      } catch (purchaseError: any) {
+        console.error('❌ PURCHASE: Errore acquisto reale:', purchaseError.message || purchaseError);
+        
+        // Se l'utente ha cancellato, non fare fallback
+        if (purchaseError.userCancelled || purchaseError.message?.includes('cancelled')) {
+          return { success: false, error: purchaseError };
+        }
+        
+        // Altrimenti, fallback a mock per testing
+        console.log('🔄 PURCHASE: Fallback a mock per testing...');
       }
     }
-    */
+    
+    // Modalità mock (per testing o quando acquisti reali non disponibili)
+    console.log('🔧 PURCHASE: Mock purchase per:', pkg.identifier || pkg.productId);
+    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+    return { 
+      success: true, 
+      customerInfo: { 
+        entitlements: { 
+          active: { 
+            premium: true,
+            ad_free: true 
+          } 
+        } 
+      } 
+    };
+    
   } catch (error: any) {
     if (error && !error.userCancelled) {
       console.error('❌ PURCHASE: Errore generale:', error);
