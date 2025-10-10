@@ -15,24 +15,10 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 SISTEMA ACQUISTI: Expo In-App Purchases (modulo ufficiale)
-let ExpoInAppPurchases: any = null;
+// 🔧 CRASH FIX: In-App Purchases completamente disabilitati per evitare crash StoreKit
+console.log('🛒 PURCHASES: In-App Purchases disabilitati per evitare crash');
+console.log('💡 PURCHASES: Modalità mock sicura attiva');
 let isInAppPurchasesAvailable = false;
-
-try {
-  if (!isExpoGo) {
-    console.log('🛒 PURCHASES: Caricamento Expo In-App Purchases (ufficiale)...');
-    ExpoInAppPurchases = require('expo-in-app-purchases');
-    isInAppPurchasesAvailable = true;
-    console.log('✅ PURCHASES: Expo In-App Purchases caricato con successo!');
-  } else {
-    console.log('🛒 PURCHASES: Expo Go rilevato - modalità mock');
-    isInAppPurchasesAvailable = false;
-  }
-} catch (error) {
-  console.log('⚠️ PURCHASES: In-App Purchases non disponibile, modalità mock:', error);
-  isInAppPurchasesAvailable = false;
-}
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {
@@ -60,16 +46,21 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
-    // 🔧 NUOVO SISTEMA: Expo In-App Purchases ufficiale
+    // 🔧 CRASH FIX: Disabilita temporaneamente In-App Purchases per evitare crash
+    console.log('🛒 INIT: In-App Purchases temporaneamente disabilitati per evitare crash');
+    console.log('💡 INIT: Usando modalità mock sicura');
+    
+    // Vai direttamente in modalità mock per evitare il crash StoreKit
+    return await initMockMode();
+    
+    /* CODICE ORIGINALE COMMENTATO PER EVITARE CRASH:
     if (isInAppPurchasesAvailable && !isExpoGo) {
       console.log('🛒 INIT: Inizializzazione Expo In-App Purchases...');
       
       try {
-        // Connetti al servizio acquisti
         await ExpoInAppPurchases.connectAsync();
         console.log('✅ INIT: In-App Purchases connesso con successo!');
         
-        // Carica i prodotti configurati
         const productIds = [
           PRODUCT_IDS.PREMIUM_MONTHLY,
           PRODUCT_IDS.PREMIUM_YEARLY
@@ -84,9 +75,7 @@ export const initPurchases = async () => {
         return await initMockMode();
       }
     }
-    
-    // Fallback a modalità mock
-    return await initMockMode();
+    */
   } catch (error) {
     console.error('❌ INIT: Errore generale inizializzazione acquisti:', error);
     return await initMockMode();
@@ -330,7 +319,25 @@ export const getProducts = async () => {
  */
 export const purchasePackage = async (pkg: any) => {
   try {
-    // 🔧 EXPO IN-APP PURCHASES: Acquisto reale
+    // 🔧 CRASH FIX: Disabilita acquisti reali per evitare crash StoreKit
+    console.log('🔧 PURCHASE: Mock purchase sicuro per:', pkg.identifier || pkg.productId);
+    console.log('💡 PURCHASE: Acquisti reali disabilitati temporaneamente per evitare crash');
+    
+    // Modalità mock sicura
+    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+    return { 
+      success: true, 
+      customerInfo: { 
+        entitlements: { 
+          active: { 
+            premium: true,
+            ad_free: true 
+          } 
+        } 
+      } 
+    };
+    
+    /* CODICE ORIGINALE COMMENTATO PER EVITARE CRASH:
     if (isInAppPurchasesAvailable && !isExpoGo) {
       console.log('🛒 PURCHASE: Acquisto In-App per:', pkg.identifier || pkg.productId);
       
@@ -341,7 +348,6 @@ export const purchasePackage = async (pkg: any) => {
         if (result.responseCode === ExpoInAppPurchases.IAPResponseCode.OK) {
           console.log('✅ PURCHASE: Acquisto completato!');
           
-          // Salva lo stato premium
           await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
           
           return { 
@@ -364,21 +370,7 @@ export const purchasePackage = async (pkg: any) => {
         return { success: false, error: purchaseError };
       }
     }
-    
-    // Modalità mock per Expo Go o fallback
-    console.log('🔧 PURCHASE: Mock purchase per:', pkg.identifier || pkg.productId);
-    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
-    return { 
-      success: true, 
-      customerInfo: { 
-        entitlements: { 
-          active: { 
-            premium: true,
-            ad_free: true 
-          } 
-        } 
-      } 
-    };
+    */
   } catch (error: any) {
     if (error && !error.userCancelled) {
       console.error('❌ PURCHASE: Errore generale:', error);
