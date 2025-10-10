@@ -75,7 +75,6 @@ export default {
     },
     plugins: [
       'expo-router',
-      'expo-localization',
     ],
     scheme: 'bacchus',
     experiments: {

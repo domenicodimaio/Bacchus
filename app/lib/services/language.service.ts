@@ -5,7 +5,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Localization from 'expo-localization';
+// import * as Localization from 'expo-localization'; // DISABILITATO per build stabile
 import { I18nManager } from 'react-native';
 import i18n from '../../i18n';
 import { LANGUAGE_STORAGE_KEY } from '../../i18n';
@@ -18,7 +18,12 @@ const ITALIAN_COUNTRIES = ['IT', 'CH', 'SM', 'VA'];
  */
 export const getDefaultLanguage = (): string => {
   try {
-    // Ottieni i locales del dispositivo
+    // 🔧 LOCALIZATION DISABILITATA per build stabile
+    // Usa italiano come default per ora
+    console.log('Localization disabilitata - usando italiano come default');
+    return 'it';
+    
+    /* CODICE ORIGINALE COMMENTATO:
     const locales = Localization.getLocales();
     const primaryLocale = locales[0];
     const region = primaryLocale?.regionCode;
@@ -26,16 +31,15 @@ export const getDefaultLanguage = (): string => {
     
     console.log(`Device region: ${region}, language: ${deviceLanguage}`);
     
-    // Se la regione è l'Italia o un altro paese di lingua italiana, usa l'italiano
     if (region && ITALIAN_COUNTRIES.includes(region)) {
       return 'it';
     }
     
-    // Altrimenti usa l'inglese come default
     return 'en';
+    */
   } catch (error) {
     console.error('Error getting device locale:', error);
-    return 'en';
+    return 'it'; // Default a italiano
   }
 };
 

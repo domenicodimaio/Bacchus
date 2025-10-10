@@ -15,24 +15,10 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 SISTEMA ACQUISTI: StoreKit nativo Expo (ZERO conflitti!)
-let ExpoStoreKit: any = null;
+// 🔧 SISTEMA ACQUISTI: Solo modalità mock per build stabile
+console.log('🛒 PURCHASES: Modalità mock attiva - acquisti disabilitati per build stabile');
+console.log('💡 PURCHASES: Gli acquisti in-app saranno aggiunti in un update successivo');
 let isStoreKitAvailable = false;
-
-try {
-  if (!isExpoGo) {
-    console.log('🛒 PURCHASES: Caricamento Expo StoreKit nativo...');
-    ExpoStoreKit = require('expo-store-kit');
-    isStoreKitAvailable = true;
-    console.log('✅ PURCHASES: Expo StoreKit caricato con successo!');
-  } else {
-    console.log('🛒 PURCHASES: Expo Go rilevato - modalità mock');
-    isStoreKitAvailable = false;
-  }
-} catch (error) {
-  console.log('⚠️ PURCHASES: StoreKit non disponibile, modalità mock:', error);
-  isStoreKitAvailable = false;
-}
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {

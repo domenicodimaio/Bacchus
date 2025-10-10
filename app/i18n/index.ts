@@ -6,7 +6,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Localization from 'expo-localization';
+// import * as Localization from 'expo-localization'; // DISABILITATO per build stabile
 import { Platform, NativeModules } from 'react-native';
 import config from '../lib/config';
 
@@ -47,18 +47,22 @@ export const ALL_NAMESPACES = ['common', 'settings', 'session', 'auth', 'dashboa
 // Ottieni la lingua del dispositivo
 const getDeviceLanguage = () => {
   try {
+    // 🔧 LOCALIZATION DISABILITATA per build stabile
+    console.log('🌐 [i18n] Localization disabilitata - usando italiano come default');
+    return 'it';
+    
+    /* CODICE ORIGINALE COMMENTATO:
     const locales = Localization.getLocales();
     const primaryLocale = locales[0];
     const locale = primaryLocale?.languageTag || 'en';
     const languageCode = locale.split('-')[0].toLowerCase();
     
-    // Se la lingua del dispositivo è supportata, usala
     if (SUPPORTED_LANGUAGES.includes(languageCode)) {
       return languageCode;
     }
     
-    // Altrimenti usa l'italiano come fallback (lingua primaria dell'app)
     return 'it';
+    */
   } catch (error) {
     console.error('🌐 [i18n] Errore nel determinare la lingua del dispositivo:', error);
     return 'it';
