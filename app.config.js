@@ -75,6 +75,7 @@ export default {
     },
     plugins: [
       'expo-router',
+      'expo-apple-authentication',
     ],
     scheme: 'bacchus',
     experiments: {

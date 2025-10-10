@@ -15,10 +15,24 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
-// 🔧 SISTEMA ACQUISTI: Solo modalità mock per build stabile
-console.log('🛒 PURCHASES: Modalità mock attiva - acquisti disabilitati per build stabile');
-console.log('💡 PURCHASES: Gli acquisti in-app saranno aggiunti in un update successivo');
-let isStoreKitAvailable = false;
+// 🔧 SISTEMA ACQUISTI: Expo In-App Purchases (modulo ufficiale)
+let ExpoInAppPurchases: any = null;
+let isInAppPurchasesAvailable = false;
+
+try {
+  if (!isExpoGo) {
+    console.log('🛒 PURCHASES: Caricamento Expo In-App Purchases (ufficiale)...');
+    ExpoInAppPurchases = require('expo-in-app-purchases');
+    isInAppPurchasesAvailable = true;
+    console.log('✅ PURCHASES: Expo In-App Purchases caricato con successo!');
+  } else {
+    console.log('🛒 PURCHASES: Expo Go rilevato - modalità mock');
+    isInAppPurchasesAvailable = false;
+  }
+} catch (error) {
+  console.log('⚠️ PURCHASES: In-App Purchases non disponibile, modalità mock:', error);
+  isInAppPurchasesAvailable = false;
+}
 
 // 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
 const API_KEYS = {
@@ -46,14 +60,14 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
-    // 🔧 NUOVO SISTEMA: StoreKit nativo Expo
-    if (isStoreKitAvailable && !isExpoGo) {
-      console.log('🛒 INIT: Inizializzazione StoreKit nativo...');
+    // 🔧 NUOVO SISTEMA: Expo In-App Purchases ufficiale
+    if (isInAppPurchasesAvailable && !isExpoGo) {
+      console.log('🛒 INIT: Inizializzazione Expo In-App Purchases...');
       
       try {
-        // Configura i prodotti StoreKit
-        await ExpoStoreKit.connectAsync();
-        console.log('✅ INIT: StoreKit connesso con successo!');
+        // Connetti al servizio acquisti
+        await ExpoInAppPurchases.connectAsync();
+        console.log('✅ INIT: In-App Purchases connesso con successo!');
         
         // Carica i prodotti configurati
         const productIds = [
@@ -61,12 +75,12 @@ export const initPurchases = async () => {
           PRODUCT_IDS.PREMIUM_YEARLY
         ];
         
-        const products = await ExpoStoreKit.getProductsAsync(productIds);
-        console.log('✅ INIT: Prodotti StoreKit caricati:', products.length);
+        const products = await ExpoInAppPurchases.getProductsAsync(productIds);
+        console.log('✅ INIT: Prodotti caricati:', products.results?.length || 0);
         
         return true;
-      } catch (storeKitError) {
-        console.error('❌ INIT: Errore StoreKit, fallback a mock:', storeKitError);
+      } catch (inAppError) {
+        console.error('❌ INIT: Errore In-App Purchases, fallback a mock:', inAppError);
         return await initMockMode();
       }
     }
@@ -316,16 +330,16 @@ export const getProducts = async () => {
  */
 export const purchasePackage = async (pkg: any) => {
   try {
-    // 🔧 STOREKIT NATIVO: Acquisto reale
-    if (isStoreKitAvailable && !isExpoGo) {
-      console.log('🛒 PURCHASE: Acquisto StoreKit per:', pkg.identifier || pkg.productId);
+    // 🔧 EXPO IN-APP PURCHASES: Acquisto reale
+    if (isInAppPurchasesAvailable && !isExpoGo) {
+      console.log('🛒 PURCHASE: Acquisto In-App per:', pkg.identifier || pkg.productId);
       
       try {
         const productId = pkg.identifier || pkg.productId;
-        const result = await ExpoStoreKit.purchaseItemAsync(productId);
+        const result = await ExpoInAppPurchases.purchaseItemAsync(productId);
         
-        if (result.responseCode === ExpoStoreKit.IAPResponseCode.OK) {
-          console.log('✅ PURCHASE: Acquisto StoreKit completato!');
+        if (result.responseCode === ExpoInAppPurchases.IAPResponseCode.OK) {
+          console.log('✅ PURCHASE: Acquisto completato!');
           
           // Salva lo stato premium
           await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
@@ -342,12 +356,12 @@ export const purchasePackage = async (pkg: any) => {
             } 
           };
         } else {
-          console.log('❌ PURCHASE: Acquisto StoreKit fallito:', result.responseCode);
+          console.log('❌ PURCHASE: Acquisto fallito:', result.responseCode);
           return { success: false, error: 'Purchase failed' };
         }
-      } catch (storeKitError) {
-        console.error('❌ PURCHASE: Errore StoreKit:', storeKitError);
-        return { success: false, error: storeKitError };
+      } catch (purchaseError) {
+        console.error('❌ PURCHASE: Errore acquisto:', purchaseError);
+        return { success: false, error: purchaseError };
       }
     }
     
