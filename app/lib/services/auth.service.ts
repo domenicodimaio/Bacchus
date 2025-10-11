@@ -416,6 +416,11 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
       try {
         console.log('🍎 AUTH: Iniziando processo Apple Sign In...');
         
+        // 🔧 DEBUG: Alert di inizio
+        if (__DEV__) {
+          setTimeout(() => alert('DEBUG: Processo Apple Sign In avviato!'), 100);
+        }
+        
         // Log remoto dell'inizio del processo
         await logInfo('Apple Sign In Started', {
           provider: 'apple',
@@ -441,12 +446,23 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         }
         
         console.log('🍎 AUTH: Richiesta credenziali Apple...');
+        
+        // 🔧 DEBUG: Alert prima della richiesta
+        if (__DEV__) {
+          setTimeout(() => alert('DEBUG: Sto per richiedere credenziali Apple...'), 100);
+        }
+        
         const credential = await AppleAuthentication.signInAsync({
           requestedScopes: [
             AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
             AppleAuthentication.AppleAuthenticationScope.EMAIL,
           ],
         });
+        
+        // 🔧 DEBUG: Alert dopo aver ricevuto credenziali
+        if (__DEV__) {
+          setTimeout(() => alert(`DEBUG: Credenziali ricevute!\nUser: ${credential.user}\nEmail: ${credential.email}\nHas Token: ${!!credential.identityToken}`), 100);
+        }
         
         console.log('🍎 AUTH: Credenziali Apple ricevute:', {
           user: credential.user,
@@ -534,6 +550,11 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         
       } catch (error: any) {
         console.error('🍎 AUTH: Errore dettagliato Apple:', error);
+        
+        // 🔧 DEBUG: Alert per errori
+        if (__DEV__) {
+          setTimeout(() => alert(`DEBUG: Errore Apple Sign In!\nMessage: ${error.message}\nCode: ${error.code}\nName: ${error.name}`), 100);
+        }
         
         // Log remoto dell'errore per debugging su TestFlight
         await logError('Apple Sign In Failed', error, {
