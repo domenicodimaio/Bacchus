@@ -215,7 +215,7 @@
   "noMoreSessions": "No more sessions left",
   "unlimitedSessions": "Unlimited sessions",
   "exportSessions": "Export Sessions",
-  "chooseFormat": "Choose export format",
+  "chooseFormat": "Choose Format",
   "selectCategory": "Choose category",
   "selectBeverage": "Choose drink",
   "adjustDetails": "Customize details",
@@ -264,5 +264,13 @@
     "confirmEndSession": "Are you sure you want to end this session?"
   },
   "timeToLegalDriving": "Return below 0.5 (legal limit)",
-  "completelyClean": "Return to 0.00"
+  "completelyClean": "Return to 0.00",
+  "bacLevel": "Blood Alcohol Level",
+  "currentBACLabel": "Blood Alcohol Level",
+  "timeToLegalDriving": "Return below legal limit",
+  "estimatedEnd": "Estimated End",
+  "sanctionTitle": "Legal Consequences",
+  "cautionSanction": "Administrative penalty: €543 to €2,170 and license suspension from 3 to 6 months",
+  "warningSanction": "Fine: €800 to €3,200 and arrest up to 6 months, license suspension from 6 months to 1 year",
+  "dangerSanction": "Fine: €1,500 to €6,000 and arrest from 6 months to 1 year, license suspension from 1 to 2 years"
 }

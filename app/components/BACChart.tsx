@@ -171,7 +171,7 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
               firstPointTime.setTime(new Date(firstPoint.time).getTime() - 30 * 60 * 1000);
             } catch (e) {
               // Se c'è un errore nel parsing, usa semplicemente il tempo corrente meno 30 minuti
-              firstPointTime.setMinutes(firstPointTime.getMinutes() - 30);
+              firstPointTime.setTime(firstPointTime.getTime() - 30 * 60 * 1000);
             }
             
             filteredData.unshift({
@@ -253,7 +253,7 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
         
         // Inizio da 0
         const startTime = new Date(now);
-        startTime.setMinutes(startTime.getMinutes() - 30);
+        startTime.setTime(startTime.getTime() - 30 * 60 * 1000);
         dataPoints.push({
           x: 0,
           y: 0,
@@ -272,8 +272,7 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
         const timeStep = hours / numPoints;
         
         for (let i = 1; i <= numPoints; i++) {
-          const time = new Date(now);
-          time.setHours(time.getHours() + i * timeStep);
+          const time = new Date(now.getTime() + (i * timeStep * 60 * 60 * 1000));
           
           const remainingBAC = Math.max(0, bacData[0].bac - (metabolismRate * i * timeStep));
           

@@ -723,8 +723,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const hours = Math.floor(hoursToSober);
     const minutes = Math.round((hoursToSober - hours) * 60);
     
-    soberTime.setHours(soberTime.getHours() + hours);
-    soberTime.setMinutes(soberTime.getMinutes() + minutes);
+    // Usa getTime() per evitare problemi con il cambio di giorno
+    const totalMinutes = hours * 60 + minutes;
+    const newTime = new Date(soberTime.getTime() + totalMinutes * 60 * 1000);
+    soberTime.setTime(newTime.getTime());
     
     // Debug
     console.log('BAC Calculation - Sober Time:', { 
@@ -763,8 +765,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const hours = Math.floor(hoursToLegal);
     const minutes = Math.round((hoursToLegal - hours) * 60);
     
-    legalTime.setHours(legalTime.getHours() + hours);
-    legalTime.setMinutes(legalTime.getMinutes() + minutes);
+    // Usa getTime() per evitare problemi con il cambio di giorno
+    const totalMinutes = hours * 60 + minutes;
+    const newTime = new Date(legalTime.getTime() + totalMinutes * 60 * 1000);
+    legalTime.setTime(newTime.getTime());
     
     // Debug
     console.log('BAC Calculation - Legal Time:', { 

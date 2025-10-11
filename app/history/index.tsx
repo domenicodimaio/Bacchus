@@ -278,7 +278,7 @@ export default function HistoryScreen() {
 
     Alert.alert(
       memoizedT('exportSessions', { ns: 'session' }),
-      memoizedT('chooseFormat', { ns: 'common' }),
+      memoizedT('chooseFormat', { ns: 'session' }),
       [
         {
           text: 'CSV',

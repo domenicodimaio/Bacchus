@@ -143,5 +143,7 @@
   "switchToTabs": "Switch to Tab Navigation",
   "close": "Close",
   "info": "Information",
-  "email": "Email"
+  "email": "Email",
+  "notAvailable": "Not Available",
+  "now": "Now"
 }

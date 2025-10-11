@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 interface NoActiveSessionMessageProps {
   onStartSession: () => void;
@@ -10,19 +11,21 @@ interface NoActiveSessionMessageProps {
  * Componente che mostra un messaggio e un pulsante quando non ci sono sessioni attive
  */
 export default function NoActiveSessionMessage({ onStartSession }: NoActiveSessionMessageProps) {
+  const { t } = useTranslation(['common', 'session']);
+  
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Ionicons name="beer-outline" size={80} color="#5D69BE" style={styles.icon} />
         
-        <Text style={styles.title}>Nessuna sessione attiva</Text>
+        <Text style={styles.title}>{t('noActiveSession', { ns: 'common', defaultValue: 'Nessuna sessione attiva' })}</Text>
         
         <Text style={styles.description}>
-          Inizia una nuova sessione per monitorare il tuo consumo di alcol e calcolare il tasso alcolemico (BAC).
+          {t('trackYourDrinks', { ns: 'common', defaultValue: 'Inizia una nuova sessione per monitorare il tuo consumo di alcol e calcolare il tasso alcolemico (BAC).' })}
         </Text>
         
         <TouchableOpacity style={styles.button} onPress={onStartSession}>
-          <Text style={styles.buttonText}>Inizia Sessione</Text>
+          <Text style={styles.buttonText}>{t('startSession', { ns: 'common', defaultValue: 'Inizia Sessione' })}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -853,7 +853,7 @@ function SessionScreen() {
                     style={[
                       styles.consumptionItem, 
                       { 
-                        backgroundColor: 'rgba(30, 46, 69, 0.8)',
+                        backgroundColor: colors.cardElevated || colors.card,
                         borderRadius: 15,
                         marginBottom: 12,
                         borderLeftWidth: 3,
@@ -925,7 +925,7 @@ function SessionScreen() {
                     style={[
                       styles.consumptionItem, 
                       { 
-                        backgroundColor: 'rgba(30, 46, 69, 0.8)',
+                        backgroundColor: colors.cardElevated || colors.card,
                         borderRadius: 15,
                         marginBottom: 12,
                         borderLeftWidth: 3,
@@ -1466,13 +1466,11 @@ const styles = StyleSheet.create({
   },
     timeInfoLabel: {
       fontSize: 14,
-      color: '#CCCCCC',
       marginBottom: 5,
     },
     timeInfoValue: {
       fontSize: 18,
       fontWeight: '600',
-      color: '#FFFFFF',
     },
     endSessionButton: {
       backgroundColor: '#FF4040',
@@ -1525,7 +1523,6 @@ const styles = StyleSheet.create({
     actionButtonText: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#FFFFFF',
       marginLeft: 8,
       textAlign: 'center',
     },
@@ -1536,7 +1533,6 @@ const styles = StyleSheet.create({
     sectionTitleText: {
       fontSize: 18,
       fontWeight: '600',
-      color: '#FFFFFF',
       marginBottom: 10,
     },
     consumptionItems: {
@@ -1559,19 +1555,15 @@ const styles = StyleSheet.create({
     consumptionItemName: {
       fontSize: 16,
       fontWeight: '500',
-      color: '#FFFFFF',
     },
     consumptionItemVolume: {
       fontSize: 14,
-      color: '#CCCCCC',
     },
     consumptionItemEffect: {
       fontSize: 14,
-      color: '#CCCCCC',
     },
     consumptionItemTime: {
       fontSize: 14,
-      color: '#CCCCCC',
       marginHorizontal: 5,
     },
     removeButton: {
@@ -1579,7 +1571,6 @@ const styles = StyleSheet.create({
     },
     emptyListText: {
       fontSize: 16,
-      color: '#999999',
       textAlign: 'center',
       marginTop: 10,
     },
@@ -1715,7 +1706,6 @@ const styles = StyleSheet.create({
       shadowRadius: 4,
     },
     startSessionButtonText: {
-      color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
     },
@@ -1733,7 +1723,6 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
     },
     dashboardButtonText: {
-      color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
     },
@@ -1923,7 +1912,7 @@ const styles = StyleSheet.create({
         
         {/* Sezioni per bevande e cibo consumati */}
         <View style={styles.consumptionSection}>
-          <Text style={styles.sectionTitleText}>{t('consumedDrinks')}</Text>
+          <Text style={[styles.sectionTitleText, { color: colors.text }]}>{t('consumedDrinks')}</Text>
           
           {session?.drinks && session.drinks.length > 0 ? (
             <View style={styles.consumptionItems}>
@@ -1937,11 +1926,11 @@ const styles = StyleSheet.create({
                   />
                   
                   <View style={styles.consumptionItemDetails}>
-                    <Text style={styles.consumptionItemName}>{t(drink.name)}</Text>
-                    <Text style={styles.consumptionItemVolume}>{drink.volume} ml</Text>
+                    <Text style={[styles.consumptionItemName, { color: colors.text }]}>{t(drink.name)}</Text>
+                    <Text style={[styles.consumptionItemVolume, { color: colors.textSecondary }]}>{drink.volume} ml</Text>
                   </View>
                   
-                  <Text style={styles.consumptionItemTime}>
+                  <Text style={[styles.consumptionItemTime, { color: colors.textSecondary }]}>
                     {new Date(drink.timeConsumed || drink.time).toLocaleTimeString([], { 
                       hour: '2-digit', 
                       minute: '2-digit' 
@@ -1958,12 +1947,12 @@ const styles = StyleSheet.create({
               ))}
             </View>
           ) : (
-            <Text style={styles.emptyListText}>{t('noDrinks')}</Text>
+            <Text style={[styles.emptyListText, { color: colors.textSecondary }]}>{t('noDrinks')}</Text>
           )}
         </View>
         
         <View style={styles.consumptionSection}>
-          <Text style={styles.sectionTitleText}>{t('consumedFood')}</Text>
+          <Text style={[styles.sectionTitleText, { color: colors.text }]}>{t('consumedFood')}</Text>
           
           {session?.foods && session.foods.length > 0 ? (
             <View style={styles.consumptionItems}>
@@ -1977,13 +1966,13 @@ const styles = StyleSheet.create({
                   />
                   
                   <View style={styles.consumptionItemDetails}>
-                    <Text style={styles.consumptionItemName}>{t(food.name)}</Text>
-                    <Text style={styles.consumptionItemEffect}>
+                    <Text style={[styles.consumptionItemName, { color: colors.text }]}>{t(food.name)}</Text>
+                    <Text style={[styles.consumptionItemEffect, { color: colors.textSecondary }]}>
                       {t('reductionEffect')}: {Math.round((1 - food.absorptionFactor) * 100)}%
                     </Text>
                   </View>
                   
-                  <Text style={styles.consumptionItemTime}>
+                  <Text style={[styles.consumptionItemTime, { color: colors.textSecondary }]}>
                     {new Date(food.timeConsumed || food.time).toLocaleTimeString([], { 
                       hour: '2-digit', 
                       minute: '2-digit' 
@@ -2000,7 +1989,7 @@ const styles = StyleSheet.create({
               ))}
             </View>
           ) : (
-            <Text style={styles.emptyListText}>{t('noFood')}</Text>
+            <Text style={[styles.emptyListText, { color: colors.textSecondary }]}>{t('noFood')}</Text>
           )}
         </View>
       </ScrollView>

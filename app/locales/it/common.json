@@ -132,6 +132,8 @@
   "errorExporting": "Errore durante l'esportazione dei dati",
   "unexpectedError": "Si è verificato un errore imprevisto",
   "email": "Email",
+  "notAvailable": "Non disponibile",
+  "now": "Adesso",
   "signUp": "REGISTRATI",
   "continueAsGuest": "Continua come Ospite",
   "yourStatistics": "Le Tue Statistiche",

@@ -146,8 +146,9 @@ export function calculateSoberTime(bac: number, returnDate: boolean = false): st
       const hours = Math.floor(soberTimeMinutes / 60);
       const minutes = Math.floor(soberTimeMinutes % 60);
       
-      soberDate.setHours(soberDate.getHours() + hours);
-      soberDate.setMinutes(soberDate.getMinutes() + minutes);
+      // Usa getTime() per evitare problemi con il cambio di giorno
+      const totalMinutes = hours * 60 + minutes;
+      soberDate.setTime(soberDate.getTime() + totalMinutes * 60 * 1000);
       
       // Verifica che la data sia valida
       if (isNaN(soberDate.getTime())) {
@@ -215,8 +216,9 @@ export function calculateLegalTime(bac: number, returnDate: boolean = false): st
       const hours = Math.floor(legalTimeMinutes / 60);
       const minutes = Math.floor(legalTimeMinutes % 60);
       
-      legalDate.setHours(legalDate.getHours() + hours);
-      legalDate.setMinutes(legalDate.getMinutes() + minutes);
+      // Usa getTime() per evitare problemi con il cambio di giorno
+      const totalMinutes = hours * 60 + minutes;
+      legalDate.setTime(legalDate.getTime() + totalMinutes * 60 * 1000);
       
       // Verifica che la data sia valida
       if (isNaN(legalDate.getTime())) {

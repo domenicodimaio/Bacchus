@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions, useColorScheme, TouchableOpacity, M
 import { Svg, Circle, Path, G, Text as SvgText, Defs, LinearGradient, Stop, Line, Filter, FeGaussianBlur, FeOffset, FeComposite, FeMerge, FeMergeNode } from 'react-native-svg';
 import { Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 // Importo il contesto del tema
 import { useTheme } from '../contexts/ThemeContext';
@@ -41,33 +42,7 @@ const MARKER_COLOR = '#607D8B'; // Grigio blu neutro
 // Margine extra per i marker ed etichette (rende visibili i label)
 const MARKER_PADDING = 75; // Aumentato per assicurare che le etichette siano visibili
 
-// Testi statici (non dipendono da traduzioni)
-const STATIC_TEXT = {
-  // Valori temporali
-  timeToLegalDriving: 'Ritorno sotto limite legale',
-  completelyClean: 'Ritorno a 0.00',
-  estimatedEnd: 'Fine Stimata',
-  notAvailable: 'Non disponibile',
-  now: 'Adesso',
-  currentBAC: 'Tasso alcolemico',
-  
-  // Livelli BAC
-  bacSafe: 'Sicuro',
-  bacCaution: 'Attenzione',
-  bacWarning: 'Rischio',
-  bacDanger: 'Pericolo',
-  bacCritical: 'Critico',
-  
-  // Sanzioni
-  legalInfo: 'Info sanzioni',
-  legalLevels: 'Livelli e sanzioni',
-  closeButton: 'Chiudi',
-  // Nuovi testi per le sanzioni
-  cautionSanction: 'Sanzione amministrativa: da €543 a €2.170 e sospensione patente da 3 a 6 mesi',
-  warningSanction: 'Ammenda: da €800 a €3.200 e arresto fino a 6 mesi, sospensione patente da 6 mesi a 1 anno',
-  dangerSanction: 'Ammenda: da €1.500 a €6.000 e arresto da 6 mesi a 1 anno, sospensione patente da 1 a 2 anni',
-  sanctionTitle: 'Conseguenze legali'
-};
+// Removed STATIC_TEXT - now using translations
 
 // Funzione per normalizzare il BAC per la visualizzazione
 const normalizeBac = (bac: number): number => {
@@ -113,6 +88,9 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   enableWidgets = true,
   enableLiveActivity = true,
 }) => {
+  // Traduzioni
+  const { t } = useTranslation(['session', 'common']);
+  
   // Stato per modal informativo
   const [infoModalVisible, setInfoModalVisible] = useState(false);
   
@@ -282,11 +260,11 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
     if (validBac <= 0.5) {
       return null; // Nessuna sanzione sotto 0.5
     } else if (validBac <= 0.8) {
-      return STATIC_TEXT.cautionSanction;
+      return t('cautionSanction', 'Sanzione amministrativa: da €543 a €2.170 e sospensione patente da 3 a 6 mesi');
     } else if (validBac <= 1.5) {
-      return STATIC_TEXT.warningSanction;
+      return t('warningSanction', 'Ammenda: da €800 a €3.200 e arresto fino a 6 mesi, sospensione patente da 6 mesi a 1 anno');
     } else {
-      return STATIC_TEXT.dangerSanction;
+      return t('dangerSanction', 'Ammenda: da €1.500 a €6.000 e arresto da 6 mesi a 1 anno, sospensione patente da 1 a 2 anni');
     }
   };
 
@@ -294,17 +272,17 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   const formatTime = (dateValue: Date | null | undefined | string) => {
     // Se il BAC è già sotto il limite legale (e stiamo formattando il tempo legale), mostra "Adesso"
     if (validBac <= 0.5 && validBac > 0.01 && dateValue === timeToLegal) {
-      return STATIC_TEXT.now;
+      return t('now', { ns: 'common', defaultValue: 'Adesso' });
     }
     
     // Se il BAC è 0, mostriamo "Adesso" per il tempo di ritorno a 0.00
     if (validBac === 0 && dateValue === timeToZero) {
-      return STATIC_TEXT.now;
+      return t('now', { ns: 'common', defaultValue: 'Adesso' });
     }
     
     if (!dateValue) {
       console.log('BACDisplay: formatTime ricevuto valore nullo o undefined');
-      return STATIC_TEXT.notAvailable;
+      return t('notAvailable', { ns: 'common', defaultValue: 'Non disponibile' });
     }
     
     try {
@@ -327,7 +305,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
         
         // Se è '0h 00m', mostriamo "Adesso"
         if (dateValue === '0h 00m') {
-          return STATIC_TEXT.now;
+          return t('now', { ns: 'common', defaultValue: 'Adesso' });
         }
         
         // Altrimenti proviamo a convertirla in Date
@@ -336,20 +314,20 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
         
         if (isNaN(timestamp)) {
           console.warn('BACDisplay: impossibile convertire la stringa in data', dateValue);
-          return STATIC_TEXT.notAvailable;
+          return t('notAvailable', { ns: 'common', defaultValue: 'Non disponibile' });
         }
         date = new Date(timestamp);
       } else if (dateValue instanceof Date) {
         date = dateValue;
       } else {
         console.warn('BACDisplay: tipo di dato non supportato', typeof dateValue);
-        return STATIC_TEXT.notAvailable;
+        return t('notAvailable', { ns: 'common', defaultValue: 'Non disponibile' });
       }
       
       // Verifica che la data sia valida
       if (!date || isNaN(date.getTime())) {
         console.warn('BACDisplay: data non valida', date);
-        return STATIC_TEXT.notAvailable;
+        return t('notAvailable', { ns: 'common', defaultValue: 'Non disponibile' });
       }
       
       // Se la data è nel passato, consideriamola non valida
@@ -360,7 +338,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
           now: now.toISOString(),
           diff: (now.getTime() - date.getTime()) / 1000 / 60,  // differenza in minuti
         });
-        return STATIC_TEXT.now; // Mostriamo "Adesso" invece di "Non disponibile" se la data è nel passato
+        return t('now', { ns: 'common', defaultValue: 'Adesso' }); // Mostriamo "Adesso" invece di "Non disponibile" se la data è nel passato
       }
       
       // Formatta la data come ora:minuti
@@ -370,7 +348,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
       return formattedTime;
     } catch (error) {
       console.warn('BACDisplay: Errore nella formattazione della data', error);
-      return STATIC_TEXT.notAvailable;
+      return t('notAvailable', { ns: 'common', defaultValue: 'Non disponibile' });
     }
   };
 
@@ -514,7 +492,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
           {/* BAC value display */}
           <View style={styles.valueContainer}>
             <Text style={[styles.valueLabel, { color: theme.textSecondary }]}>
-              {STATIC_TEXT.currentBAC}
+              {t('currentBACLabel', 'Tasso alcolemico')}
             </Text>
             <Text
               style={[
@@ -533,12 +511,12 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               <Text style={[styles.statusText, { color: activeColor }]}>
                 {(() => {
                   switch (bacLevel) {
-                    case 'safe': return STATIC_TEXT.bacSafe;
-                    case 'caution': return STATIC_TEXT.bacCaution;
-                    case 'warning': return STATIC_TEXT.bacWarning;
-                    case 'danger': return STATIC_TEXT.bacDanger;
-                    case 'critical': return STATIC_TEXT.bacCritical;
-                    default: return STATIC_TEXT.bacSafe;
+                    case 'safe': return t('bacSafe', 'Sicuro');
+                    case 'caution': return t('bacCaution', 'Attenzione');
+                    case 'warning': return t('bacWarning', 'Rischio');
+                    case 'danger': return t('bacDanger', 'Pericolo');
+                    case 'critical': return t('bacCritical', 'Critico');
+                    default: return t('bacSafe', 'Sicuro');
                   }
                 })()}
               </Text>
@@ -549,7 +527,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               {validBac > 0.01 && (
                 <>
                   <Text style={[styles.timeInfoLabel, { color: theme.textSecondary }]}>
-                    {validBac > 0.5 ? STATIC_TEXT.timeToLegalDriving : STATIC_TEXT.completelyClean}
+                    {validBac > 0.5 ? t('timeToLegalDriving', 'Ritorno sotto limite legale') : t('completelyClean', 'Ritorno a 0.00')}
                   </Text>
                   
                   <View style={styles.timeValueWithInfoRow}>
@@ -560,14 +538,14 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                           const hoursToZero = validBac / METABOLISM_RATE;
                           const hours = Math.floor(hoursToZero);
                           const minutes = Math.floor((hoursToZero % 1) * 60);
-                          return hoursToZero < 0.01 ? STATIC_TEXT.now : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+                          return hoursToZero < 0.01 ? t('now', { ns: 'common', defaultValue: 'Adesso' }) : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
                         })() : 
                         // Per il ritorno sotto al limite legale
                         (() => {
                           const hoursToLegal = (validBac - 0.5) / METABOLISM_RATE;
                           const hours = Math.floor(hoursToLegal);
                           const minutes = Math.floor((hoursToLegal % 1) * 60);
-                          return hoursToLegal < 0.01 ? STATIC_TEXT.now : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+                          return hoursToLegal < 0.01 ? t('now', { ns: 'common', defaultValue: 'Adesso' }) : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
                         })()
                       }
                     </Text>
@@ -596,12 +574,12 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               {validBac === 0 && (
                 <>
                   <Text style={[styles.timeInfoLabel, { color: theme.textSecondary }]}>
-                    {STATIC_TEXT.completelyClean}
+                    {t('completelyClean', 'Ritorno a 0.00')}
                   </Text>
                   
                   <View style={[styles.timeValueWithInfoRow, { paddingLeft: 0 }]}>
                     <Text style={[styles.timeValue, { color: theme.textPrimary }]}>
-                      {STATIC_TEXT.now}
+                      {t('now', { ns: 'common', defaultValue: 'Adesso' })}
                     </Text>
                   </View>
                 </>
@@ -621,7 +599,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDarkTheme ? '#222' : 'white' }]}>
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
-              {STATIC_TEXT.sanctionTitle}
+              {t('sanctionTitle', 'Conseguenze legali')}
             </Text>
             
             <View style={styles.legalLevelsContainer}>
@@ -631,7 +609,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                   0.5 - 0.8 g/L
                 </Text>
                 <Text style={[styles.legalLevelText, { color: theme.textPrimary }]}>
-                  {STATIC_TEXT.cautionSanction}
+                  {t('cautionSanction', 'Sanzione amministrativa: da €543 a €2.170 e sospensione patente da 3 a 6 mesi')}
                 </Text>
               </View>
               
@@ -641,7 +619,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                   0.8 - 1.5 g/L
                 </Text>
                 <Text style={[styles.legalLevelText, { color: theme.textPrimary }]}>
-                  {STATIC_TEXT.warningSanction}
+                  {t('warningSanction', 'Ammenda: da €800 a €3.200 e arresto fino a 6 mesi, sospensione patente da 6 mesi a 1 anno')}
                 </Text>
               </View>
               
@@ -651,7 +629,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                   {'>'} 1.5 g/L
                 </Text>
                 <Text style={[styles.legalLevelText, { color: theme.textPrimary }]}>
-                  {STATIC_TEXT.dangerSanction}
+                  {t('dangerSanction', 'Ammenda: da €1.500 a €6.000 e arresto da 6 mesi a 1 anno, sospensione patente da 1 a 2 anni')}
                 </Text>
               </View>
             </View>
@@ -661,7 +639,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               onPress={() => setInfoModalVisible(false)}
             >
               <Text style={styles.closeButtonText}>
-                {STATIC_TEXT.closeButton}
+                {t('close', { ns: 'common', defaultValue: 'Chiudi' })}
               </Text>
             </TouchableOpacity>
           </View>
