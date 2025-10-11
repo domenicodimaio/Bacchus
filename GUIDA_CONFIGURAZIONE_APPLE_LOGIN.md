@@ -100,20 +100,40 @@ Se vedi questi campi separati, usali invece del JWT manuale.
 
 ### 2. Configurazione URL di Callback
 1. Sempre in **Authentication** → **Settings**
-2. Nella sezione **Site URL**, assicurati che sia impostato l'URL della tua app
-3. Nella sezione **Redirect URLs**, aggiungi:
-   - `https://tuoprogetto.supabase.co/auth/v1/callback`
-   - L'URL della tua app (es: `com.tuodominio.bacchus://`)
+
+**Site URL:**
+- Supabase dovrebbe mostrare automaticamente `bacchus://auth-callback` 
+- ✅ **Lascialo così com'è!** È corretto per un'app mobile
+- Questo è il deep link della tua app, non un URL web
+
+**Redirect URLs:**
+Per evitare redirect esterni indesiderati, configura solo:
+- `https://tuoprogetto.supabase.co/auth/v1/callback` (necessario per il backend)
+- `bacchus://auth-callback` (per tornare alla tua app)
+
+⚠️ **IMPORTANTE - Evitare Redirect Esterni:**
+- NON aggiungere URL web come `https://myapp.com/callback`
+- Il login Apple dovrebbe rimanere nativo nell'app
+- Il flusso corretto è: App → Apple Sign In nativo → Ritorno diretto all'app
+
+**🔄 Flusso di Autenticazione Corretto:**
+1. Utente tocca "Sign in with Apple" nell'app
+2. Si apre il popup nativo Apple (rimane nell'app)
+3. Utente inserisce credenziali Apple
+4. Apple restituisce token direttamente all'app
+5. App invia token a Supabase per validazione
+6. Utente rimane nell'app - nessun browser esterno!
 
 ## Configurazione App React Native
 
-### 1. Verifica Bundle ID
+### 1. Verifica Bundle ID e Deep Linking
 Nel file `app.config.js`, assicurati che il `bundleIdentifier` corrisponda esattamente all'App ID configurato:
 
 ```javascript
 export default {
   expo: {
     // ...
+    scheme: "bacchus", // Deve corrispondere al Site URL in Supabase
     ios: {
       bundleIdentifier: "com.tuodominio.bacchus", // Deve corrispondere all'App ID
       // ...
@@ -121,6 +141,10 @@ export default {
   }
 }
 ```
+
+**Verifica Deep Link:**
+- Il `scheme: "bacchus"` nell'app.config.js deve corrispondere al Site URL `bacchus://auth-callback` in Supabase
+- Questo permette all'app di ricevere il callback di autenticazione
 
 ### 2. Verifica Configurazione Supabase
 Nel file `app/lib/supabase/client.ts`, verifica che l'URL e la chiave siano corretti:

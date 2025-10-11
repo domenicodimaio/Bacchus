@@ -476,6 +476,13 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           if (error) {
             console.error('🍎 AUTH: Errore Supabase:', error);
             
+            // 🔧 DEBUG TEMPORANEO: Mostra errore in alert
+            if (__DEV__) {
+              setTimeout(() => {
+                alert(`DEBUG Apple Login Error:\n${error.message}\nCode: ${error.status || 'N/A'}`);
+              }, 500);
+            }
+            
             // Analizza l'errore specifico di Supabase
             if (error.message?.includes('Invalid login')) {
               return {
