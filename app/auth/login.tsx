@@ -356,13 +356,20 @@ export default function LoginScreen() {
         timestamp: new Date().toISOString()
       });
       
-      const { success, error, data } = await loginWithProvider('apple');
+      const { success, error, data, redirectToProfileCreation, isNewUser } = await loginWithProvider('apple');
       
       if (success) {
         console.log('🍎 Login con Apple - Successo immediato');
         setDebugInfo('Login completato! Reindirizzamento...');
-        await logInfo('Apple Login Success', { immediate: true });
-        router.replace('/(tabs)/dashboard');
+        await logInfo('Apple Login Success', { immediate: true, isNewUser });
+        
+        // 🎯 Se è un nuovo utente, reindirizza al wizard
+        if (redirectToProfileCreation && isNewUser) {
+          console.log('🍎 Nuovo utente Apple - Reindirizzamento al wizard');
+          router.replace('/onboarding/profile-wizard');
+        } else {
+          router.replace('/(tabs)/dashboard');
+        }
       } else if (error === 'oauth_in_progress') {
         // OAuth avviato correttamente, il sistema gestirà il callback automaticamente
         console.log('🍎 Login con Apple - OAuth avviato, attendo callback automatico...');

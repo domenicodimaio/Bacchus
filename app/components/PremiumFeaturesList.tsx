@@ -151,8 +151,8 @@ const PremiumFeaturesList = ({ compact = true }: PremiumFeaturesListProps) => {
             </LinearGradient>
             <Text style={[styles.title, { color: colors.text }]}>
               {isPremium 
-                ? t('premiumActive', { ns: 'purchases', defaultValue: 'Premium Attivo' })
-                : t('premiumFeatures', { ns: 'purchases', defaultValue: 'Funzionalità Premium' })
+                ? t('premiumActive', { ns: 'purchases', defaultValue: 'Premium Active' })
+                : t('premiumFeatures', { ns: 'purchases', defaultValue: 'Premium Features' })
               }
             </Text>
           </View>

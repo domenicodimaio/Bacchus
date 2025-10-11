@@ -64,6 +64,7 @@ export type AuthResponse = {
   redirectToProfileCreation?: boolean;
   needsEmailConfirmation?: boolean;
   isMockUser?: boolean;
+  isNewUser?: boolean;
 };
 
 // Helper function to get environment variables from various sources
@@ -441,6 +442,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         }
         
         console.log('🍎 AUTH: Richiesta credenziali Apple...');
+        await logInfo('Apple Auth: Inizio processo di autenticazione');
         const credential = await AppleAuthentication.signInAsync({
           requestedScopes: [
             AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -452,6 +454,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           user: credential.user,
           email: credential.email,
           hasIdentityToken: !!credential.identityToken,
+          fullCredential: JSON.stringify(credential, null, 2),
           hasAuthorizationCode: !!credential.authorizationCode,
           fullName: credential.fullName
         });
@@ -470,11 +473,27 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             hasSession: !!data?.session,
             userId: data?.user?.id,
             userEmail: data?.user?.email,
-            error: error?.message
+            error: error?.message,
+            errorDetails: error ? JSON.stringify(error, null, 2) : null
           });
           
           if (error) {
-            console.error('🍎 AUTH: Errore Supabase:', error);
+            console.error('🍎 AUTH: ERRORE SUPABASE COMPLETO:', {
+              message: error.message,
+              status: error.status,
+              statusText: error.statusText,
+              details: error.details,
+              hint: error.hint,
+              code: error.code,
+              fullError: JSON.stringify(error, null, 2)
+            });
+            
+            await logError('Apple Auth Supabase Error', {
+              message: error.message,
+              status: error.status,
+              code: error.code,
+              details: error.details
+            });
             
             // Analizza l'errore specifico di Supabase
             if (error.message?.includes('Invalid login')) {
@@ -500,6 +519,12 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           if (data?.session && data?.user) {
             console.log('🍎 AUTH: Login Apple completato con successo');
             
+            // 🔧 CONTROLLO NUOVO UTENTE: Verifica se è la prima volta che l'utente accede
+            const isNewUser = data.user.created_at && 
+              (new Date().getTime() - new Date(data.user.created_at).getTime()) < 60000; // Creato negli ultimi 60 secondi
+            
+            console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
+            
             // Salva i dati utente in AsyncStorage per offline
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));
             await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
@@ -510,6 +535,25 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             await AsyncStorage.setItem(tokenKey, JSON.stringify(data.session));
             
             console.log('🍎 AUTH: Sessione salvata correttamente');
+            
+            // 🎯 Se è un nuovo utente, deve completare il wizard
+            if (isNewUser) {
+              console.log('🍎 AUTH: Nuovo utente Apple - deve completare wizard');
+              
+              // Rimuovi eventuali flag di wizard completato
+              await AsyncStorage.removeItem('profile_wizard_completed');
+              await AsyncStorage.removeItem('bacchus_wizard_completed');
+              
+              return {
+                success: true,
+                data: {
+                  user: data.user,
+                  session: data.session
+                },
+                redirectToProfileCreation: true, // 🔥 Flag per reindirizzare al wizard
+                isNewUser: true
+              };
+            }
             
             return {
               success: true,

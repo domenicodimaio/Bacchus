@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { DARK_THEME } from '../constants/theme';
 import { getTimeString } from '../utils/timeUtils';
+import { useTranslation } from 'react-i18next';
 
 const theme = DARK_THEME;
 const screenWidth = Dimensions.get('window').width;
@@ -38,6 +39,7 @@ const BACGraph: React.FC<BACGraphProps> = ({
   foods = [],
   limit,
 }) => {
+  const { t } = useTranslation('session');
   // Preparazione dati per il grafico
   const labels = bacData.map(point => getTimeString(point.time));
   const data = bacData.map(point => point.bac);
@@ -82,7 +84,7 @@ const BACGraph: React.FC<BACGraphProps> = ({
         withDots: false,
       },
     ],
-    legend: ['BAC', 'Limite legale'],
+    legend: [t('bac', { defaultValue: 'BAC' }), t('legalLimit', { defaultValue: 'Legal Limit' })],
   };
   
   // Renderizza punti di bevute su grafico

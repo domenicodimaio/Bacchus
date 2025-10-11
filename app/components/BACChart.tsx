@@ -55,6 +55,16 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
   const [error, setError] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(true);
   const [activePoint, setActivePoint] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date()); // 🔥 Stato per l'orario corrente
+  
+  // 🔥 Timer per aggiornare l'orario ogni minuto
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Aggiorna ogni minuto
+    
+    return () => clearInterval(timer);
+  }, []);
   
   // Definisco i colori per le linee che non sono definiti nel tema
   const chartColors = {
@@ -245,7 +255,7 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
         console.log('BACChart: Creando grafico semplice con BAC corrente');
         
         // Crea un grafico semplice che mostra il BAC attuale e la discesa a zero
-        const now = new Date();
+        const now = currentTime; // 🔥 Usa l'orario corrente aggiornato
         const metabolismRate = 0.017; // g/L per ora (aggiornato)
         const exactHours = bacData[0].bac / metabolismRate; // Ore esatte per tornare a zero
         const hours = Math.ceil(exactHours); // Ore arrotondate per il numero di punti
@@ -286,6 +296,16 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
         
         // Aggiungi sempre un punto finale esatto per il ritorno a zero
         const exactZeroTime = new Date(now.getTime() + (exactHours * 60 * 60 * 1000));
+        
+        // 🔥 Log per debug del calcolo
+        console.log('BACChart: Calcolo tempo zero BAC:', {
+          currentTime: now.toLocaleTimeString(),
+          currentBAC: bacData[0].bac,
+          exactHours: exactHours,
+          exactZeroTime: exactZeroTime.toLocaleTimeString(),
+          calculation: `${now.toLocaleTimeString()} + ${exactHours.toFixed(2)}h = ${exactZeroTime.toLocaleTimeString()}`
+        });
+        
         dataPoints.push({
           x: numPoints + 2,
           y: 0,
@@ -312,7 +332,7 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
       setIsLoading(false);
       return defaultData;
     }
-  }, [bacData, drinks, foods]);
+  }, [bacData, drinks, foods, currentTime]); // 🔥 Aggiungo currentTime per aggiornamento real-time
   
   if (isLoading) {
     return (
@@ -506,10 +526,10 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
       <View style={[styles.noDataContainer, { backgroundColor: colors.cardBackground }]}>
         <MaterialCommunityIcons name="chart-line" size={48} color={hexToRGBA(colors.textSecondary, 0.5)} />
         <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-          {t('Dati insufficienti per il grafico')}
+          {t('insufficientData', { defaultValue: 'Insufficient data for chart' })}
         </Text>
         <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
-          {t('Attendi qualche minuto per vedere l\'andamento')}
+          {t('waitForTrend', { defaultValue: 'Wait a few minutes to see the trend' })}
         </Text>
       </View>
     );
@@ -538,8 +558,8 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
       <View style={styles.tooltip}>
         <Text style={styles.tooltipTime}>{getTimeString(pointDate)}</Text>
         <Text style={styles.tooltipBAC}>{point.originalBac.toFixed(3)} g/l</Text>
-        {isDrink && <Text style={styles.tooltipDrink}>Hai bevuto</Text>}
-        {isFood && <Text style={styles.tooltipFood}>Hai mangiato</Text>}
+        {isDrink && <Text style={styles.tooltipDrink}>{t('youDrank', { defaultValue: 'You drank' })}</Text>}
+        {isFood && <Text style={styles.tooltipFood}>{t('youAte', { defaultValue: 'You ate' })}</Text>}
       </View>
     );
   };
@@ -554,7 +574,7 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
         textShadowOffset: {width: 1, height: 1},
         textShadowRadius: 3
       }]}>
-        {t('Andamento tasso alcolico')}
+        {t('bacTrend', { defaultValue: 'Blood Alcohol Trend' })}
       </Text>
       
       {/* Non renderizziamo le legende in alto */}

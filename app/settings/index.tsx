@@ -599,12 +599,12 @@ export default function SettingsScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="star-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
                 <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 16 }}>
-                  {t('premiumFeatures', { ns: 'purchases', defaultValue: 'Funzionalità Premium' })}
+                  {t('premiumFeatures', { ns: 'purchases', defaultValue: 'Premium Features' })}
                 </Text>
               </View>
               
               <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 14 }}>
-                {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Passa a Premium per sbloccare:' })}
+                {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Upgrade to Premium to unlock:' })}
               </Text>
               
               {/* Lista dettagliata delle funzionalità Premium */}

@@ -274,5 +274,13 @@
   "next": "Avanti",
   "back": "Indietro",
   "showChart": "Mostra grafico",
-  "hideChart": "Nascondi grafico"
+  "hideChart": "Nascondi grafico",
+  "bacTrend": "Andamento tasso alcolico",
+  "youDrank": "Hai bevuto",
+  "youAte": "Hai mangiato",
+  "bloodAlcoholLevel": "Tasso alcolemico",
+  "insufficientData": "Dati insufficienti per il grafico",
+  "waitForTrend": "Attendi qualche minuto per vedere l'andamento",
+  "addDrinksToChart": "Aggiungi bevande per visualizzare il grafico",
+  "bac": "BAC"
 }

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { DARK_THEME, LIGHT_THEME } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import Svg, { Circle } from 'react-native-svg';
 
 const screenWidth = Dimensions.get('window').width;
@@ -27,11 +28,12 @@ export default function BACChartSimple({
 }: BACChartSimpleProps) {
   // 🎨 Hook per il tema corrente
   const { currentTheme, isDarkMode } = useTheme();
+  const { t } = useTranslation('session');
   // Verifica che ci siano dati
   if (!bacSeries || bacSeries.length === 0) {
     return (
       <View style={styles.noDataContainer}>
-        <Text style={styles.noDataText}>Dati insufficienti per il grafico</Text>
+        <Text style={styles.noDataText}>{t('insufficientData', { defaultValue: 'Insufficient data for chart' })}</Text>
       </View>
     );
   }
@@ -288,11 +290,11 @@ export default function BACChartSimple({
       <View style={styles.legendContainer}>
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: '#00D9D9' }]} />
-          <Text style={styles.legendText}>Tasso alcolemico</Text>
+          <Text style={styles.legendText}>{t('bloodAlcoholLevel', { defaultValue: 'Blood Alcohol Level' })}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: '#FF3B00' }]} />
-          <Text style={styles.legendText}>Limite legale</Text>
+          <Text style={styles.legendText}>{t('legalLimit', { defaultValue: 'Legal Limit' })}</Text>
         </View>
       </View>
     </View>

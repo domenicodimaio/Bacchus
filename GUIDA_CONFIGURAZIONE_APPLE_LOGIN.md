@@ -79,13 +79,17 @@ Supabase richiede una chiave JWT, non il file `.p8` diretto. Hai due opzioni:
 ```json
 {
   "iss": "79P6XEQFGB",
-  "iat": 1234567890,
-  "exp": 1234567890,
+  "iat": 1734567890,
+  "exp": 2050147890,
   "aud": "https://appleid.apple.com",
-  "sub": "com.bacchus.signin"
+  "sub": "com.bacchusapp.sign"
 }
 ```
-3. Sostituisci `IL_TUO_TEAM_ID` con il tuo Team ID Apple
+3. **IMPORTANTE**: 
+   - `iss`: Il tuo Team ID Apple (79P6XEQFGB)
+   - `sub`: Il tuo Services ID (com.bacchusapp.sign)
+   - `iat`: Timestamp attuale (Dicembre 2024)
+   - `exp`: Scadenza 10 anni dopo (2034) - Non ci pensi più! 🎯
 4. Nella sezione "Verify Signature", seleziona **ES256**
 5. Incolla il contenuto del file `.p8` nel campo "Private Key"
 6. Copia il JWT generato e usalo come "Secret Key" in Supabase
@@ -203,6 +207,16 @@ Controlla i log dell'app per errori specifici. I log dovrebbero mostrare:
 #### "Client ID mismatch"
 - Services ID errato in Supabase → Deve corrispondere esattamente a quello creato in Apple Developer
 - Spazi extra nel Client ID → Verifica che non ci siano spazi prima/dopo l'ID
+
+#### "Unacceptable audience in id_token" 🔥 **ERRORE TROVATO!**
+- **Problema:** Il Primary App ID nel Services ID non è configurato correttamente
+- **Soluzione:** 
+  1. Vai su Apple Developer → Identifiers → Services ID (`com.bacchusapp.sign`)
+  2. Clicca Configure per "Sign In with Apple"
+  3. **Primary App ID:** DEVE essere `com.bacchusapp.app` (il Bundle ID dell'app)
+  4. **Return URLs:** `https://tuoprogetto.supabase.co/auth/v1/callback`
+  5. Salva le modifiche
+- **Causa:** Supabase si aspetta che l'audience nel token sia il Services ID, ma Apple sta inviando il Bundle ID dell'app
 
 ## Checklist Finale
 

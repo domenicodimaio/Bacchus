@@ -1821,8 +1821,8 @@ const styles = StyleSheet.create({
           {/* Informazioni su inizio e fine sessione */}
           <View style={styles.sessionTimeInfo}>
             <View style={styles.timeInfo}>
-              <Text style={styles.timeInfoLabel}>{t('start')}</Text>
-              <Text style={styles.timeInfoValue}>
+              <Text style={[styles.timeInfoLabel, { color: colors.text }]}>{t('start')}</Text>
+              <Text style={[styles.timeInfoValue, { color: colors.text }]}>
                 {new Date(session?.startTime || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
@@ -1836,7 +1836,7 @@ const styles = StyleSheet.create({
             onPress={() => router.push('/session/add-drink')}
           >
             <MaterialCommunityIcons name="glass-cocktail" size={24} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('addDrink')}</Text>
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>{t('addDrink')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -1844,7 +1844,7 @@ const styles = StyleSheet.create({
             onPress={() => router.push('/session/add-food')}
           >
             <FontAwesome5 name="utensils" size={22} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('addFood')}</Text>
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>{t('addFood')}</Text>
           </TouchableOpacity>
         </View>
         
@@ -1885,10 +1885,10 @@ const styles = StyleSheet.create({
               <PaperCard style={[styles.noDataCard, { backgroundColor: colors.cardElevated }]}>
                 <View style={styles.noDataContent}>
                   <Text style={[styles.noDataText, { color: colors.text, fontWeight: '600' }]}>
-                    Dati insufficienti
+                    {t('insufficientData', { defaultValue: 'Insufficient data' })}
                   </Text>
                   <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
-                    Aggiungi bevande per visualizzare il grafico
+                    {t('addDrinksToChart', { defaultValue: 'Add drinks to view the chart' })}
                   </Text>
                 </View>
               </PaperCard>

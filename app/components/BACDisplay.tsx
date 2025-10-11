@@ -98,9 +98,19 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   const systemColorScheme = useColorScheme();
   const { isDarkMode } = useTheme();
   
-  // For tracking updates
+  // For tracking updates and real-time countdown
   const lastUpdateRef = useRef(new Date().getTime());
   const lastBacRef = useRef(bac);
+  const [currentTime, setCurrentTime] = useState(new Date()); // 🔥 Stato per l'orario corrente
+  
+  // 🔥 Timer per aggiornare il countdown ogni minuto
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Aggiorna ogni minuto
+    
+    return () => clearInterval(timer);
+  }, []);
   
   // Usa il tema fornito dalla prop, dal context o dal sistema
   const isDarkTheme = forceDarkTheme !== undefined 
@@ -492,7 +502,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
           {/* BAC value display */}
           <View style={styles.valueContainer}>
             <Text style={[styles.valueLabel, { color: theme.textSecondary }]}>
-              {t('currentBACLabel', 'Tasso alcolemico')}
+              {t('currentBACLabel', { defaultValue: 'Blood Alcohol Level' })}
             </Text>
             <Text
               style={[
@@ -511,12 +521,12 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               <Text style={[styles.statusText, { color: activeColor }]}>
                 {(() => {
                   switch (bacLevel) {
-                    case 'safe': return t('bacSafe', 'Sicuro');
-                    case 'caution': return t('bacCaution', 'Attenzione');
-                    case 'warning': return t('bacWarning', 'Rischio');
-                    case 'danger': return t('bacDanger', 'Pericolo');
-                    case 'critical': return t('bacCritical', 'Critico');
-                    default: return t('bacSafe', 'Sicuro');
+                    case 'safe': return t('bacSafe', { defaultValue: 'Safe' });
+                    case 'caution': return t('bacCaution', { defaultValue: 'Caution' });
+                    case 'warning': return t('bacWarning', { defaultValue: 'Warning' });
+                    case 'danger': return t('bacDanger', { defaultValue: 'Danger' });
+                    case 'critical': return t('bacCritical', { defaultValue: 'Critical' });
+                    default: return t('bacSafe', { defaultValue: 'Safe' });
                   }
                 })()}
               </Text>

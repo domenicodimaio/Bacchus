@@ -274,5 +274,13 @@
   "warningSanction": "Fine: €800 to €3,200 and arrest up to 6 months, license suspension from 6 months to 1 year",
   "dangerSanction": "Fine: €1,500 to €6,000 and arrest from 6 months to 1 year, license suspension from 1 to 2 years",
   "showChart": "Show Chart",
-  "hideChart": "Hide Chart"
+  "hideChart": "Hide Chart",
+  "bacTrend": "Blood Alcohol Trend",
+  "youDrank": "You drank",
+  "youAte": "You ate",
+  "bloodAlcoholLevel": "Blood Alcohol Level",
+  "insufficientData": "Insufficient data for chart",
+  "waitForTrend": "Wait a few minutes to see the trend",
+  "addDrinksToChart": "Add drinks to view the chart",
+  "bac": "BAC"
 }

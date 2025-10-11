@@ -386,6 +386,15 @@ export default function SessionDetailsScreen() {
           // Formato namespace.chiave generico
           const [namespace, key] = displayName.split('.');
           displayName = t(key, { ns: namespace, defaultValue: key });
+        } else {
+          // 🔥 FIX: Prova a tradurre come drinkTypes se non ha namespace
+          const translatedFromDrinkTypes = t(`drinkTypes.${displayName}`, { ns: 'session', defaultValue: null });
+          if (translatedFromDrinkTypes) {
+            displayName = translatedFromDrinkTypes;
+          } else {
+            // Fallback: usa il nome così com'è
+            displayName = displayName;
+          }
         }
       }
 
@@ -420,11 +429,22 @@ export default function SessionDetailsScreen() {
         console.warn('Errore nel parsing dell\'orario del cibo:', e);
       }
 
-      // Gestisci vari formati di chiavi di traduzione
+      // Gestisci vari formati di chiavi di traduzione per il cibo
       let displayName = item.name;
-      if (displayName && displayName.includes('.')) {
-        const [namespace, key] = displayName.split('.');
-        displayName = t(key, { ns: namespace, defaultValue: key });
+      if (displayName) {
+        if (displayName.includes('.')) {
+          const [namespace, key] = displayName.split('.');
+          displayName = t(key, { ns: namespace, defaultValue: key });
+        } else {
+          // 🔥 FIX: Prova a tradurre come foodTypes se non ha namespace
+          const translatedFromFoodTypes = t(`foodTypes.${displayName}`, { ns: 'session', defaultValue: null });
+          if (translatedFromFoodTypes) {
+            displayName = translatedFromFoodTypes;
+          } else {
+            // Fallback: usa il nome così com'è
+            displayName = displayName;
+          }
+        }
       }
 
       return (
