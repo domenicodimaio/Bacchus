@@ -1358,7 +1358,7 @@ function SessionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-      backgroundColor: '#121212',
+      // backgroundColor rimosso - usato dinamicamente
     },
     scrollContainer: {
       flex: 1,
@@ -1473,7 +1473,7 @@ const styles = StyleSheet.create({
       fontWeight: '600',
     },
     endSessionButton: {
-      backgroundColor: '#FF4040',
+      // backgroundColor rimosso - usato dinamicamente
       paddingVertical: 10,
       paddingHorizontal: 20,
       marginVertical: 12,
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
       padding: 12,
-      backgroundColor: 'rgba(40, 40, 50, 0.7)',
+      // backgroundColor rimosso - usato dinamicamente
       borderRadius: 10,
       marginBottom: 8,
     },
@@ -1578,20 +1578,20 @@ const styles = StyleSheet.create({
       padding: 30,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(40, 40, 50, 0.3)',
+      // backgroundColor rimosso - usato dinamicamente
       borderRadius: 15,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.05)',
+      // borderColor rimosso - usato dinamicamente
       marginHorizontal: 5,
     },
     consumptionEmpty: {
       padding: 30,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(40, 40, 50, 0.3)',
+      // backgroundColor rimosso - usato dinamicamente
       borderRadius: 15,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.05)',
+      // borderColor rimosso - usato dinamicamente
       marginHorizontal: 5,
     },
     emptyText: {
@@ -1861,33 +1861,33 @@ const styles = StyleSheet.create({
           <TouchableOpacity 
             style={[
               styles.toggleChartButton, 
-              { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.8)' }
+              { backgroundColor: colors.cardElevated }
             ]} 
             onPress={handleToggleChart}
           >
-            <Text style={[styles.toggleChartText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
-              Mostra grafico
+            <Text style={[styles.toggleChartText, { color: colors.textSecondary }]}>
+              {t('showChart')}
             </Text>
-            <Feather name="chevron-down" size={16} color={isDarkMode ? '#CBD5E1' : '#475569'} />
+            <Feather name="chevron-down" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
         
         {/* Chart section */}
         {showChart && (
           <View style={styles.chartContainer}>
-            <Text style={[styles.chartTitle, { color: isDarkMode ? '#E2E8F0' : '#334155' }]}>
+            <Text style={[styles.chartTitle, { color: colors.text }]}>
               {t('Andamento tasso alcolico')}
             </Text>
             
             {((session?.bacSeries && session.bacSeries.length >= 2) || (session?.drinks && session.drinks.length > 0)) ? (
               renderBACChart()
             ) : (
-              <PaperCard style={[styles.noDataCard, { backgroundColor: '#14233B' }]}>
+              <PaperCard style={[styles.noDataCard, { backgroundColor: colors.cardElevated }]}>
                 <View style={styles.noDataContent}>
-                  <Text style={[styles.noDataText, { color: '#FFFFFF', fontWeight: '600' }]}>
+                  <Text style={[styles.noDataText, { color: colors.text, fontWeight: '600' }]}>
                     Dati insufficienti
                   </Text>
-                  <Text style={[styles.noDataSubtext, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+                  <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
                     Aggiungi bevande per visualizzare il grafico
                   </Text>
                 </View>
@@ -1898,14 +1898,14 @@ const styles = StyleSheet.create({
             <TouchableOpacity 
               style={[
                 styles.toggleChartButton, 
-                { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.8)' }
+                { backgroundColor: colors.cardElevated }
               ]} 
               onPress={handleToggleChart}
             >
-              <Text style={[styles.toggleChartText, { color: isDarkMode ? '#CBD5E1' : '#475569' }]}>
-                Nascondi grafico
+              <Text style={[styles.toggleChartText, { color: colors.textSecondary }]}>
+                {t('hideChart')}
               </Text>
-              <Feather name="chevron-up" size={16} color={isDarkMode ? '#CBD5E1' : '#475569'} />
+              <Feather name="chevron-up" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
@@ -1917,7 +1917,7 @@ const styles = StyleSheet.create({
           {session?.drinks && session.drinks.length > 0 ? (
             <View style={styles.consumptionItems}>
               {session.drinks.map((drink, index) => (
-                <View key={drink.id} style={styles.consumptionItem}>
+                <View key={drink.id} style={[styles.consumptionItem, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
                   <MaterialCommunityIcons 
                     name="glass-cocktail" 
                     size={22} 
@@ -1957,7 +1957,7 @@ const styles = StyleSheet.create({
           {session?.foods && session.foods.length > 0 ? (
             <View style={styles.consumptionItems}>
               {session.foods.map((food, index) => (
-                <View key={food.id} style={styles.consumptionItem}>
+                <View key={food.id} style={[styles.consumptionItem, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
                   <FontAwesome5 
                     name="utensils" 
                     size={20} 

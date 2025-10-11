@@ -247,7 +247,8 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
         // Crea un grafico semplice che mostra il BAC attuale e la discesa a zero
         const now = new Date();
         const metabolismRate = 0.017; // g/L per ora (aggiornato)
-        const hours = Math.ceil(bacData[0].bac / metabolismRate); // Ore per tornare a zero
+        const exactHours = bacData[0].bac / metabolismRate; // Ore esatte per tornare a zero
+        const hours = Math.ceil(exactHours); // Ore arrotondate per il numero di punti
         
         const dataPoints = [];
         
@@ -282,6 +283,14 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
             label: formatTimeLabel(time)
           });
         }
+        
+        // Aggiungi sempre un punto finale esatto per il ritorno a zero
+        const exactZeroTime = new Date(now.getTime() + (exactHours * 60 * 60 * 1000));
+        dataPoints.push({
+          x: numPoints + 2,
+          y: 0,
+          label: formatTimeLabel(exactZeroTime)
+        });
         
         const result = {
           labels: dataPoints.map(d => d.label),

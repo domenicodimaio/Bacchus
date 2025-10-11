@@ -272,5 +272,7 @@
   "selectBeverage": "Scegli la bevanda",
   "adjustDetails": "Personalizza dettagli",
   "next": "Avanti",
-  "back": "Indietro"
+  "back": "Indietro",
+  "showChart": "Mostra grafico",
+  "hideChart": "Nascondi grafico"
 }
