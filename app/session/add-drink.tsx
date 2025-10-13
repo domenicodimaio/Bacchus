@@ -912,6 +912,7 @@ export default function AddDrinkScreen() {
       <AppHeader
         title="addDrink"
         translationNamespace="session"
+        isMainScreen={false}
       />
       
       <View style={styles.progressContainer}>

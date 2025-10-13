@@ -20,8 +20,8 @@ import { Session, UserProfile, Drink, FoodRecord } from '../../types/session';
 
 // ===== STATO SEMPLIFICATO =====
 let _initialized = false;
-let activeSession: Session | null = null;
-let sessionHistory: Session[] = [];
+export let activeSession: Session | null = null; // 🔥 Export per reset da auth.service
+export let sessionHistory: Session[] = []; // 🔥 Export per reset da auth.service
 let _currentUserId: string | null = null;
 
 // 🔥 Timer globale per aggiornamento BAC automatico
@@ -80,6 +80,18 @@ export function registerBACUpdateCallback(callback: () => void): () => void {
       bacUpdateCallbacks.splice(index, 1);
     }
   };
+}
+
+// 🔥 Reset variabili globali per cambio utente
+export function resetSessionState(): void {
+  console.log('🔄 Reset stato sessioni per cambio utente');
+  activeSession = null;
+  sessionHistory = [];
+  _initialized = false;
+  _currentUserId = null;
+  
+  // Ferma il timer se attivo
+  stopBACUpdateTimer();
 }
 
 // 🔥 Carica la sessione attiva da storage e avvia il timer se necessario
@@ -331,8 +343,8 @@ async function loadSessionHistoryInBackground(userId: string | null = null): Pro
       try {
         const history = JSON.parse(historyData);
         sessionHistory = userId 
-          ? history.filter(s => !s.user_id || s.user_id === userId)
-          : history;
+          ? history.filter(s => s.user_id === userId) // 🔥 FIX: Solo sessioni dell'utente specifico
+          : history.filter(s => !s.user_id); // Solo sessioni guest per utenti non autenticati
       } catch (error) {
         sessionHistory = [];
       }

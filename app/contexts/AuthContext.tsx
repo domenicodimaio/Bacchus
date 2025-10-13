@@ -381,14 +381,23 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             setAccessToken(result.session.access_token);
           }
           
-          // Usa il servizio per controllare wizard (no duplicazione logica)
-          try {
-            const wizardCompleted = await authService.hasCompletedProfileWizard();
-            setHasCompletedProfileWizard(wizardCompleted);
-          } catch (error) {
-            console.log(`[AUTH_CONTEXT] Errore controllo wizard, assumo non completato`);
-            setHasCompletedProfileWizard(false);
-          }
+        // 🔥 FIX PERSISTENZA: Carica profili e sessioni dopo login con provider
+        console.log('[AUTH_CONTEXT] Caricamento profili dopo login con provider...');
+        await loadUserProfiles(result.user.id);
+        
+        // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database
+        console.log('[AUTH_CONTEXT] Caricamento sessioni dal database...');
+        const sessionService = require('../lib/services/session.service');
+        await sessionService.loadSessionHistoryFromStorage();
+        
+        // Usa il servizio per controllare wizard (no duplicazione logica)
+        try {
+          const wizardCompleted = await authService.hasCompletedProfileWizard();
+          setHasCompletedProfileWizard(wizardCompleted);
+        } catch (error) {
+          console.log(`[AUTH_CONTEXT] Errore controllo wizard, assumo non completato`);
+          setHasCompletedProfileWizard(false);
+        }
         }
         
         return { success: true, data: result.data };

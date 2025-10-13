@@ -610,13 +610,13 @@ export default function SettingsScreen() {
               {/* Lista dettagliata delle funzionalità Premium */}
               <View style={{ marginLeft: 8 }}>
                 {[
-                  { key: 'unlimitedSessions', icon: 'infinite-outline', text: 'Sessioni illimitate' },
-                  { key: 'advancedStatistics', icon: 'stats-chart-outline', text: 'Statistiche dettagliate e grafici' },
-                  { key: 'dataExport', icon: 'download-outline', text: 'Esportazione dati in CSV/PDF' },
-                  { key: 'personalizedCalculations', icon: 'calculator-outline', text: 'Calcoli personalizzati avanzati' },
-                  { key: 'iosWidgets', icon: 'phone-portrait-outline', text: 'Widget iOS per la schermata home' },
-                  { key: 'noAds', icon: 'eye-off-outline', text: 'Nessuna pubblicità' },
-                  { key: 'prioritySupport', icon: 'headset-outline', text: 'Supporto prioritario' }
+                  { key: 'unlimitedSessions', icon: 'infinite-outline', text: t('unlimitedSessions', { ns: 'purchases', defaultValue: 'Sessioni illimitate' }) },
+                  { key: 'advancedStatistics', icon: 'stats-chart-outline', text: t('advancedStatistics', { ns: 'purchases', defaultValue: 'Statistiche dettagliate e grafici' }) },
+                  { key: 'dataExport', icon: 'download-outline', text: t('dataExport', { ns: 'purchases', defaultValue: 'Esportazione dati in CSV/PDF' }) },
+                  { key: 'personalizedCalculations', icon: 'calculator-outline', text: t('personalizedCalculations', { ns: 'purchases', defaultValue: 'Calcoli personalizzati avanzati' }) },
+                  { key: 'iosWidgets', icon: 'phone-portrait-outline', text: t('iosWidgets', { ns: 'purchases', defaultValue: 'Widget iOS per la schermata home' }) },
+                  { key: 'noAds', icon: 'eye-off-outline', text: t('noAds', { ns: 'purchases', defaultValue: 'Nessuna pubblicità' }) },
+                  { key: 'prioritySupport', icon: 'headset-outline', text: t('prioritySupport', { ns: 'purchases', defaultValue: 'Supporto prioritario' }) }
                 ].map((feature, index) => (
                   <View key={index} style={{ 
                     flexDirection: 'row', 

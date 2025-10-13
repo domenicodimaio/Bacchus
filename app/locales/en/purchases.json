@@ -101,5 +101,6 @@
     "terms": "By subscribing you accept our Terms of Service and Privacy Policy"
   },
   "viewPlans": "View Plans",
-  "upgradeMessage": "A premium subscription is required to access this feature."
+  "upgradeMessage": "A premium subscription is required to access this feature.",
+  "prioritySupport": "Priority Support"
 }

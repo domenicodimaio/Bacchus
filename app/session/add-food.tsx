@@ -322,6 +322,7 @@ export default function AddFoodScreen() {
       <AppHeader
         title={t('addFood')}
         translationNamespace="session"
+        isMainScreen={false}
       />
       
       <View style={styles.progressContainer}>

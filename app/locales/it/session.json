@@ -38,6 +38,7 @@
   "chartNote": "Nota: Questo grafico mostra i livelli stimati di alcol nel sangue in base alle tue bevande.",
   "consumptionLog": "Registro Consumi",
   "alcohol": "alcol",
+  "absorptionReduction": "Riduzione assorbimento",
   "absorptionFactor": "Fattore di Assorbimento",
   "tapAddDrink": "Tocca 'Aggiungi Bevanda' per iniziare",
   "soberBy": "Sobrio entro",

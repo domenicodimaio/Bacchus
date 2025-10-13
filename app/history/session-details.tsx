@@ -387,9 +387,9 @@ export default function SessionDetailsScreen() {
           const [namespace, key] = displayName.split('.');
           displayName = t(key, { ns: namespace, defaultValue: key });
         } else {
-          // 🔥 FIX: Prova a tradurre come drinkTypes se non ha namespace
-          const translatedFromDrinkTypes = t(`drinkTypes.${displayName}`, { ns: 'session', defaultValue: null });
-          if (translatedFromDrinkTypes) {
+          // 🔥 FIX: Prova a tradurre dal namespace drinktypes
+          const translatedFromDrinkTypes = t(displayName, { ns: 'drinktypes', defaultValue: null });
+          if (translatedFromDrinkTypes && translatedFromDrinkTypes !== displayName) {
             displayName = translatedFromDrinkTypes;
           } else {
             // Fallback: usa il nome così com'è
@@ -406,7 +406,7 @@ export default function SessionDetailsScreen() {
           <View style={styles.itemDetails}>
             <Text style={[styles.itemName, { color: colors.text }]}>{displayName}</Text>
             <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
-              {item.volume}ml • {alcoholGrams.toFixed(1)}g {t('alcohol', { defaultValue: 'alcol' })}
+              {item.volume}ml • {alcoholGrams.toFixed(1)}g {t('alcohol', { ns: 'session', defaultValue: 'alcol' })}
             </Text>
           </View>
           <Text style={[styles.itemTime, { color: colors.textSecondary }]}>{timeText}</Text>
@@ -436,9 +436,9 @@ export default function SessionDetailsScreen() {
           const [namespace, key] = displayName.split('.');
           displayName = t(key, { ns: namespace, defaultValue: key });
         } else {
-          // 🔥 FIX: Prova a tradurre come foodTypes se non ha namespace
-          const translatedFromFoodTypes = t(`foodTypes.${displayName}`, { ns: 'session', defaultValue: null });
-          if (translatedFromFoodTypes) {
+          // 🔥 FIX: Prova a tradurre dal namespace foodtypes
+          const translatedFromFoodTypes = t(displayName, { ns: 'foodtypes', defaultValue: null });
+          if (translatedFromFoodTypes && translatedFromFoodTypes !== displayName) {
             displayName = translatedFromFoodTypes;
           } else {
             // Fallback: usa il nome così com'è
@@ -459,7 +459,7 @@ export default function SessionDetailsScreen() {
           <View style={styles.itemDetails}>
             <Text style={[styles.itemName, { color: colors.text }]}>{displayName}</Text>
             <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
-              {t('absorptionReduction', { defaultValue: 'Riduzione assorbimento' })}: {((1 - (item.absorptionFactor || 0.95)) * 100).toFixed(0)}%
+              {t('absorptionReduction', { ns: 'session', defaultValue: 'Riduzione assorbimento' })}: {((1 - (item.absorptionFactor || 0.95)) * 100).toFixed(0)}%
             </Text>
           </View>
           <Text style={[styles.itemTime, { color: colors.textSecondary }]}>{timeText}</Text>

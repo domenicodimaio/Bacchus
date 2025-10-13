@@ -543,15 +543,23 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                   <View style={styles.timeValueWithInfoRow}>
                     <Text style={[styles.timeValue, { color: theme.textPrimary }]}>
                       {validBac <= 0.5 ? 
-                        // Per il ritorno a 0.00, calcoliamo il tempo corretto (non "Adesso")
+                        // 🔥 FIX: Usa timeToZero dalla sessione (aggiornato dal timer)
                         (() => {
+                          if (timeToZero && typeof timeToZero === 'string') {
+                            return timeToZero === '0h 0m' ? t('now', { ns: 'common', defaultValue: 'Adesso' }) : timeToZero;
+                          }
+                          // Fallback al calcolo se non disponibile
                           const hoursToZero = validBac / METABOLISM_RATE;
                           const hours = Math.floor(hoursToZero);
                           const minutes = Math.floor((hoursToZero % 1) * 60);
                           return hoursToZero < 0.01 ? t('now', { ns: 'common', defaultValue: 'Adesso' }) : `${hours}h ${minutes.toString().padStart(2, '0')}m`;
                         })() : 
-                        // Per il ritorno sotto al limite legale
+                        // 🔥 FIX: Usa timeToLegal dalla sessione (aggiornato dal timer)
                         (() => {
+                          if (timeToLegal && typeof timeToLegal === 'string') {
+                            return timeToLegal === '0h 0m' ? t('now', { ns: 'common', defaultValue: 'Adesso' }) : timeToLegal;
+                          }
+                          // Fallback al calcolo se non disponibile
                           const hoursToLegal = (validBac - 0.5) / METABOLISM_RATE;
                           const hours = Math.floor(hoursToLegal);
                           const minutes = Math.floor((hoursToLegal % 1) * 60);

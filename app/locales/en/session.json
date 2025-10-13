@@ -36,6 +36,7 @@
   "chartNote": "Note: This chart shows estimated blood alcohol levels based on your drinks.",
   "consumptionLog": "Consumption Log",
   "alcohol": "alcohol",
+  "absorptionReduction": "Absorption Reduction",
   "absorptionFactor": "Absorption Factor",
   "tapAddDrink": "Tap 'Add Drink' to start",
   "soberBy": "Sober by",

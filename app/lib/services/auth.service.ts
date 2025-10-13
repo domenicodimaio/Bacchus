@@ -720,6 +720,10 @@ export const signOut = async (): Promise<AuthResponse> => {
     // 4. Pulisci sessioni di autenticazione
     await clearStoredAuthSessions();
     
+    // 🔥 FIX: Pulisci cronologia sessioni per evitare cross-contamination
+    const sessionService = require('./session.service');
+    sessionService.resetSessionState(); // Reset completo stato sessioni
+    
     // 5. FORZA IMMEDIATAMENTE LA NAVIGAZIONE AL LOGIN
     const { router } = require('expo-router');
     

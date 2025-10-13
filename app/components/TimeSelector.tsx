@@ -36,15 +36,29 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   const [tempDate, setTempDate] = useState(value);
   
   const handleDateChange = (event: any, selectedDate?: Date) => {
+    // 🔥 FIX: Gestisci anche la cancellazione del picker
+    if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+      return;
+    }
+    
     const currentDate = selectedDate || value;
-    setShowDatePicker(Platform.OS === 'ios');
+    // 🔥 FIX: Chiudi sempre il picker dopo la selezione per UX consistente
+    setShowDatePicker(false);
     setTempDate(currentDate);
-      onChange(currentDate);
+    onChange(currentDate);
   };
   
   const handleTimeChange = (event: any, selectedTime?: Date) => {
+    // 🔥 FIX: Gestisci anche la cancellazione del picker
+    if (event.type === 'dismissed') {
+      setShowTimePicker(false);
+      return;
+    }
+    
     const currentTime = selectedTime || value;
-    setShowTimePicker(Platform.OS === 'ios');
+    // 🔥 FIX: Chiudi sempre il picker dopo la selezione per UX consistente
+    setShowTimePicker(false);
     setTempDate(currentTime);
     onChange(currentTime);
   };
@@ -65,7 +79,11 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
       <View style={styles.selectors}>
         <View style={styles.dateTimeContainer}>
           <TouchableOpacity
-            style={[styles.dateSelector, { backgroundColor: colors.cardBackground }]}
+            style={[
+              styles.dateSelector, 
+              { backgroundColor: colors.cardBackground },
+              showDatePicker && { borderColor: colors.primary, borderWidth: 2 }
+            ]}
             onPress={() => setShowDatePicker(true)}
           >
             <Text style={[styles.dateText, { color: colors.text }]}>
@@ -75,7 +93,11 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
           </TouchableOpacity>
           
         <TouchableOpacity 
-            style={[styles.timeSelector, { backgroundColor: colors.cardBackground }]}
+            style={[
+              styles.timeSelector, 
+              { backgroundColor: colors.cardBackground },
+              showTimePicker && { borderColor: colors.primary, borderWidth: 2 }
+            ]}
             onPress={() => setShowTimePicker(true)}
         >
           <Text style={[styles.timeText, { color: colors.text }]}>
