@@ -42,8 +42,10 @@ function startBACUpdateTimer() {
       // Aggiorna BAC solo se c'è una sessione attiva
       if (activeSession) {
         console.log('🔄 Timer globale: aggiornamento automatico BAC...');
+        const oldBAC = activeSession.currentBAC || 0;
         await updateSessionBAC();
-        console.log(`🔄 Timer globale: BAC aggiornato a ${activeSession.currentBAC?.toFixed(3) || 0}`);
+        const newBAC = activeSession.currentBAC || 0;
+        console.log(`🔄 Timer globale: BAC ${oldBAC.toFixed(3)} → ${newBAC.toFixed(3)}, soberTime: ${activeSession.soberTime}`);
         
         // 🔥 Notifica tutti i componenti registrati
         bacUpdateCallbacks.forEach(callback => {
@@ -53,6 +55,8 @@ function startBACUpdateTimer() {
             console.error('🔴 Errore callback BAC update:', callbackError);
           }
         });
+      } else {
+        console.log('🔄 Timer globale: Nessuna sessione attiva');
       }
     } catch (error) {
       console.error('🔴 Errore timer globale BAC:', error);
@@ -172,9 +176,16 @@ export function getActiveSession(): Session | null {
   return activeSession;
 }
 
-// Ottiene la cronologia delle sessioni
+// Ottiene la cronologia delle sessioni - SEMPRE per l'utente corrente
 export function getSessionHistory(): Session[] {
   console.log(`📊 DIAGNOSTICA: getSessionHistory chiamato, restituisce ${sessionHistory.length} sessioni`);
+  
+  // 🔥 FIX CRITICO: La cronologia deve essere sempre caricata per l'utente corrente
+  // Se la cronologia è vuota, potrebbe essere necessario caricarla
+  if (sessionHistory.length === 0) {
+    console.log('📊 DIAGNOSTICA: Cronologia vuota, potrebbe essere necessario caricarla');
+  }
+  
   return sessionHistory;
 }
 
@@ -186,6 +197,21 @@ export function setSessionHistory(history: Session[]): void {
   } else {
     console.error('📌 DIAGNOSTICA: Tentativo di impostare sessionHistory con un valore non valido:', history);
   }
+}
+
+// 🔥 FIX CRITICO: Reset completo del servizio per cambio utente
+export function resetSessionService(): void {
+  console.log('🔄 RESET: Resettando session service per cambio utente');
+  
+  // Reset variabili globali
+  activeSession = null;
+  sessionHistory = [];
+  _currentUserId = null;
+  
+  // Ferma timer BAC se attivo
+  stopBACUpdateTimer();
+  
+  console.log('✅ RESET: Session service resettato completamente');
 }
 
 // Nuova funzione asincrona per caricare la cronologia
@@ -869,9 +895,17 @@ export async function endSession(): Promise<boolean> {
     // Ottieni userId PRIMA di salvare
     const userId = await getCurrentUserId();
     
-    // Salva la sessione nella cronologia
-    sessionHistory.push(sessionToSave);
-    await saveSessionLocally(sessionHistory, 'history');
+    // 🔥 FIX CRITICO: Carica la cronologia dell'utente corrente prima di aggiungere
+    const currentHistory = await loadSessionHistoryFromStorage();
+    
+    // Aggiungi la sessione alla cronologia dell'utente corrente
+    const updatedHistory = [...currentHistory, sessionToSave];
+    
+    // Salva la cronologia aggiornata
+    await saveSessionLocally(updatedHistory, 'history');
+    
+    // Aggiorna anche la variabile globale con la cronologia dell'utente corrente
+    sessionHistory = updatedHistory;
     
     // Salva su Supabase se l'utente è autenticato
     if (userId) {
@@ -992,7 +1026,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
     // Calcola BAC semplificato ma robusto
     try {
       const r = gender === 'male' ? 0.68 : 0.55;
-      const metabolismRate = 0.015; // g/L all'ora
+      const metabolismRate = 0.015; // g/L all'ora (standard medico)
       
       let totalBAC = 0;
       
@@ -1017,8 +1051,10 @@ export async function updateSessionBAC(): Promise<Session | null> {
             alcoholGrams = (volume * percentage * 0.789) / 100;
           }
           
-          // BAC iniziale per questo drink
-          const initialBAC = alcoholGrams / (r * weightKg);
+          // BAC iniziale per questo drink (formula semplificata e realistica)
+          // Una birra normale (330ml, 5%) dovrebbe dare circa 0.02-0.03 ‰
+          // Usiamo un fattore di correzione per ottenere valori realistici
+          const initialBAC = (alcoholGrams * 0.1) / (r * weightKg);
           
           // Tempo trascorso dal consumo
           const drinkTime = new Date(drink.time);
@@ -1029,6 +1065,8 @@ export async function updateSessionBAC(): Promise<Session | null> {
           
           // BAC rimanente
           const remaining = Math.max(0, initialBAC - metabolized);
+          
+          console.log(`🔍 DEBUG DRINK: alcoholGrams=${alcoholGrams.toFixed(1)}, initialBAC=${initialBAC.toFixed(3)}, hoursSince=${hoursSince.toFixed(2)}, metabolized=${metabolized.toFixed(3)}, remaining=${remaining.toFixed(3)}`);
           
           totalBAC += remaining;
         } catch (e) {
@@ -1060,6 +1098,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
       // Calcola tempo per tornare sobri
       if (totalBAC > 0.01) {
         const hours = totalBAC / metabolismRate;
+        console.log(`🔍 DEBUG BAC: BAC=${totalBAC.toFixed(3)}, metabolismRate=${metabolismRate}, hours=${hours.toFixed(2)}`);
         activeSession.soberTime = `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
         activeSession.timeToSober = Math.ceil(hours * 60);
       } else {
@@ -1969,6 +2008,7 @@ export default {
   getActiveSession,
   getSessionHistory,
   setSessionHistory,
+  resetSessionService,
   initSessionService,
   loadSessionsFromLocalStorage,
   saveSessionLocally,

@@ -525,6 +525,17 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
             
+            // 🔥 FIX CRITICO: Controlla anche se l'utente ha profili
+            let needsWizard = isNewUser;
+            
+            if (!isNewUser) {
+              // Anche se non è nuovo, controlla se ha profili
+              const profileService = require('./profile.service');
+              const userProfiles = await profileService.getProfiles(true); // Force refresh
+              needsWizard = !userProfiles || userProfiles.length === 0;
+              console.log('🍎 AUTH: Utente esistente senza profili?', needsWizard, 'Profili:', userProfiles?.length || 0);
+            }
+            
             // Salva i dati utente in AsyncStorage per offline
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));
             await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(data.session));
@@ -536,9 +547,9 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             console.log('🍎 AUTH: Sessione salvata correttamente');
             
-            // 🎯 Se è un nuovo utente, deve completare il wizard
-            if (isNewUser) {
-              console.log('🍎 AUTH: Nuovo utente Apple - deve completare wizard');
+            // 🎯 Se l'utente ha bisogno del wizard (nuovo o senza profili)
+            if (needsWizard) {
+              console.log('🍎 AUTH: Utente deve completare wizard - nuovo:', isNewUser, 'senza profili:', needsWizard);
               
               // Rimuovi eventuali flag di wizard completato
               await AsyncStorage.removeItem('profile_wizard_completed');
@@ -551,7 +562,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                   session: data.session
                 },
                 redirectToProfileCreation: true, // 🔥 Flag per reindirizzare al wizard
-                isNewUser: true
+                isNewUser: isNewUser
               };
             }
             
@@ -720,9 +731,13 @@ export const signOut = async (): Promise<AuthResponse> => {
     // 4. Pulisci sessioni di autenticazione
     await clearStoredAuthSessions();
     
-    // 🔥 FIX: Pulisci cronologia sessioni per evitare cross-contamination
+    // 🔥 FIX CRITICO: Reset completo session service per cambio utente
     const sessionService = require('./session.service');
-    sessionService.resetSessionState(); // Reset completo stato sessioni
+    sessionService.resetSessionService(); // Reset completo stato sessioni e cronologia
+    
+    // 🔥 FIX CRITICO: Reset completo profile service per cambio utente
+    const profileService = require('./profile.service');
+    profileService.resetProfileService(); // Reset cache profili
     
     // 5. FORZA IMMEDIATAMENTE LA NAVIGAZIONE AL LOGIN
     const { router } = require('expo-router');

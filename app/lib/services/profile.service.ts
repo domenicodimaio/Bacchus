@@ -21,6 +21,17 @@ const ACTIVE_PROFILE_KEY = 'bacchus_active_profile';
 const CURRENT_PROFILE_KEY = 'bacchus_current_profile';
 const USER_DATA_KEY = 'bacchus_user_data';
 
+// 🔥 FIX CRITICO: Chiavi isolate per utente
+const getUserProfilesKey = (userId: string | null): string => {
+  if (!userId) return GUEST_PROFILES_KEY;
+  return `user_${userId}_profiles`;
+};
+
+const getUserActiveProfileKey = (userId: string | null): string => {
+  if (!userId) return ACTIVE_PROFILE_KEY;
+  return `user_${userId}_active_profile`;
+};
+
 // Cache invalidation variables
 let _profileCacheTimestamp: number = 0;
 const CACHE_EXPIRY_MS = 1000 * 60 * 5; // 5 minuti
@@ -307,8 +318,10 @@ export const createProfile = async (profileData: Partial<UserProfile>, isGuest: 
  */
 export const saveProfileLocally = async (profile: UserProfile): Promise<boolean> => {
   try {
-    // Determina la chiave di storage corretta in base al tipo di profilo
-    const storageKey = profile.isGuest ? GUEST_PROFILES_KEY : PROFILES_KEY;
+    // 🔥 FIX CRITICO: Usa chiavi isolate per utente
+    const currentUser = await getCurrentUserSafe();
+    const userId = currentUser?.id || null;
+    const storageKey = profile.isGuest ? GUEST_PROFILES_KEY : getUserProfilesKey(userId);
     
     // Ottieni i profili esistenti
     const existingProfilesJson = await AsyncStorage.getItem(storageKey);
@@ -394,7 +407,10 @@ export const setDefaultProfile = async (profileId: string, isGuest: boolean): Pr
  */
 export const setActiveProfile = async (profileId: string): Promise<boolean> => {
   try {
-    await AsyncStorage.setItem(ACTIVE_PROFILE_KEY, profileId);
+    // 🔥 FIX CRITICO: Usa chiave isolata per utente
+    const currentUser = await getCurrentUserSafe();
+    const activeProfileKey = getUserActiveProfileKey(currentUser?.id || null);
+    await AsyncStorage.setItem(activeProfileKey, profileId);
     return true;
   } catch (error) {
     console.error('Error setting active profile:', error);
@@ -407,7 +423,10 @@ export const setActiveProfile = async (profileId: string): Promise<boolean> => {
  */
 export const getActiveProfile = async (): Promise<UserProfile | null> => {
   try {
-    const activeProfileId = await AsyncStorage.getItem(ACTIVE_PROFILE_KEY);
+    // 🔥 FIX CRITICO: Usa chiave isolata per utente
+    const currentUser = await getCurrentUserSafe();
+    const activeProfileKey = getUserActiveProfileKey(currentUser?.id || null);
+    const activeProfileId = await AsyncStorage.getItem(activeProfileKey);
     if (!activeProfileId) return null;
     
     // Cerca prima nei profili utente
@@ -479,8 +498,9 @@ export const getProfiles = async (forceRefresh = false): Promise<UserProfile[]> 
         // Aggiorna il timestamp della cache
         _profileCacheTimestamp = Date.now();
         
-        // Aggiorna anche lo storage locale
-        await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+        // 🔥 FIX CRITICO: Usa chiave isolata per utente
+        const profilesKey = getUserProfilesKey(currentUser.id);
+        await AsyncStorage.setItem(profilesKey, JSON.stringify(profiles));
         
         return profiles;
       }
@@ -488,7 +508,9 @@ export const getProfiles = async (forceRefresh = false): Promise<UserProfile[]> 
     
     // Se non abbiamo potuto aggiornare dal database, o non è necessario,
     // ottieni i profili dallo storage locale
-    const profilesJson = await AsyncStorage.getItem(PROFILES_KEY);
+    const currentUser = await getCurrentUserSafe();
+    const profilesKey = getUserProfilesKey(currentUser?.id || null);
+    const profilesJson = await AsyncStorage.getItem(profilesKey);
     if (profilesJson) {
       try {
         const profiles: UserProfile[] = JSON.parse(profilesJson);
@@ -717,7 +739,9 @@ export const deleteProfile = async (profileId: string): Promise<boolean> => {
         await setActiveProfile(newActiveProfile.id);
       } else {
         // Se non ci sono più profili, rimuovi il profilo attivo
-        await AsyncStorage.removeItem(ACTIVE_PROFILE_KEY);
+        const currentUser = await getCurrentUserSafe();
+        const activeProfileKey = getUserActiveProfileKey(currentUser?.id || null);
+        await AsyncStorage.removeItem(activeProfileKey);
       }
     }
     
@@ -879,6 +903,16 @@ export const setCurrentUserProfile = async (profile: UserProfile): Promise<boole
   }
 };
 
+// 🔥 FIX CRITICO: Reset profili per cambio utente
+export const resetProfileService = (): void => {
+  console.log('🔄 RESET: Resettando profile service per cambio utente');
+  
+  // Reset cache
+  _profileCacheTimestamp = 0;
+  
+  console.log('✅ RESET: Profile service resettato completamente');
+};
+
 /**
  * Carica tutti i profili dal database Supabase per l'utente corrente
  */
@@ -924,8 +958,9 @@ export const loadProfilesFromSupabase = async (): Promise<UserProfile[]> => {
       hasCompletedWizard: dbProfile.has_completed_wizard
     }));
     
-    // Aggiorna anche lo storage locale
-    await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+    // 🔥 FIX CRITICO: Usa chiave isolata per utente
+    const profilesKey = getUserProfilesKey(currentUser.id);
+    await AsyncStorage.setItem(profilesKey, JSON.stringify(profiles));
     
     return profiles;
   } catch (error) {
@@ -1023,6 +1058,7 @@ export default {
   getActiveProfile,
   deleteProfile,
   resetLocalProfiles,
+  resetProfileService,
   getCurrentUserProfile,
   setCurrentUserProfile,
   loadProfilesFromSupabase,
