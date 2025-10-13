@@ -240,26 +240,19 @@ function SessionScreen() {
       console.log('🔄 Schermata sessione in focus - aggiornamento dati...');
       handleRefreshData();
       
-      // 🔧 TIMER BAC AUTO-UPDATE: Aggiorna ogni 60 secondi per aggiornamento automatico BAC
-      const timer = setInterval(() => {
-        console.log('🕐 Timer automatico: aggiornamento BAC ogni 60 secondi...');
-        handleRefreshData(true); // true = aggiornamento periodico, no loading/flash
-      }, 60000); // Update every 60 seconds for automatic BAC updates
-      
-      setUpdateTimer(timer);
+      // 🔥 REGISTRA CALLBACK per aggiornamenti BAC automatici
+      const unregisterCallback = sessionService.registerBACUpdateCallback(() => {
+        console.log('🔄 Callback BAC: Aggiornamento automatico UI...');
+        handleRefreshData(true); // true = aggiornamento silenzioso
+      });
       
       // Avvia le animazioni
       startLoadingAnimations();
       
       return () => {
-        if (timer) clearInterval(timer);
+        // 🔥 Deregistra il callback quando il componente non è più in focus
+        unregisterCallback();
       };
-    } else {
-      // Clear timer when not in focus to save battery
-      if (updateTimer) {
-        clearInterval(updateTimer);
-        setUpdateTimer(null);
-      }
     }
   }, [isFocused]);
 

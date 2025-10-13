@@ -57,11 +57,11 @@ export default function BACChart({ bacData, drinks, foods, limit, showDetails = 
   const [activePoint, setActivePoint] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date()); // 🔥 Stato per l'orario corrente
   
-  // 🔥 Timer per aggiornare l'orario ogni minuto
+  // 🔥 Timer per aggiornare l'orario ogni 5 secondi (coerente con BAC update)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Aggiorna ogni minuto
+    }, 5000); // Aggiorna ogni 5 secondi per fluidità
     
     return () => clearInterval(timer);
   }, []);

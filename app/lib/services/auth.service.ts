@@ -698,6 +698,7 @@ export const signOut = async (): Promise<AuthResponse> => {
     }
     
     // 3. Pulisci AsyncStorage in modo sincrono
+    // 🔥 FIX: Non cancellare i profili degli utenti autenticati - vengono ricaricati dal database
     const keysToRemove = [
       USER_DATA_KEY,
       USER_SESSION_KEY,
@@ -706,9 +707,10 @@ export const signOut = async (): Promise<AuthResponse> => {
       'registration_just_completed',
       'lastKnownSession',
       'activeSession',
-      'bacchus_profiles',
-      'bacchus_active_profile',
-      'bacchus_current_profile',
+      // 🔥 PROFILI RIMOSSI DALLA LISTA - persistono per utenti autenticati
+      // 'bacchus_profiles',        // ✅ MANTIENI: Profili utente
+      // 'bacchus_active_profile',  // ✅ MANTIENI: Profilo attivo
+      // 'bacchus_current_profile', // ✅ MANTIENI: Profilo corrente
       'apple_auth_in_progress',
       'apple_auth_timestamp'
     ];

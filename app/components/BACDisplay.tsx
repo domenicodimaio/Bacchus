@@ -103,11 +103,11 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   const lastBacRef = useRef(bac);
   const [currentTime, setCurrentTime] = useState(new Date()); // 🔥 Stato per l'orario corrente
   
-  // 🔥 Timer per aggiornare il countdown ogni minuto
+  // 🔥 Timer per aggiornare il countdown ogni 5 secondi (coerente con BAC update)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Aggiorna ogni minuto
+    }, 5000); // Aggiorna ogni 5 secondi per maggiore fluidità
     
     return () => clearInterval(timer);
   }, []);

@@ -23,6 +23,86 @@ let _initialized = false;
 let activeSession: Session | null = null;
 let sessionHistory: Session[] = [];
 let _currentUserId: string | null = null;
+
+// 🔥 Timer globale per aggiornamento BAC automatico
+let bacUpdateTimer: NodeJS.Timeout | null = null;
+let bacUpdateCallbacks: (() => void)[] = [];
+
+// 🔥 Avvia il timer globale per aggiornamento BAC automatico
+function startBACUpdateTimer() {
+  // Se c'è già un timer, fermalo prima
+  if (bacUpdateTimer) {
+    clearInterval(bacUpdateTimer);
+  }
+  
+  console.log('🕐 Avvio timer globale BAC - aggiornamento ogni 5 secondi');
+  
+  bacUpdateTimer = setInterval(async () => {
+    try {
+      // Aggiorna BAC solo se c'è una sessione attiva
+      if (activeSession) {
+        console.log('🔄 Timer globale: aggiornamento automatico BAC...');
+        await updateSessionBAC();
+        console.log(`🔄 Timer globale: BAC aggiornato a ${activeSession.currentBAC?.toFixed(3) || 0}`);
+        
+        // 🔥 Notifica tutti i componenti registrati
+        bacUpdateCallbacks.forEach(callback => {
+          try {
+            callback();
+          } catch (callbackError) {
+            console.error('🔴 Errore callback BAC update:', callbackError);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('🔴 Errore timer globale BAC:', error);
+    }
+  }, 5000); // Ogni 5 secondi 🚀
+}
+
+// 🔥 Ferma il timer globale
+function stopBACUpdateTimer() {
+  if (bacUpdateTimer) {
+    console.log('🛑 Fermo timer globale BAC');
+    clearInterval(bacUpdateTimer);
+    bacUpdateTimer = null;
+  }
+}
+
+// 🔥 Registra un callback per gli aggiornamenti BAC
+export function registerBACUpdateCallback(callback: () => void): () => void {
+  bacUpdateCallbacks.push(callback);
+  
+  // Ritorna una funzione per deregistrare il callback
+  return () => {
+    const index = bacUpdateCallbacks.indexOf(callback);
+    if (index > -1) {
+      bacUpdateCallbacks.splice(index, 1);
+    }
+  };
+}
+
+// 🔥 Carica la sessione attiva da storage e avvia il timer se necessario
+async function loadActiveSessionFromStorage() {
+  try {
+    const userId = await getCurrentUserId();
+    const { active } = await loadSessionsFromLocalStorage(userId);
+    
+    if (active && !active.isClosed) {
+      console.log('🔄 Sessione attiva caricata da storage:', active.id);
+      activeSession = active;
+      
+      // 🔥 Avvia il timer se c'è una sessione attiva
+      startBACUpdateTimer();
+      
+      // Aggiorna il BAC immediatamente
+      await updateSessionBAC();
+    }
+  } catch (error) {
+    console.error('🔴 Errore caricamento sessione attiva da storage:', error);
+  }
+}
+
 // Rimossi flag di race condition - causavano più problemi di quanti ne risolvevano
 
 // ===== CHIAVI STORAGE =====
@@ -50,8 +130,10 @@ const LAST_KNOWN_SESSION_KEY = 'bacchus_last_known_session';
 
 // Ottiene la sessione attiva
 export function getActiveSession(): Session | null {
-  // Se non esiste nessuna sessione in memoria, restituisci null
+  // Se non esiste nessuna sessione in memoria, prova a caricarla da storage
   if (!activeSession) {
+    // Carica asincrono senza bloccare (per evitare problemi di performance)
+    loadActiveSessionFromStorage();
     return null;
   }
   
@@ -792,6 +874,9 @@ export async function endSession(): Promise<boolean> {
     // 1. Elimina dalla memoria
     activeSession = null;
     
+    // 🔥 Ferma il timer globale per aggiornamento BAC
+    stopBACUpdateTimer();
+    
     // 2. Elimina da AsyncStorage con doppio controllo di rimozione
     await AsyncStorage.removeItem(activeSessionKey);
     
@@ -1484,6 +1569,9 @@ export async function createSession(profile: UserProfile): Promise<Session | nul
     // Imposta la sessione come attiva in memoria
     activeSession = newSession;
     console.log('Nuova sessione creata con successo');
+
+    // 🔥 Avvia il timer globale per aggiornamento BAC automatico
+    startBACUpdateTimer();
 
     // Salva la sessione localmente
     await saveSessionLocally(newSession, 'active');

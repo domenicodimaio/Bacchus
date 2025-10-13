@@ -107,8 +107,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           setUser(currentUser);
           setIsAuthenticated(true);
           
-          // 🔧 FIX CRITICO: Riattiva caricamento profili
+          // 🔧 FIX CRITICO: Riattiva caricamento profili e sessioni
           await loadUserProfiles(currentUser.id);
+          
+          // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database all'avvio
+          console.log('[AUTH_CONTEXT] Caricamento sessioni dal database all\'avvio...');
+          const sessionService = require('../lib/services/session.service');
+          await sessionService.loadSessionHistoryFromStorage();
           
           // Controllo wizard semplificato
           try {
@@ -265,9 +270,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         
         setIsAuthenticated(true);
         
-        // 🔧 FIX CRITICO: Forza caricamento profili dopo login
+        // 🔧 FIX CRITICO: Forza caricamento profili e sessioni dopo login
         console.log('[AUTH_CONTEXT] Caricamento profili dopo login...');
         await loadUserProfiles(result.user.id);
+        
+        // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database
+        console.log('[AUTH_CONTEXT] Caricamento sessioni dal database...');
+        const sessionService = require('../lib/services/session.service');
+        await sessionService.loadSessionHistoryFromStorage();
         
         // Verifica se l'utente ha completato la procedura guidata del profilo
         const wizardCompleted = await authService.hasCompletedProfileWizard();
