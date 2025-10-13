@@ -2,7 +2,7 @@ export default {
   expo: {
     name: 'Bacchus',
     slug: 'Bacchus',
-    owner: "domedima95",
+    owner: "domedima1995",
     version: '1.2.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -91,7 +91,7 @@ export default {
       supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NTg0MTUsImV4cCI6MjA1ODAzNDQxNX0.VNZ0L4a7yixOk3oATyAz-bCDsohhuNE5ohQdV363xWM',
       bundleIdentifier: 'com.bacchusapp.app',
       eas: {
-        projectId: "5df3e2bc-d6a4-4d90-a4ef-63972d12c8d3"
+        projectId: "9b240d71-6547-43b8-90f3-3266d9f286f1"
       }
     }
   }
