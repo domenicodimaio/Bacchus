@@ -41,11 +41,7 @@ function startBACUpdateTimer() {
     try {
       // Aggiorna BAC solo se c'è una sessione attiva
       if (activeSession) {
-        console.log('🔄 Timer globale: aggiornamento automatico BAC...');
-        const oldBAC = activeSession.currentBAC || 0;
         await updateSessionBAC();
-        const newBAC = activeSession.currentBAC || 0;
-        console.log(`🔄 Timer globale: BAC ${oldBAC.toFixed(3)} → ${newBAC.toFixed(3)}, soberTime: ${activeSession.soberTime}`);
         
         // 🔥 Notifica tutti i componenti registrati
         bacUpdateCallbacks.forEach(callback => {
@@ -55,8 +51,6 @@ function startBACUpdateTimer() {
             console.error('🔴 Errore callback BAC update:', callbackError);
           }
         });
-      } else {
-        console.log('🔄 Timer globale: Nessuna sessione attiva');
       }
     } catch (error) {
       console.error('🔴 Errore timer globale BAC:', error);
@@ -895,17 +889,9 @@ export async function endSession(): Promise<boolean> {
     // Ottieni userId PRIMA di salvare
     const userId = await getCurrentUserId();
     
-    // 🔥 FIX CRITICO: Carica la cronologia dell'utente corrente prima di aggiungere
-    const currentHistory = await loadSessionHistoryFromStorage();
-    
-    // Aggiungi la sessione alla cronologia dell'utente corrente
-    const updatedHistory = [...currentHistory, sessionToSave];
-    
-    // Salva la cronologia aggiornata
-    await saveSessionLocally(updatedHistory, 'history');
-    
-    // Aggiorna anche la variabile globale con la cronologia dell'utente corrente
-    sessionHistory = updatedHistory;
+    // Salva la sessione nella cronologia (metodo semplice)
+    sessionHistory.push(sessionToSave);
+    await saveSessionLocally(sessionHistory, 'history');
     
     // Salva su Supabase se l'utente è autenticato
     if (userId) {
@@ -1051,10 +1037,8 @@ export async function updateSessionBAC(): Promise<Session | null> {
             alcoholGrams = (volume * percentage * 0.789) / 100;
           }
           
-          // BAC iniziale per questo drink (formula semplificata e realistica)
-          // Una birra normale (330ml, 5%) dovrebbe dare circa 0.02-0.03 ‰
-          // Usiamo un fattore di correzione per ottenere valori realistici
-          const initialBAC = (alcoholGrams * 0.1) / (r * weightKg);
+          // BAC iniziale per questo drink (formula Widmark originale)
+          const initialBAC = alcoholGrams / (r * weightKg);
           
           // Tempo trascorso dal consumo
           const drinkTime = new Date(drink.time);
@@ -1066,7 +1050,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
           // BAC rimanente
           const remaining = Math.max(0, initialBAC - metabolized);
           
-          console.log(`🔍 DEBUG DRINK: alcoholGrams=${alcoholGrams.toFixed(1)}, initialBAC=${initialBAC.toFixed(3)}, hoursSince=${hoursSince.toFixed(2)}, metabolized=${metabolized.toFixed(3)}, remaining=${remaining.toFixed(3)}`);
+          // Debug rimosso per performance
           
           totalBAC += remaining;
         } catch (e) {
@@ -1098,7 +1082,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
       // Calcola tempo per tornare sobri
       if (totalBAC > 0.01) {
         const hours = totalBAC / metabolismRate;
-        console.log(`🔍 DEBUG BAC: BAC=${totalBAC.toFixed(3)}, metabolismRate=${metabolismRate}, hours=${hours.toFixed(2)}`);
+        // Debug rimosso
         activeSession.soberTime = `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
         activeSession.timeToSober = Math.ceil(hours * 60);
       } else {

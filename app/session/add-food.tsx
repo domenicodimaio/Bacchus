@@ -409,30 +409,45 @@ export default function AddFoodScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          // Solo pulsante "Avanti" - posizionato a destra
-          <View style={styles.singleButtonContainer}>
-          <TouchableOpacity
-            style={[
-                styles.nextButton, 
-                {
-                  backgroundColor: colors.primary,
-                  opacity: selectedFood ? 1 : 0.5
+          // Pulsanti "Annulla" e "Avanti" per il primo step
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.backButton, 
+                { 
+                  borderColor: colors.border, 
+                  backgroundColor: 'transparent' 
                 }
-            ]}
-              onPress={goToNextStep}
-              disabled={!selectedFood}
-          >
-              <Text style={styles.nextButtonText}>
-                {t('next', { defaultValue: 'Avanti' })}
+              ]} 
+              onPress={() => router.back()}
+            >
+              <Text style={[styles.backButtonText, {color: colors.primary}]}>
+                {t('cancel', { defaultValue: 'Annulla' })}
               </Text>
-              <Ionicons 
-                name="arrow-forward" 
-                size={18} 
-                color="white" 
-                style={styles.nextButtonIcon} 
-              />
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                  styles.nextButton, 
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: selectedFood ? 1 : 0.5
+                  }
+              ]}
+                onPress={goToNextStep}
+                disabled={!selectedFood}
+            >
+                <Text style={styles.nextButtonText}>
+                  {t('next', { defaultValue: 'Avanti' })}
+                </Text>
+                <Ionicons 
+                  name="arrow-forward" 
+                  size={18} 
+                  color="white" 
+                  style={styles.nextButtonIcon} 
+                />
+            </TouchableOpacity>
+          </View>
         )}
     </View>
     </SafeAreaView>

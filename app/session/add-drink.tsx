@@ -1026,8 +1026,23 @@ export default function AddDrinkScreen() {
             )}
           </View>
         ) : (
-          // Solo pulsante "Avanti" - posizionato a destra
-          <View style={styles.singleButtonContainer}>
+          // Pulsanti "Annulla" e "Avanti" per il primo step
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.backButton, 
+                { 
+                  borderColor: colors.border, 
+                  backgroundColor: 'transparent' 
+                }
+              ]} 
+              onPress={() => router.back()}
+            >
+              <Text style={[styles.backButtonText, {color: colors.primary}]}>
+                {t('cancel', { defaultValue: 'Annulla' })}
+              </Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity 
               style={[
                 styles.nextButton, 

@@ -525,16 +525,8 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
             
-            // 🔥 FIX CRITICO: Controlla anche se l'utente ha profili
-            let needsWizard = isNewUser;
-            
-            if (!isNewUser) {
-              // Anche se non è nuovo, controlla se ha profili
-              const profileService = require('./profile.service');
-              const userProfiles = await profileService.getProfiles(true); // Force refresh
-              needsWizard = !userProfiles || userProfiles.length === 0;
-              console.log('🍎 AUTH: Utente esistente senza profili?', needsWizard, 'Profili:', userProfiles?.length || 0);
-            }
+            // Controllo semplice: solo nuovi utenti vanno al wizard
+            const needsWizard = isNewUser;
             
             // Salva i dati utente in AsyncStorage per offline
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));
