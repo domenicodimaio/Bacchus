@@ -508,7 +508,6 @@ export const getProfiles = async (forceRefresh = false): Promise<UserProfile[]> 
     
     // Se non abbiamo potuto aggiornare dal database, o non è necessario,
     // ottieni i profili dallo storage locale
-    const currentUser = await getCurrentUserSafe();
     const profilesKey = getUserProfilesKey(currentUser?.id || null);
     const profilesJson = await AsyncStorage.getItem(profilesKey);
     if (profilesJson) {
