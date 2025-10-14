@@ -419,7 +419,7 @@ export default function AddFoodScreen() {
                   backgroundColor: 'transparent' 
                 }
               ]} 
-              onPress={() => router.back()}
+              onPress={() => navigation.goBack()}
             >
               <Text style={[styles.backButtonText, {color: colors.primary}]}>
                 {t('cancel', { defaultValue: 'Annulla' })}

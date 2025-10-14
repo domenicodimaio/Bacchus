@@ -525,8 +525,23 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
             
-            // Controllo semplice: solo nuovi utenti vanno al wizard
-            const needsWizard = isNewUser;
+            // 🔧 CONTROLLO AGGIUNTIVO: Verifica se l'utente ha profili
+            let hasProfiles = false;
+            try {
+              const { data: profilesData } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', data.user.id)
+                .limit(1);
+              
+              hasProfiles = profilesData && profilesData.length > 0;
+              console.log('🍎 AUTH: Utente ha profili?', hasProfiles);
+            } catch (profileError) {
+              console.error('🍎 AUTH: Errore controllo profili:', profileError);
+            }
+            
+            // Controllo combinato: nuovo utente O senza profili
+            const needsWizard = isNewUser || !hasProfiles;
             
             // Salva i dati utente in AsyncStorage per offline
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));

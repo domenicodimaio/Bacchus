@@ -84,7 +84,11 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
               { backgroundColor: colors.cardBackground },
               showDatePicker && { borderColor: colors.primary, borderWidth: 2 }
             ]}
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => {
+              setShowDatePicker(true);
+              // Force immediate picker display on iOS
+              setTimeout(() => setShowDatePicker(true), 10);
+            }}
           >
             <Text style={[styles.dateText, { color: colors.text }]}>
               {formatDateSimple(value)}
@@ -98,7 +102,11 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
               { backgroundColor: colors.cardBackground },
               showTimePicker && { borderColor: colors.primary, borderWidth: 2 }
             ]}
-            onPress={() => setShowTimePicker(true)}
+            onPress={() => {
+              setShowTimePicker(true);
+              // Force immediate picker display on iOS
+              setTimeout(() => setShowTimePicker(true), 10);
+            }}
         >
           <Text style={[styles.timeText, { color: colors.text }]}>
             {formatTime(value)}

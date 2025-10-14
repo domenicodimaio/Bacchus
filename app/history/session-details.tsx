@@ -387,8 +387,8 @@ export default function SessionDetailsScreen() {
           const [namespace, key] = displayName.split('.');
           displayName = t(key, { ns: namespace, defaultValue: key });
         } else {
-          // 🔥 FIX: Prova a tradurre dal namespace drinktypes
-          const translatedFromDrinkTypes = t(displayName, { ns: 'drinktypes', defaultValue: null });
+          // 🔥 FIX: Prova a tradurre dal namespace session con drinkTypes
+          const translatedFromDrinkTypes = t(`drinkTypes.${displayName}`, { ns: 'session', defaultValue: null });
           if (translatedFromDrinkTypes && translatedFromDrinkTypes !== displayName) {
             displayName = translatedFromDrinkTypes;
           } else {

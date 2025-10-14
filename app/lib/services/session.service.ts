@@ -889,9 +889,13 @@ export async function endSession(): Promise<boolean> {
     // Ottieni userId PRIMA di salvare
     const userId = await getCurrentUserId();
     
-    // Salva la sessione nella cronologia (metodo semplice)
-    sessionHistory.push(sessionToSave);
-    await saveSessionLocally(sessionHistory, 'history');
+    // Carica la cronologia dell'utente corrente e aggiungi la sessione
+    const currentUserHistory = await loadSessionHistoryFromStorage();
+    currentUserHistory.push(sessionToSave);
+    await saveSessionLocally(currentUserHistory, 'history');
+    
+    // Aggiorna la variabile globale
+    sessionHistory = currentUserHistory;
     
     // Salva su Supabase se l'utente è autenticato
     if (userId) {
@@ -984,10 +988,19 @@ export async function updateSessionBAC(): Promise<Session | null> {
       activeSession.profile.weightKg = 70;
     }
 
+    // Usa un timestamp fisso per tutto il calcolo per evitare variazioni casuali
     const now = new Date();
+    const nowTimestamp = now.getTime();
     
     // Verifica che esistano drinks e foods (con valori di default sicuri)
     const drinks = activeSession.drinks || [];
+    
+    console.log('🔍 DEBUG BAC: Profilo -', {
+      name: activeSession.profile.name,
+      gender: gender,
+      weightKg: weightKg,
+      drinks: drinks.length
+    });
     const foods = activeSession.foods || [];
 
     if (drinks.length === 0) {
@@ -1012,7 +1025,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
     // Calcola BAC semplificato ma robusto
     try {
       const r = gender === 'male' ? 0.68 : 0.55;
-      const metabolismRate = 0.015; // g/L all'ora (standard medico)
+      const metabolismRate = 0.15; // g/L all'ora (standard medico corretto)
       
       let totalBAC = 0;
       
@@ -1040,9 +1053,9 @@ export async function updateSessionBAC(): Promise<Session | null> {
           // BAC iniziale per questo drink (formula Widmark originale)
           const initialBAC = alcoholGrams / (r * weightKg);
           
-          // Tempo trascorso dal consumo
+          // Tempo trascorso dal consumo (usa timestamp fisso)
           const drinkTime = new Date(drink.time);
-          const hoursSince = Math.max(0, (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60));
+          const hoursSince = Math.max(0, (nowTimestamp - drinkTime.getTime()) / (1000 * 60 * 60));
           
           // BAC metabolizzato
           const metabolized = Math.min(initialBAC, metabolismRate * hoursSince);
@@ -1050,7 +1063,16 @@ export async function updateSessionBAC(): Promise<Session | null> {
           // BAC rimanente
           const remaining = Math.max(0, initialBAC - metabolized);
           
-          // Debug rimosso per performance
+          console.log('🔍 DEBUG BAC: Drink -', {
+            name: drink.name,
+            volume: drink.volume,
+            percentage: drink.alcoholPercentage,
+            alcoholGrams: alcoholGrams,
+            initialBAC: initialBAC.toFixed(3),
+            hoursSince: hoursSince.toFixed(2),
+            metabolized: metabolized.toFixed(3),
+            remaining: remaining.toFixed(3)
+          });
           
           totalBAC += remaining;
         } catch (e) {
@@ -1073,6 +1095,14 @@ export async function updateSessionBAC(): Promise<Session | null> {
       
       // BAC finale
       totalBAC = Math.max(0, totalBAC * foodFactor);
+      
+      console.log('🔍 DEBUG BAC: Risultato finale -', {
+        totalBAC: totalBAC.toFixed(3),
+        foodFactor: foodFactor,
+        r: r,
+        weightKg: weightKg,
+        metabolismRate: metabolismRate
+      });
       // 🔧 RIMOSSO LIMITE ARTIFICIALE: Il BAC può superare 0.5 g/L per calcoli realistici
       totalBAC = Math.round(totalBAC * 1000) / 1000; // Arrotonda a 3 decimali per maggior precisione
       
