@@ -525,23 +525,40 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
             
-            // 🔧 CONTROLLO AGGIUNTIVO: Verifica se l'utente ha profili
+            // 🔧 CONTROLLO CRITICO: Verifica se l'utente ha profili VALIDI
             let hasProfiles = false;
+            let isReactivatedUser = false;
             try {
               const { data: profilesData } = await supabase
                 .from('profiles')
-                .select('id')
-                .eq('user_id', data.user.id)
-                .limit(1);
+                .select('id, name, weight')
+                .eq('user_id', data.user.id);
               
-              hasProfiles = profilesData && profilesData.length > 0;
-              console.log('🍎 AUTH: Utente ha profili?', hasProfiles);
+              // Controlla se ci sono profili validi (con dati completi)
+              hasProfiles = profilesData && profilesData.length > 0 && 
+                           profilesData.some(p => p.name && p.weight > 0);
+              
+              console.log('🍎 AUTH: Utente ha profili validi?', hasProfiles, 'Profili trovati:', profilesData?.length || 0);
+              
+              // 🔥 CONTROLLO AGGIUNTIVO: Se l'utente non è "nuovo" ma non ha profili,
+              // potrebbe essere un account riattivato dopo cancellazione
+              if (!isNewUser && !hasProfiles && profilesData && profilesData.length === 0) {
+                isReactivatedUser = true;
+                console.log('🍎 AUTH: Rilevato utente riattivato dopo cancellazione account');
+              }
             } catch (profileError) {
               console.error('🍎 AUTH: Errore controllo profili:', profileError);
             }
             
-            // Controllo combinato: nuovo utente O senza profili
-            const needsWizard = isNewUser || !hasProfiles;
+            // Controllo combinato: nuovo utente O senza profili O utente riattivato
+            const needsWizard = isNewUser || !hasProfiles || isReactivatedUser;
+            
+            console.log('🍎 AUTH: Decisione wizard -', {
+              isNewUser,
+              hasProfiles,
+              isReactivatedUser,
+              needsWizard
+            });
             
             // Salva i dati utente in AsyncStorage per offline
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));
@@ -716,7 +733,20 @@ export const signOut = async (): Promise<AuthResponse> => {
     }
     
     // 3. Pulisci AsyncStorage in modo sincrono
-    // 🔥 FIX: Non cancellare i profili degli utenti autenticati - vengono ricaricati dal database
+    // 🔥 FIX CRITICO: Pulisci TUTTE le chiavi utente-specifiche per evitare contaminazione
+    
+    // Ottieni l'ID dell'utente corrente prima del logout
+    let currentUserId = null;
+    try {
+      const currentUser = await getCurrentUser();
+      currentUserId = currentUser?.id;
+    } catch (e) {
+      // Ignora errori
+    }
+    
+    // Ottieni tutte le chiavi per pulire quelle dell'utente corrente
+    const allKeys = await AsyncStorage.getAllKeys();
+    
     const keysToRemove = [
       USER_DATA_KEY,
       USER_SESSION_KEY,
@@ -725,15 +755,31 @@ export const signOut = async (): Promise<AuthResponse> => {
       'registration_just_completed',
       'lastKnownSession',
       'activeSession',
-      // 🔥 PROFILI RIMOSSI DALLA LISTA - persistono per utenti autenticati
-      // 'bacchus_profiles',        // ✅ MANTIENI: Profili utente
-      // 'bacchus_active_profile',  // ✅ MANTIENI: Profilo attivo
-      // 'bacchus_current_profile', // ✅ MANTIENI: Profilo corrente
       'apple_auth_in_progress',
       'apple_auth_timestamp'
     ];
     
-    await AsyncStorage.multiRemove(keysToRemove);
+    // 🔥 AGGIUNGI TUTTE LE CHIAVI SPECIFICHE DELL'UTENTE CORRENTE
+    if (currentUserId) {
+      const userSpecificKeys = allKeys.filter(key => 
+        key.includes(`user_${currentUserId}_`) ||
+        key.includes(currentUserId)
+      );
+      keysToRemove.push(...userSpecificKeys);
+      console.log(`🔥 LOGOUT: Rimuovendo ${userSpecificKeys.length} chiavi specifiche per utente ${currentUserId}`);
+    }
+    
+    // 🔥 AGGIUNGI ANCHE CHIAVI GENERICHE CHE POTREBBERO CONTENERE DATI MISTI
+    const genericKeysToClean = allKeys.filter(key => 
+      key.startsWith('bacchus_') ||
+      key.includes('session_history') ||
+      key.includes('profiles') ||
+      key.includes('active_profile')
+    );
+    keysToRemove.push(...genericKeysToClean);
+    
+    console.log(`🔥 LOGOUT: Rimuovendo totale ${keysToRemove.length} chiavi da AsyncStorage`);
+    await AsyncStorage.multiRemove([...new Set(keysToRemove)]); // Rimuovi duplicati
     
     // 4. Pulisci sessioni di autenticazione
     await clearStoredAuthSessions();
