@@ -316,7 +316,7 @@ export default function AddFoodScreen() {
   };
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       
       <AppHeader

@@ -757,6 +757,8 @@ export const signOut = async (): Promise<AuthResponse> => {
       'activeSession',
       'apple_auth_in_progress',
       'apple_auth_timestamp'
+      // 🔥 NON CANCELLARE: chiavi premium (SIMULATE_PREMIUM, PREMIUM_STATUS, etc.)
+      // 🔥 NON CANCELLARE: chiavi purchase service (bacchus_customer_info, bacchus_session_count, etc.)
     ];
     
     // 🔥 AGGIUNGI TUTTE LE CHIAVI SPECIFICHE DELL'UTENTE CORRENTE
@@ -769,14 +771,38 @@ export const signOut = async (): Promise<AuthResponse> => {
       console.log(`🔥 LOGOUT: Rimuovendo ${userSpecificKeys.length} chiavi specifiche per utente ${currentUserId}`);
     }
     
-    // 🔥 AGGIUNGI ANCHE CHIAVI GENERICHE CHE POTREBBERO CONTENERE DATI MISTI
-    const genericKeysToClean = allKeys.filter(key => 
-      key.startsWith('bacchus_') ||
-      key.includes('session_history') ||
-      key.includes('profiles') ||
-      key.includes('active_profile')
-    );
+    // 🔥 AGGIUNGI CHIAVI GENERICHE MA PRESERVA DATI UTENTE AUTENTICATO E PREMIUM
+    const genericKeysToClean = allKeys.filter(key => {
+      // 🔥 PRESERVA SEMPRE chiavi premium e purchase
+      if (key === 'SIMULATE_PREMIUM' || 
+          key === 'PREMIUM_STATUS' || 
+          key === 'CURRENT_PATH' ||
+          key.startsWith('bacchus_customer_info') ||
+          key.startsWith('bacchus_session_count') ||
+          key.startsWith('bacchus_weekly_session_reset') ||
+          key.startsWith('bacchus_mock_premium')) {
+        return false; // NON cancellare
+      }
+      
+      // Per utenti autenticati, NON cancellare cronologia sessioni e profili
+      // perché verranno ricaricati dal database
+      if (currentUserId) {
+        // Cancella solo chiavi temporanee e cache
+        return key.startsWith('bacchus_wizard') ||
+               key.startsWith('bacchus_temp') ||
+               key.includes('active_session') ||
+               key.includes('lastKnownSession');
+      } else {
+        // Per ospiti, cancella tutto tranne premium
+        return key.startsWith('bacchus_') ||
+               key.includes('session_history') ||
+               key.includes('profiles') ||
+               key.includes('active_profile');
+      }
+    });
     keysToRemove.push(...genericKeysToClean);
+    
+    console.log(`🔥 LOGOUT: Modalità ${currentUserId ? 'utente autenticato' : 'ospite'} - chiavi generiche da rimuovere: ${genericKeysToClean.length}`);
     
     console.log(`🔥 LOGOUT: Rimuovendo totale ${keysToRemove.length} chiavi da AsyncStorage`);
     await AsyncStorage.multiRemove([...new Set(keysToRemove)]); // Rimuovi duplicati

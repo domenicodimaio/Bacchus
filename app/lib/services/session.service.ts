@@ -102,10 +102,10 @@ async function loadActiveSessionFromStorage() {
       console.log('🔄 Sessione attiva caricata da storage:', active.id);
       activeSession = active;
       
-      // 🔥 Avvia il timer se c'è una sessione attiva
-      startBACUpdateTimer();
+      // 🔥 NON avviare automaticamente il timer - solo quando l'utente va nella schermata sessione
+      console.log('⏸️ Sessione caricata ma timer NON avviato automaticamente');
       
-      // Aggiorna il BAC immediatamente
+      // Aggiorna il BAC immediatamente senza timer
       await updateSessionBAC();
     }
   } catch (error) {
@@ -889,13 +889,18 @@ export async function endSession(): Promise<boolean> {
     // Ottieni userId PRIMA di salvare
     const userId = await getCurrentUserId();
     
-    // Carica la cronologia dell'utente corrente e aggiungi la sessione
-    const currentUserHistory = await loadSessionHistoryFromStorage();
-    currentUserHistory.push(sessionToSave);
-    await saveSessionLocally(currentUserHistory, 'history');
+    // 🔥 FIX CRITICO: Carica cronologia locale esistente (non dal database per evitare ritardi)
+    console.log('🔄 ENDESSION: Caricamento cronologia locale esistente...');
+    const { history: existingHistory } = await loadSessionsFromLocalStorage(userId);
+    console.log(`🔄 ENDESSION: Trovate ${existingHistory.length} sessioni esistenti in locale`);
     
-    // Aggiorna la variabile globale
-    sessionHistory = currentUserHistory;
+    // Aggiungi la nuova sessione alla cronologia esistente
+    existingHistory.push(sessionToSave);
+    await saveSessionLocally(existingHistory, 'history');
+    
+    // Aggiorna la variabile globale IMMEDIATAMENTE
+    sessionHistory = existingHistory;
+    console.log(`✅ ENDESSION: Cronologia aggiornata con ${sessionHistory.length} sessioni totali`);
     
     // Salva su Supabase se l'utente è autenticato
     if (userId) {
@@ -2041,5 +2046,6 @@ export default {
   clearAllSessions,
   ensureSessionIntegrity,
   addFood,
-  removeFood
+  removeFood,
+  startBACUpdateTimer
 };

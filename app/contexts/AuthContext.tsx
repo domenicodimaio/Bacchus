@@ -385,6 +385,19 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         console.log('[AUTH_CONTEXT] Caricamento profili dopo login con provider...');
         await loadUserProfiles(result.user.id);
         
+        // 🔥 FIX CRITICO APPLE: Se non ci sono profili, forza ricaricamento dal database
+        if (profiles.length === 0) {
+          console.log('[AUTH_CONTEXT] ⚠️ Nessun profilo trovato - ricaricamento forzato dal database...');
+          setTimeout(async () => {
+            try {
+              await loadUserProfiles(result.user.id);
+              console.log('[AUTH_CONTEXT] ✅ Ricaricamento profili completato');
+            } catch (error) {
+              console.error('[AUTH_CONTEXT] ❌ Errore ricaricamento profili:', error);
+            }
+          }, 1000); // Attendi 1 secondo per permettere la sincronizzazione
+        }
+        
         // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database
         console.log('[AUTH_CONTEXT] Caricamento sessioni dal database...');
         const sessionService = require('../lib/services/session.service');

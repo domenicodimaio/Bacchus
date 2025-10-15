@@ -388,13 +388,21 @@ export default function SessionDetailsScreen() {
           displayName = t(key, { ns: namespace, defaultValue: key });
         } else {
           // 🔥 FIX: Prova a tradurre dal namespace session con drinkTypes
-          const translatedFromDrinkTypes = t(`drinkTypes.${displayName}`, { ns: 'session', defaultValue: null });
+          const translationKey = `drinkTypes.${displayName}`;
+          const translatedFromDrinkTypes = t(translationKey, { ns: 'session', defaultValue: displayName });
+          
+          console.log('🔍 TRANSLATION DEBUG:', {
+            originalName: displayName,
+            translationKey: translationKey,
+            translated: translatedFromDrinkTypes,
+            isTranslated: translatedFromDrinkTypes !== displayName
+          });
+          
+          // Se la traduzione è diversa dal nome originale, usala
           if (translatedFromDrinkTypes && translatedFromDrinkTypes !== displayName) {
             displayName = translatedFromDrinkTypes;
-          } else {
-            // Fallback: usa il nome così com'è
-            displayName = displayName;
           }
+          // Altrimenti mantieni il nome originale
         }
       }
 

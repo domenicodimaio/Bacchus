@@ -363,11 +363,12 @@ export default function LoginScreen() {
         setDebugInfo('Login completato! Reindirizzamento...');
         await logInfo('Apple Login Success', { immediate: true, isNewUser });
         
-        // 🎯 Se è un nuovo utente, reindirizza al wizard
-        if (redirectToProfileCreation && isNewUser) {
-          console.log('🍎 Nuovo utente Apple - Reindirizzamento al wizard');
+        // 🎯 Se deve completare il wizard (nuovo utente, senza profili, o riattivato)
+        if (redirectToProfileCreation) {
+          console.log('🍎 Utente Apple deve completare wizard - Reindirizzamento...');
           router.replace('/onboarding/profile-wizard');
         } else {
+          console.log('🍎 Utente Apple esistente con profilo - Dashboard');
           router.replace('/(tabs)/dashboard');
         }
       } else if (error === 'oauth_in_progress') {

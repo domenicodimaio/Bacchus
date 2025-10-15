@@ -439,6 +439,15 @@ function SessionScreen() {
         return;
       }
       
+      // 🔥 FIX AUTO-START: Avvia il timer se c'è una sessione attiva e non è periodico
+      if (!isPeriodicUpdate) {
+        const activeSession = sessionService.getActiveSession();
+        if (activeSession && !activeSession.isClosed) {
+          console.log('🔥 Avvio timer BAC per sessione attiva nella schermata sessione');
+          sessionService.startBACUpdateTimer?.();
+        }
+      }
+      
       // STEP 1: Verifica che esista almeno un profilo valido
       console.log('🔍 SESSION: Controllo esistenza profili...');
       try {

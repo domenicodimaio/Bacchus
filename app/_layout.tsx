@@ -171,9 +171,9 @@ export default function RootLayout() {
                         headerShown: false,
                         animation: 'fade',
                         contentStyle: { backgroundColor: 'transparent' },
-                        // 🚫 CRITICO: DISABILITA TUTTI I SWIPE BACK - RICHIESTA UTENTE
-                        gestureEnabled: false,
-                        fullScreenGestureEnabled: false,
+                        // ✅ ABILITA SWIPE BACK per migliorare UX
+                        gestureEnabled: true,
+                        fullScreenGestureEnabled: true,
                         gestureDirection: 'horizontal',
                       }}
                     />
