@@ -115,6 +115,12 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }));
   };
   
+  // 🔥 FIX PREMIUM: Inizializza automaticamente all'avvio
+  useEffect(() => {
+    console.log('🔥 PURCHASE_CONTEXT: Inizializzazione automatica all\'avvio...');
+    initializePurchases();
+  }, []);
+  
   // Inizializza il servizio acquisti
   const initializePurchases = async (force: boolean = false) => {
     console.log('Initializing purchases...');

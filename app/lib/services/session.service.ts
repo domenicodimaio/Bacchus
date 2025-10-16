@@ -102,10 +102,10 @@ async function loadActiveSessionFromStorage() {
       console.log('🔄 Sessione attiva caricata da storage:', active.id);
       activeSession = active;
       
-      // 🔥 NON avviare automaticamente il timer - solo quando l'utente va nella schermata sessione
-      console.log('⏸️ Sessione caricata ma timer NON avviato automaticamente');
+      // 🔥 Avvia il timer se c'è una sessione attiva
+      startBACUpdateTimer();
       
-      // Aggiorna il BAC immediatamente senza timer
+      // Aggiorna il BAC immediatamente
       await updateSessionBAC();
     }
   } catch (error) {
@@ -993,9 +993,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
       activeSession.profile.weightKg = 70;
     }
 
-    // Usa un timestamp fisso per tutto il calcolo per evitare variazioni casuali
     const now = new Date();
-    const nowTimestamp = now.getTime();
     
     // Verifica che esistano drinks e foods (con valori di default sicuri)
     const drinks = activeSession.drinks || [];
@@ -1030,7 +1028,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
     // Calcola BAC semplificato ma robusto
     try {
       const r = gender === 'male' ? 0.68 : 0.55;
-      const metabolismRate = 0.15; // g/L all'ora (standard medico corretto)
+      const metabolismRate = 0.015; // g/L all'ora (standard medico)
       
       let totalBAC = 0;
       
@@ -1058,9 +1056,9 @@ export async function updateSessionBAC(): Promise<Session | null> {
           // BAC iniziale per questo drink (formula Widmark originale)
           const initialBAC = alcoholGrams / (r * weightKg);
           
-          // Tempo trascorso dal consumo (usa timestamp fisso)
+          // Tempo trascorso dal consumo
           const drinkTime = new Date(drink.time);
-          const hoursSince = Math.max(0, (nowTimestamp - drinkTime.getTime()) / (1000 * 60 * 60));
+          const hoursSince = Math.max(0, (now.getTime() - drinkTime.getTime()) / (1000 * 60 * 60));
           
           // BAC metabolizzato
           const metabolized = Math.min(initialBAC, metabolismRate * hoursSince);
