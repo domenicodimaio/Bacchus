@@ -99,6 +99,16 @@ async function loadActiveSessionFromStorage() {
     const { active } = await loadSessionsFromLocalStorage(userId);
     
     if (active && !active.isClosed) {
+      // 🔥 CONTROLLO: Verifica se la sessione è troppo vecchia (più di 24 ore)
+      const now = new Date();
+      const sessionAge = now.getTime() - new Date(active.startTime).getTime();
+      const maxSessionAge = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
+      
+      if (sessionAge > maxSessionAge) {
+        console.log('🔄 Sessione troppo vecchia, non la carico come attiva:', active.id, 'Age:', Math.round(sessionAge / (60 * 60 * 1000)), 'hours');
+        return;
+      }
+      
       console.log('🔄 Sessione attiva caricata da storage:', active.id);
       activeSession = active;
       
@@ -282,6 +292,8 @@ export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
                 };
                 
                 convertedSessions.push(localSession);
+              } else {
+                console.warn(`[loadSessionHistoryFromStorage] ⚠️ Profilo ${dbSession.profile_id} non trovato per sessione ${dbSession.id}`);
               }
             } catch (conversionError) {
               console.error('[loadSessionHistoryFromStorage] ❌ Errore conversione sessione:', conversionError);
@@ -889,13 +901,15 @@ export async function endSession(): Promise<boolean> {
     // Ottieni userId PRIMA di salvare
     const userId = await getCurrentUserId();
     
-    // 🔥 FIX CRITICO: Carica cronologia locale esistente (non dal database per evitare ritardi)
-    console.log('🔄 ENDESSION: Caricamento cronologia locale esistente...');
-    const { history: existingHistory } = await loadSessionsFromLocalStorage(userId);
-    console.log(`🔄 ENDESSION: Trovate ${existingHistory.length} sessioni esistenti in locale`);
+    // 🔥 FIX CRITICO: Carica cronologia esistente direttamente da sessionHistory globale
+    console.log('🔄 ENDESSION: Caricamento cronologia esistente...');
+    const existingHistory = [...sessionHistory]; // Copia la cronologia esistente
+    console.log(`🔄 ENDESSION: Trovate ${existingHistory.length} sessioni esistenti in memoria`);
     
     // Aggiungi la nuova sessione alla cronologia esistente
     existingHistory.push(sessionToSave);
+    
+    // Salva la cronologia aggiornata
     await saveSessionLocally(existingHistory, 'history');
     
     // Aggiorna la variabile globale IMMEDIATAMENTE

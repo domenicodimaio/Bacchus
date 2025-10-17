@@ -395,7 +395,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             } catch (error) {
               console.error('[AUTH_CONTEXT] ❌ Errore ricaricamento profili:', error);
             }
-          }, 1000); // Attendi 1 secondo per permettere la sincronizzazione
+          }, 2000); // Aumento a 2 secondi per permettere la sincronizzazione
         }
         
         // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database

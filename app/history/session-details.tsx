@@ -395,7 +395,8 @@ export default function SessionDetailsScreen() {
             originalName: displayName,
             translationKey: translationKey,
             translated: translatedFromDrinkTypes,
-            isTranslated: translatedFromDrinkTypes !== displayName
+            isTranslated: translatedFromDrinkTypes !== displayName,
+            namespace: 'session'
           });
           
           // Se la traduzione è diversa dal nome originale, usala

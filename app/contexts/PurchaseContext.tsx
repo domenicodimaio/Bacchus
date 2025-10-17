@@ -119,7 +119,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     console.log('🔥 PURCHASE_CONTEXT: Inizializzazione automatica all\'avvio...');
     initializePurchases();
-  }, []);
+  }, [user]); // Dipende da user per reinizializzare quando cambia utente
   
   // Inizializza il servizio acquisti
   const initializePurchases = async (force: boolean = false) => {

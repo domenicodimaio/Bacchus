@@ -525,6 +525,12 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
             
+            // 🔧 CONTROLLO AGGIUNTIVO: Se l'utente è stato creato oggi, potrebbe essere una registrazione
+            const today = new Date();
+            const userCreatedDate = new Date(data.user.created_at);
+            const isCreatedToday = userCreatedDate.toDateString() === today.toDateString();
+            console.log('🍎 AUTH: Creato oggi?', isCreatedToday, 'User date:', userCreatedDate.toDateString(), 'Today:', today.toDateString());
+            
             // 🔧 CONTROLLO CRITICO: Verifica se l'utente ha profili VALIDI
             let hasProfiles = false;
             let isReactivatedUser = false;
@@ -550,11 +556,12 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               console.error('🍎 AUTH: Errore controllo profili:', profileError);
             }
             
-            // Controllo combinato: nuovo utente O senza profili O utente riattivato
-            const needsWizard = isNewUser || !hasProfiles || isReactivatedUser;
+            // Controllo combinato: nuovo utente O creato oggi O senza profili O utente riattivato
+            const needsWizard = isNewUser || isCreatedToday || !hasProfiles || isReactivatedUser;
             
             console.log('🍎 AUTH: Decisione wizard -', {
               isNewUser,
+              isCreatedToday,
               hasProfiles,
               isReactivatedUser,
               needsWizard
