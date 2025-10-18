@@ -537,23 +537,49 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             try {
               const { data: profilesData } = await supabase
                 .from('profiles')
-                .select('id, name, weight')
+                .select('id, name, weight, hasCompletedWizard, is_default')
                 .eq('user_id', data.user.id);
               
-              // Controlla se ci sono profili validi (con dati completi)
-              hasProfiles = profilesData && profilesData.length > 0 && 
-                           profilesData.some(p => p.name && p.weight > 0);
+              console.log('🍎 AUTH: Profili trovati:', profilesData?.length || 0);
               
-              console.log('🍎 AUTH: Utente ha profili validi?', hasProfiles, 'Profili trovati:', profilesData?.length || 0);
-              
-              // 🔥 CONTROLLO AGGIUNTIVO: Se l'utente non è "nuovo" ma non ha profili,
-              // potrebbe essere un account riattivato dopo cancellazione
-              if (!isNewUser && !hasProfiles && profilesData && profilesData.length === 0) {
-                isReactivatedUser = true;
-                console.log('🍎 AUTH: Rilevato utente riattivato dopo cancellazione account');
+              if (profilesData && profilesData.length > 0) {
+                // Controlla se ci sono profili validi (con dati completi)
+                hasProfiles = profilesData.some(p => p.name && p.weight > 0);
+                
+                // Verifica se l'utente ha completato il wizard
+                const hasCompletedWizard = profilesData.some(profile => 
+                  profile.hasCompletedWizard || profile.is_default
+                );
+                
+                console.log('🍎 AUTH: Utente ha profili validi?', hasProfiles);
+                console.log('🍎 AUTH: Wizard completato?', hasCompletedWizard);
+                
+                // Se ha profili ma il wizard non è completato, potrebbe essere riattivato
+                if (hasProfiles && !hasCompletedWizard) {
+                  isReactivatedUser = true;
+                  console.log('🍎 AUTH: Utente con profili ma wizard non completato - riattivato');
+                }
+              } else {
+                console.log('🍎 AUTH: Nessun profilo trovato');
+                
+                // 🔧 FIX CRITICO: Controlla se l'utente è stato cancellato in precedenza
+                // Verifica se ci sono sessioni storiche per questo utente
+                const { data: sessionsData } = await supabase
+                  .from('sessions')
+                  .select('id')
+                  .eq('user_id', data.user.id)
+                  .limit(1);
+                
+                if (sessionsData && sessionsData.length > 0) {
+                  console.log('🍎 AUTH: Utente riattivato - ha sessioni storiche');
+                  isReactivatedUser = true;
+                } else {
+                  console.log('🍎 AUTH: Veramente nuovo utente');
+                }
               }
             } catch (profileError) {
               console.error('🍎 AUTH: Errore controllo profili:', profileError);
+              // In caso di errore, assumiamo che sia un nuovo utente
             }
             
             // Controllo combinato: nuovo utente O creato oggi O senza profili O utente riattivato
@@ -774,8 +800,20 @@ export const signOut = async (): Promise<AuthResponse> => {
         key.includes(`user_${currentUserId}_`) ||
         key.includes(currentUserId)
       );
-      keysToRemove.push(...userSpecificKeys);
-      console.log(`🔥 LOGOUT: Rimuovendo ${userSpecificKeys.length} chiavi specifiche per utente ${currentUserId}`);
+      
+      // 🔧 FIX CRITICO: NON cancellare la cronologia sessioni durante il logout
+      const keysToPreserve = [
+        `user_${currentUserId}_session_history`,
+        `user_${currentUserId}_profiles`,
+        `user_${currentUserId}_profile_data`
+      ];
+      
+      const keysToActuallyRemove = userSpecificKeys.filter(key => 
+        !keysToPreserve.some(preserveKey => key.includes(preserveKey))
+      );
+      
+      keysToRemove.push(...keysToActuallyRemove);
+      console.log(`🔥 LOGOUT: Rimuovendo ${keysToActuallyRemove.length} chiavi specifiche per utente ${currentUserId} (preservando cronologia)`);
     }
     
     // 🔥 AGGIUNGI CHIAVI GENERICHE MA PRESERVA DATI UTENTE AUTENTICATO E PREMIUM
@@ -794,11 +832,14 @@ export const signOut = async (): Promise<AuthResponse> => {
       // Per utenti autenticati, NON cancellare cronologia sessioni e profili
       // perché verranno ricaricati dal database
       if (currentUserId) {
-        // Cancella solo chiavi temporanee e cache
-        return key.startsWith('bacchus_wizard') ||
-               key.startsWith('bacchus_temp') ||
-               key.includes('active_session') ||
-               key.includes('lastKnownSession');
+        // Cancella solo chiavi temporanee e cache, MA preserva cronologia e profili
+        return (key.startsWith('bacchus_wizard') ||
+                key.startsWith('bacchus_temp') ||
+                key.includes('active_session') ||
+                key.includes('lastKnownSession')) &&
+               !key.includes('session_history') &&
+               !key.includes('profiles') &&
+               !key.includes('profile_data');
       } else {
         // Per ospiti, cancella tutto tranne premium
         return key.startsWith('bacchus_') ||
@@ -1306,6 +1347,42 @@ export const deleteAccount = async (): Promise<AuthResponse> => {
         console.error('Error deleting profiles:', profilesError);
       } else {
         console.log('Profiles deleted successfully');
+      }
+      
+      // 🔧 FIX CRITICO: Elimina le preferenze utente (incluso stato premium)
+      const { error: preferencesError } = await supabase
+        .from('user_preferences')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (preferencesError && !preferencesError.message.includes('does not exist')) {
+        console.error('Error deleting user preferences:', preferencesError);
+      } else {
+        console.log('User preferences deleted successfully');
+      }
+      
+      // Elimina le sessioni dell'utente
+      const { error: sessionsError } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (sessionsError && !sessionsError.message.includes('does not exist')) {
+        console.error('Error deleting sessions:', sessionsError);
+      } else {
+        console.log('Sessions deleted successfully');
+      }
+      
+      // Elimina i log dell'app
+      const { error: logsError } = await supabase
+        .from('app_logs')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (logsError && !logsError.message.includes('does not exist')) {
+        console.error('Error deleting app logs:', logsError);
+      } else {
+        console.log('App logs deleted successfully');
       }
       
       // Elimina le sessioni attive

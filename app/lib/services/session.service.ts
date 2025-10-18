@@ -20,9 +20,19 @@ import { Session, UserProfile, Drink, FoodRecord } from '../../types/session';
 
 // ===== STATO SEMPLIFICATO =====
 let _initialized = false;
-export let activeSession: Session | null = null; // 🔥 Export per reset da auth.service
-export let sessionHistory: Session[] = []; // 🔥 Export per reset da auth.service
-let _currentUserId: string | null = null;
+export let activeSession: Session | null = null; // 🔧 FIX CRITICO: Flag per controllare l'avvio automatico delle sessioni
+let autoStartSessionsEnabled = false;
+
+// 🔧 FIX CRITICO: Funzione per abilitare/disabilitare l'avvio automatico
+export function setAutoStartSessionsEnabled(enabled: boolean): void {
+  autoStartSessionsEnabled = enabled;
+  console.log('🔧 AUTO START SESSIONS:', enabled ? 'ABILITATO' : 'DISABILITATO');
+}
+
+// 🔧 FIX CRITICO: Funzione per verificare se l'avvio automatico è abilitato
+export function isAutoStartSessionsEnabled(): boolean {
+  return autoStartSessionsEnabled;
+}
 
 // 🔥 Timer globale per aggiornamento BAC automatico
 let bacUpdateTimer: NodeJS.Timeout | null = null;
@@ -95,6 +105,12 @@ export function resetSessionState(): void {
 // 🔥 Carica la sessione attiva da storage e avvia il timer se necessario
 async function loadActiveSessionFromStorage() {
   try {
+    // 🔧 FIX CRITICO: Controlla se l'avvio automatico è disabilitato
+    if (!autoStartSessionsEnabled) {
+      console.log('🔧 AUTO START DISABILITATO: Non carico sessioni automaticamente');
+      return;
+    }
+    
     const userId = await getCurrentUserId();
     const { active } = await loadSessionsFromLocalStorage(userId);
     
@@ -916,9 +932,43 @@ export async function endSession(): Promise<boolean> {
     sessionHistory = existingHistory;
     console.log(`✅ ENDESSION: Cronologia aggiornata con ${sessionHistory.length} sessioni totali`);
     
-    // Salva su Supabase se l'utente è autenticato
+    // Salva su Supabase se l'utente è autenticato - FIX CRITICO: Salvataggio immediato con retry
     if (userId) {
-      await saveSessionToSupabase(sessionToSave, false);
+      console.log('🔥 ENDSESSION: Salvataggio immediato su Supabase...');
+      
+      // Tentativo immediato
+      let saveSuccess = false;
+      try {
+        const saveResult = await saveSessionToSupabase(sessionToSave, false);
+        if (saveResult) {
+          console.log('✅ ENDSESSION: Sessione salvata su Supabase con successo');
+          saveSuccess = true;
+        } else {
+          console.error('❌ ENDSESSION: Fallimento salvataggio su Supabase');
+        }
+      } catch (supabaseError) {
+        console.error('❌ ENDSESSION: Errore salvataggio Supabase:', supabaseError);
+      }
+      
+      // Se il salvataggio fallisce, programma un retry in background
+      if (!saveSuccess) {
+        console.log('🔄 ENDSESSION: Programmando retry salvataggio in background...');
+        setTimeout(async () => {
+          try {
+            console.log('🔄 RETRY: Tentativo salvataggio sessione su Supabase...');
+            const retryResult = await saveSessionToSupabase(sessionToSave, false);
+            if (retryResult) {
+              console.log('✅ RETRY: Sessione salvata su Supabase con successo');
+            } else {
+              console.error('❌ RETRY: Fallimento retry salvataggio Supabase');
+            }
+          } catch (retryError) {
+            console.error('❌ RETRY: Errore retry salvataggio Supabase:', retryError);
+          }
+        }, 5000); // Retry dopo 5 secondi
+      }
+    } else {
+      console.log('⚠️ ENDSESSION: Utente non autenticato - salvataggio solo locale');
     }
     
     // Ottieni la chiave corretta per la sessione attiva
@@ -1830,6 +1880,12 @@ export async function ensureSessionIntegrity(): Promise<boolean> {
  */
 export async function getOrCreateSessionWithFirstProfile(): Promise<Session | null> {
   try {
+    // 🔧 FIX CRITICO: Controlla se l'avvio automatico è disabilitato
+    if (!autoStartSessionsEnabled) {
+      console.log('🔧 AUTO START DISABILITATO: Non creo sessioni automaticamente');
+      return null;
+    }
+    
     // Controlla se c'è già una sessione attiva
     if (activeSession) {
       return activeSession;

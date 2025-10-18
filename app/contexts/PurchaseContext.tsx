@@ -128,7 +128,23 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       if (isInitialized && !force) return true;
       
-      // Check if premium simulation is enabled
+      // 🔧 FIX CRITICO: Carica stato premium dal server se disponibile
+      let serverPremiumStatus: boolean | null = null;
+      try {
+        serverPremiumStatus = await purchaseService.loadPremiumStatusFromServer();
+        if (serverPremiumStatus !== null) {
+          console.log('🔥 PURCHASE_CONTEXT: Stato premium dal server:', serverPremiumStatus);
+          
+          // Aggiorna lo storage locale con lo stato del server
+          await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, serverPremiumStatus ? 'true' : 'false');
+          console.log('🔥 PURCHASE_CONTEXT: Stato premium sincronizzato localmente');
+        }
+      } catch (serverError) {
+        console.warn('🔥 PURCHASE_CONTEXT: Errore caricamento stato premium dal server:', serverError);
+        // Continua con l'inizializzazione normale
+      }
+      
+      // Check if premium simulation is enabled (ora potrebbe essere stato aggiornato dal server)
       const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
       if (simulatePremium === 'true') {
         console.log('SIMULATION: Premium mode enabled');
@@ -581,13 +597,26 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Valore ricevuto:', value);
       
-      // Salva il valore
+      // Salva il valore localmente
       await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, value ? 'true' : 'false');
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Salvato in AsyncStorage');
       
       // Imposta anche lo stato di simulazione nel servizio
       await purchaseService.setMockPremiumStatus(value);
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Aggiornato purchase service');
+      
+      // 🔧 FIX CRITICO: Sincronizza con il server per persistenza
+      try {
+        const syncSuccess = await purchaseService.syncPremiumStatusWithServer(value);
+        if (syncSuccess) {
+          console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Stato premium sincronizzato con server');
+        } else {
+          console.warn('🎯 TOGGLE_SIMULATE_PREMIUM: Fallimento sincronizzazione server, ma stato locale salvato');
+        }
+      } catch (syncError) {
+        console.error('🎯 TOGGLE_SIMULATE_PREMIUM: Errore sincronizzazione server:', syncError);
+        // Non bloccare il processo se la sincronizzazione fallisce
+      }
       
       // 🔧 FIX CRITICO: Ricalcola sessioni rimanenti in base al nuovo stato premium
       let newRemainingSessions;

@@ -53,6 +53,7 @@ import { useToast } from '../components/Toast';
 import sessionService from '../lib/services/session.service';
 import AppHeader from '../components/AppHeader';
 import { Drink } from '../types/session';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 
 // Mock beverage data - would come from database
 const beverageTypes = [
@@ -422,6 +423,15 @@ export default function AddDrinkScreen() {
     []
   );
   
+  // 🔧 FIX SWIPE BACK: Aggiungi supporto per swipe back
+  const swipeGesture = Gesture.Pan()
+    .onEnd((event) => {
+      if (event.translationX > 100) {
+        console.log('🎯 ADD DRINK SWIPE: Tornando indietro...');
+        router.back();
+      }
+    });
+
   // Nasconde l'header standard per usare il nostro componente AppHeader
   useEffect(() => {
     navigation.setOptions({

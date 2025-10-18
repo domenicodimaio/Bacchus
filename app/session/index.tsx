@@ -695,8 +695,18 @@ function SessionScreen() {
                 // 🔧 FIX CRITICO: Forza aggiornamento cronologia dopo aver terminato sessione
                 try {
                   console.log('🎯 SESSION END: Aggiornando cronologia sessioni...');
+                  
+                  // Attendi un momento per permettere il salvataggio
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  
+                  // Forza il ricaricamento della cronologia
                   await sessionServiceDirect.loadSessionHistoryFromStorage();
                   console.log('🎯 SESSION END: Cronologia aggiornata con successo');
+                  
+                  // Verifica che la sessione sia stata effettivamente aggiunta
+                  const updatedHistory = sessionServiceDirect.getSessionHistory();
+                  console.log(`🎯 SESSION END: Verifica - ${updatedHistory.length} sessioni nella cronologia`);
+                  
                 } catch (historyError) {
                   console.error('🎯 SESSION END: ❌ Errore aggiornamento cronologia:', historyError);
                 }
@@ -1960,7 +1970,9 @@ const styles = StyleSheet.create({
                   />
                   
                   <View style={styles.consumptionItemDetails}>
-                    <Text style={[styles.consumptionItemName, { color: colors.text }]}>{t(food.name)}</Text>
+                    <Text style={[styles.consumptionItemName, { color: colors.text }]}>
+                      {t(`foodTypes.${food.name}`, { ns: 'session', defaultValue: food.name })}
+                    </Text>
                     <Text style={[styles.consumptionItemEffect, { color: colors.textSecondary }]}>
                       {t('reductionEffect')}: {Math.round((1 - food.absorptionFactor) * 100)}%
                     </Text>
