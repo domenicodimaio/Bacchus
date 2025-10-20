@@ -1196,7 +1196,7 @@ export const hasCompletedProfileWizard = async (): Promise<boolean> => {
     }
     
     // STEP 2: Se non c'è flag, controlla se ci sono profili nel database
-    const currentUser = await getCurrentUser();
+    // currentUser è già dichiarato sopra
     if (!currentUser) {
       console.log('[AUTH] Utente non autenticato, wizard non completato');
       return false;
