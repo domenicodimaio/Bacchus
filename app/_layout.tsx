@@ -171,10 +171,9 @@ export default function RootLayout() {
                         headerShown: false,
                         animation: 'fade',
                         contentStyle: { backgroundColor: 'transparent' },
-                        // ✅ ABILITA SWIPE BACK per migliorare UX
-                        gestureEnabled: true,
-                        fullScreenGestureEnabled: true,
-                        gestureDirection: 'horizontal',
+                        // 🔥 FIX: DISABILITA swipe back globale, sarà abilitato solo nelle schermate specifiche
+                        gestureEnabled: false,
+                        fullScreenGestureEnabled: false,
                       }}
                     />
                     <StatusBar style="auto" />

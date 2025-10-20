@@ -110,10 +110,13 @@ export default function AddFoodScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const totalSteps = 2; // 0: tipo di alimento, 1: quando hai mangiato
   
-  // Nasconde l'header standard per usare il nostro componente AppHeader
+  // Nasconde l'header standard per usare il nostro componente AppHeader e abilita swipe back
   useEffect(() => {
     navigation.setOptions({
       headerShown: false,
+      // 🔥 FIX: Abilita swipe back per questa schermata
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
     });
   }, [navigation]);
   

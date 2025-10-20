@@ -1116,7 +1116,7 @@ export async function updateSessionBAC(): Promise<Session | null> {
     // Calcola BAC semplificato ma robusto
     try {
       const r = gender === 'male' ? 0.68 : 0.55;
-      const metabolismRate = 0.015; // g/L all'ora (standard medico)
+      const metabolismRate = 0.15; // g/L all'ora (standard medico) - FIX: era 0.015 (10x troppo basso)
       
       let totalBAC = 0;
       

@@ -423,10 +423,13 @@ export default function AddDrinkScreen() {
     []
   );
   
-  // Nasconde l'header standard per usare il nostro componente AppHeader
+  // Nasconde l'header standard per usare il nostro componente AppHeader e abilita swipe back
   useEffect(() => {
     navigation.setOptions({
       headerShown: false,
+      // 🔥 FIX: Abilita swipe back per questa schermata
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
     });
   }, [navigation]);
   

@@ -584,6 +584,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 // 🔥 CONTROLLO AVANZATO: Determina se è un account riattivato
                 // Caso 1: Account non nuovo ma senza profili = riattivato dopo cancellazione
                 // Caso 2: Account creato oggi ma non negli ultimi 5 minuti = possibile ricreazione
+                // Caso 3: 🔥 FIX BUG 6: Account con metadata di eliminazione = account "eliminato" che si rilogga
                 if (!hasValidProfiles) {
                   if (!isNewUser && profiles && profiles.length === 0) {
                     isReactivatedUser = true;
@@ -592,6 +593,16 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                     isReactivatedUser = true;
                     console.log('🍎 AUTH: Rilevato possibile account ricreato - creato oggi ma non recente');
                   }
+                }
+                
+                // 🔥 FIX BUG 6: Controlla se l'account ha metadata di eliminazione
+                const userMetadata = data.user.user_metadata || {};
+                const hasAccountDeletionFlag = userMetadata.account_deletion_requested === true || 
+                                             userMetadata.deleted_at;
+                
+                if (hasAccountDeletionFlag) {
+                  isReactivatedUser = true;
+                  console.log('🍎 AUTH: Rilevato account con flag di eliminazione - trattato come riattivato');
                 }
               }
             } catch (profileError) {
@@ -603,17 +614,23 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             // 🔥 FIX BUG 3: Logica decisione wizard migliorata
             const needsWizard = isNewUser || isCreatedToday || !hasValidProfiles || isReactivatedUser;
             
+            // 🔥 FIX: Ridefinisci hasAccountDeletionFlag per il log
+            const userMetadata = data.user.user_metadata || {};
+            const hasAccountDeletionFlag = userMetadata.account_deletion_requested === true || 
+                                         userMetadata.deleted_at;
+            
             console.log('🍎 AUTH: Decisione wizard finale:', {
               isNewUser,
               isCreatedToday,
               hasValidProfiles,
               isReactivatedUser,
+              hasAccountDeletionFlag,
               needsWizard,
               reasoning: needsWizard ? 
                 (isNewUser ? 'Utente nuovo (< 5 min)' :
                  isCreatedToday ? 'Account creato oggi' :
                  !hasValidProfiles ? 'Nessun profilo valido' :
-                 isReactivatedUser ? 'Account riattivato' : 'Motivo sconosciuto') :
+                 isReactivatedUser ? 'Account riattivato o con flag eliminazione' : 'Motivo sconosciuto') :
                 'Utente esistente con profili validi'
             });
             
@@ -829,14 +846,16 @@ export const signOut = async (): Promise<AuthResponse> => {
       // 🔥 NON CANCELLARE: chiavi purchase service (bacchus_customer_info, bacchus_session_count, etc.)
     ];
     
-    // 🔥 AGGIUNGI TUTTE LE CHIAVI SPECIFICHE DELL'UTENTE CORRENTE
+    // 🔥 AGGIUNGI TUTTE LE CHIAVI SPECIFICHE DELL'UTENTE CORRENTE (MA PRESERVA CRONOLOGIA)
     if (currentUserId) {
       const userSpecificKeys = allKeys.filter(key => 
-        key.includes(`user_${currentUserId}_`) ||
-        key.includes(currentUserId)
+        (key.includes(`user_${currentUserId}_`) || key.includes(currentUserId)) &&
+        // 🔥 FIX: NON cancellare la cronologia sessioni per utenti autenticati
+        !key.includes('session_history') &&
+        !key.includes('profiles')
       );
       keysToRemove.push(...userSpecificKeys);
-      console.log(`🔥 LOGOUT: Rimuovendo ${userSpecificKeys.length} chiavi specifiche per utente ${currentUserId}`);
+      console.log(`🔥 LOGOUT: Rimuovendo ${userSpecificKeys.length} chiavi specifiche per utente ${currentUserId} (cronologia preservata)`);
     }
     
     // 🔥 AGGIUNGI CHIAVI GENERICHE MA PRESERVA DATI UTENTE AUTENTICATO E PREMIUM
@@ -1218,6 +1237,30 @@ export const setProfileWizardCompleted = async (completed: boolean = true): Prom
     // Salva le impostazioni aggiornate in modo sincrono
     await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify(profileSettings));
     console.log('Stato wizard salvato in AsyncStorage:', completed);
+    
+    // 🔥 FIX BUG 6: Se il wizard è completato, pulisci i flag di eliminazione account
+    if (completed) {
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          // Rimuovi i flag di eliminazione dal metadata utente
+          const { error: updateError } = await supabase.auth.updateUser({
+            data: { 
+              account_deletion_requested: null, 
+              deleted_at: null
+            }
+          });
+          
+          if (updateError) {
+            console.warn('Errore pulizia flag eliminazione:', updateError);
+          } else {
+            console.log('🔥 Flag eliminazione account puliti dopo completamento wizard');
+          }
+        }
+      } catch (error) {
+        console.warn('Errore durante pulizia flag eliminazione:', error);
+      }
+    }
     
     // Verifica che il salvataggio sia stato effettivo
     const verifySettings = await AsyncStorage.getItem(SELECTED_PROFILE_KEY);

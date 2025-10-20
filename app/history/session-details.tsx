@@ -6,9 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
-  StatusBar
+  StatusBar,
+  Platform
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
@@ -124,10 +125,22 @@ export default function SessionDetailsScreen() {
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   const params = useLocalSearchParams();
+  const navigation = useNavigation();
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const swipeableRef = React.useRef<Swipeable>(null);
+
+  // 🔥 FIX: Configura swipe back come nelle Impostazioni
+  useEffect(() => {
+    // Supporta lo swipe back su iOS
+    if (Platform.OS === 'ios' && navigation) {
+      navigation.setOptions({
+        gestureEnabled: true,
+        gestureDirection: 'horizontal'
+      });
+    }
+  }, [navigation]);
 
   // Carica la sessione storica in base all'ID
   useEffect(() => {
@@ -375,37 +388,8 @@ export default function SessionDetailsScreen() {
           : (item.alcoholGrams as number);
       }
 
-      // Gestisci vari formati di chiavi di traduzione
-      let displayName = item.name;
-      if (displayName) {
-        if (displayName.startsWith('drinktypes.')) {
-          // Formato diretto drinktypes.nomedrink
-          const drinkKey = displayName.replace('drinktypes.', '');
-          displayName = t(drinkKey, { ns: 'drinktypes', defaultValue: drinkKey });
-        } else if (displayName.includes('.')) {
-          // Formato namespace.chiave generico
-          const [namespace, key] = displayName.split('.');
-          displayName = t(key, { ns: namespace, defaultValue: key });
-        } else {
-          // 🔥 FIX BUG 4: Correzione logica traduzione bevande
-          const translationKey = `drinkTypes.${displayName}`;
-          const translatedFromDrinkTypes = t(translationKey, { ns: 'session', defaultValue: null });
-          
-          console.log('🔍 TRANSLATION DEBUG:', {
-            originalName: displayName,
-            translationKey: translationKey,
-            translated: translatedFromDrinkTypes,
-            isTranslated: translatedFromDrinkTypes !== null && translatedFromDrinkTypes !== displayName,
-            namespace: 'session'
-          });
-          
-          // Se la traduzione esiste e non è null, usala
-          if (translatedFromDrinkTypes && translatedFromDrinkTypes !== displayName) {
-            displayName = translatedFromDrinkTypes;
-          }
-          // Altrimenti mantieni il nome originale
-        }
-      }
+      // 🔥 FIX: Usa la logica semplice della Sessione Attiva
+      let displayName = t(item.name, { defaultValue: item.name });
 
       return (
         <View style={[styles.itemCard, { backgroundColor: colors.cardBackground }]}>
@@ -438,32 +422,8 @@ export default function SessionDetailsScreen() {
         console.warn('Errore nel parsing dell\'orario del cibo:', e);
       }
 
-      // Gestisci vari formati di chiavi di traduzione per il cibo
-      let displayName = item.name;
-      if (displayName) {
-        if (displayName.includes('.')) {
-          const [namespace, key] = displayName.split('.');
-          displayName = t(key, { ns: namespace, defaultValue: key });
-        } else {
-          // 🔥 FIX BUG 4: Correzione logica traduzione cibi
-          const translationKey = `foodTypes.${displayName}`;
-          const translatedFromFoodTypes = t(translationKey, { ns: 'session', defaultValue: null });
-          
-          console.log('🔍 FOOD TRANSLATION DEBUG:', {
-            originalName: displayName,
-            translationKey: translationKey,
-            translated: translatedFromFoodTypes,
-            isTranslated: translatedFromFoodTypes !== null && translatedFromFoodTypes !== displayName,
-            namespace: 'session'
-          });
-          
-          // Se la traduzione esiste e non è null, usala
-          if (translatedFromFoodTypes && translatedFromFoodTypes !== displayName) {
-            displayName = translatedFromFoodTypes;
-          }
-          // Altrimenti mantieni il nome originale
-        }
-      }
+      // 🔥 FIX: Usa la logica semplice della Sessione Attiva
+      let displayName = t(item.name, { defaultValue: item.name });
 
       return (
         <View style={[styles.itemCard, { backgroundColor: colors.cardBackground }]}>
