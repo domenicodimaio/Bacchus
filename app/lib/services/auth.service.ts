@@ -519,78 +519,102 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           if (data?.session && data?.user) {
             console.log('🍎 AUTH: Login Apple completato con successo');
             
-            // 🔧 CONTROLLO NUOVO UTENTE: Verifica se è la prima volta che l'utente accede
-            const isNewUser = data.user.created_at && 
-              (new Date().getTime() - new Date(data.user.created_at).getTime()) < 60000; // Creato negli ultimi 60 secondi
+            // 🔥 FIX BUG 3: Logica migliorata per determinare se è un nuovo utente
+            const now = new Date().getTime();
+            const userCreatedTime = new Date(data.user.created_at).getTime();
+            const timeSinceCreation = now - userCreatedTime;
             
-            console.log('🍎 AUTH: Utente nuovo?', isNewUser, 'Created:', data.user.created_at);
+            // Considera "nuovo" se creato negli ultimi 5 minuti (più permissivo)
+            const isNewUser = timeSinceCreation < (5 * 60 * 1000);
             
-            // 🔧 CONTROLLO AGGIUNTIVO: Se l'utente è stato creato oggi, potrebbe essere una registrazione
+            // Controlla anche se è stato creato oggi (per account ricreati)
             const today = new Date();
             const userCreatedDate = new Date(data.user.created_at);
             const isCreatedToday = userCreatedDate.toDateString() === today.toDateString();
-            console.log('🍎 AUTH: Creato oggi?', isCreatedToday, 'User date:', userCreatedDate.toDateString(), 'Today:', today.toDateString());
             
-            // 🔧 CONTROLLO CRITICO: Verifica se l'utente ha profili VALIDI
-            let hasProfiles = false;
+            console.log('🍎 AUTH: Analisi temporale utente:', {
+              isNewUser,
+              isCreatedToday,
+              timeSinceCreationMinutes: Math.round(timeSinceCreation / (60 * 1000)),
+              createdAt: data.user.created_at,
+              userCreatedDate: userCreatedDate.toDateString(),
+              today: today.toDateString()
+            });
+            
+            // 🔥 FIX BUG 3: Controllo profili migliorato e più robusto
+            let hasValidProfiles = false;
             let isReactivatedUser = false;
+            let profilesData = null;
+            
             try {
-              const { data: profilesData } = await supabase
+              const { data: profiles, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, name, weight, hasCompletedWizard, is_default')
+                .select('id, name, weight_kg, gender, birth_date, created_at')
                 .eq('user_id', data.user.id);
               
-              console.log('🍎 AUTH: Profili trovati:', profilesData?.length || 0);
-              
-              if (profilesData && profilesData.length > 0) {
-                // Controlla se ci sono profili validi (con dati completi)
-                hasProfiles = profilesData.some(p => p.name && p.weight > 0);
-                
-                // Verifica se l'utente ha completato il wizard
-                const hasCompletedWizard = profilesData.some(profile => 
-                  profile.hasCompletedWizard || profile.is_default
-                );
-                
-                console.log('🍎 AUTH: Utente ha profili validi?', hasProfiles);
-                console.log('🍎 AUTH: Wizard completato?', hasCompletedWizard);
-                
-                // Se ha profili ma il wizard non è completato, potrebbe essere riattivato
-                if (hasProfiles && !hasCompletedWizard) {
-                  isReactivatedUser = true;
-                  console.log('🍎 AUTH: Utente con profili ma wizard non completato - riattivato');
-                }
+              if (profileError) {
+                console.error('🍎 AUTH: Errore query profili:', profileError);
               } else {
-                console.log('🍎 AUTH: Nessun profilo trovato');
+                profilesData = profiles;
                 
-                // 🔧 FIX CRITICO: Controlla se l'utente è stato cancellato in precedenza
-                // Verifica se ci sono sessioni storiche per questo utente
-                const { data: sessionsData } = await supabase
-                  .from('sessions')
-                  .select('id')
-                  .eq('user_id', data.user.id)
-                  .limit(1);
+                // Controlla se ci sono profili COMPLETI e VALIDI
+                hasValidProfiles = profiles && profiles.length > 0 && 
+                                 profiles.some(p => 
+                                   p.name && 
+                                   p.name.trim().length > 0 && 
+                                   p.weight_kg && 
+                                   p.weight_kg > 0 && 
+                                   p.gender &&
+                                   p.birth_date
+                                 );
                 
-                if (sessionsData && sessionsData.length > 0) {
-                  console.log('🍎 AUTH: Utente riattivato - ha sessioni storiche');
-                  isReactivatedUser = true;
-                } else {
-                  console.log('🍎 AUTH: Veramente nuovo utente');
+                console.log('🍎 AUTH: Analisi profili:', {
+                  totalProfiles: profiles?.length || 0,
+                  hasValidProfiles,
+                  profilesDetails: profiles?.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    hasWeight: !!p.weight_kg,
+                    hasGender: !!p.gender,
+                    hasBirthDate: !!p.birth_date,
+                    createdAt: p.created_at
+                  })) || []
+                });
+                
+                // 🔥 CONTROLLO AVANZATO: Determina se è un account riattivato
+                // Caso 1: Account non nuovo ma senza profili = riattivato dopo cancellazione
+                // Caso 2: Account creato oggi ma non negli ultimi 5 minuti = possibile ricreazione
+                if (!hasValidProfiles) {
+                  if (!isNewUser && profiles && profiles.length === 0) {
+                    isReactivatedUser = true;
+                    console.log('🍎 AUTH: Rilevato account riattivato - nessun profilo per account esistente');
+                  } else if (isCreatedToday && !isNewUser) {
+                    isReactivatedUser = true;
+                    console.log('🍎 AUTH: Rilevato possibile account ricreato - creato oggi ma non recente');
+                  }
                 }
               }
             } catch (profileError) {
-              console.error('🍎 AUTH: Errore controllo profili:', profileError);
-              // In caso di errore, assumiamo che sia un nuovo utente
+              console.error('🍎 AUTH: Errore critico controllo profili:', profileError);
+              // In caso di errore, assumiamo che non ci siano profili validi
+              hasValidProfiles = false;
             }
             
-            // Controllo combinato: nuovo utente O creato oggi O senza profili O utente riattivato
-            const needsWizard = isNewUser || isCreatedToday || !hasProfiles || isReactivatedUser;
+            // 🔥 FIX BUG 3: Logica decisione wizard migliorata
+            const needsWizard = isNewUser || isCreatedToday || !hasValidProfiles || isReactivatedUser;
             
-            console.log('🍎 AUTH: Decisione wizard -', {
+            console.log('🍎 AUTH: Decisione wizard finale:', {
               isNewUser,
               isCreatedToday,
-              hasProfiles,
+              hasValidProfiles,
               isReactivatedUser,
-              needsWizard
+              needsWizard,
+              reasoning: needsWizard ? 
+                (isNewUser ? 'Utente nuovo (< 5 min)' :
+                 isCreatedToday ? 'Account creato oggi' :
+                 !hasValidProfiles ? 'Nessun profilo valido' :
+                 isReactivatedUser ? 'Account riattivato' : 'Motivo sconosciuto') :
+                'Utente esistente con profili validi'
             });
             
             // Salva i dati utente in AsyncStorage per offline
@@ -606,7 +630,18 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             // 🎯 Se l'utente ha bisogno del wizard (nuovo o senza profili)
             if (needsWizard) {
-              console.log('🍎 AUTH: Utente deve completare wizard - nuovo:', isNewUser, 'senza profili:', needsWizard);
+              console.log('🍎 AUTH: Utente deve completare wizard -', {
+                isNewUser,
+                isCreatedToday,
+                hasValidProfiles,
+                isReactivatedUser,
+                reasoning: needsWizard ? 
+                  (isNewUser ? 'Utente nuovo (< 5 min)' :
+                   isCreatedToday ? 'Account creato oggi' :
+                   !hasValidProfiles ? 'Nessun profilo valido' :
+                   isReactivatedUser ? 'Account riattivato' : 'Motivo sconosciuto') :
+                  'Utente esistente con profili validi'
+              });
               
               // Rimuovi eventuali flag di wizard completato
               await AsyncStorage.removeItem('profile_wizard_completed');
@@ -800,20 +835,8 @@ export const signOut = async (): Promise<AuthResponse> => {
         key.includes(`user_${currentUserId}_`) ||
         key.includes(currentUserId)
       );
-      
-      // 🔧 FIX CRITICO: NON cancellare la cronologia sessioni durante il logout
-      const keysToPreserve = [
-        `user_${currentUserId}_session_history`,
-        `user_${currentUserId}_profiles`,
-        `user_${currentUserId}_profile_data`
-      ];
-      
-      const keysToActuallyRemove = userSpecificKeys.filter(key => 
-        !keysToPreserve.some(preserveKey => key.includes(preserveKey))
-      );
-      
-      keysToRemove.push(...keysToActuallyRemove);
-      console.log(`🔥 LOGOUT: Rimuovendo ${keysToActuallyRemove.length} chiavi specifiche per utente ${currentUserId} (preservando cronologia)`);
+      keysToRemove.push(...userSpecificKeys);
+      console.log(`🔥 LOGOUT: Rimuovendo ${userSpecificKeys.length} chiavi specifiche per utente ${currentUserId}`);
     }
     
     // 🔥 AGGIUNGI CHIAVI GENERICHE MA PRESERVA DATI UTENTE AUTENTICATO E PREMIUM
@@ -832,14 +855,11 @@ export const signOut = async (): Promise<AuthResponse> => {
       // Per utenti autenticati, NON cancellare cronologia sessioni e profili
       // perché verranno ricaricati dal database
       if (currentUserId) {
-        // Cancella solo chiavi temporanee e cache, MA preserva cronologia e profili
-        return (key.startsWith('bacchus_wizard') ||
-                key.startsWith('bacchus_temp') ||
-                key.includes('active_session') ||
-                key.includes('lastKnownSession')) &&
-               !key.includes('session_history') &&
-               !key.includes('profiles') &&
-               !key.includes('profile_data');
+        // Cancella solo chiavi temporanee e cache
+        return key.startsWith('bacchus_wizard') ||
+               key.startsWith('bacchus_temp') ||
+               key.includes('active_session') ||
+               key.includes('lastKnownSession');
       } else {
         // Per ospiti, cancella tutto tranne premium
         return key.startsWith('bacchus_') ||
@@ -860,7 +880,9 @@ export const signOut = async (): Promise<AuthResponse> => {
     
     // 🔥 FIX CRITICO: Reset completo session service per cambio utente
     const sessionService = require('./session.service');
-    sessionService.resetSessionService(); // Reset completo stato sessioni e cronologia
+    // 🔥 FIX BUG 1: Preserva cronologia per utenti autenticati
+    const preserveHistory = currentUserId !== null;
+    sessionService.resetSessionService(preserveHistory);
     
     // 🔥 FIX CRITICO: Reset completo profile service per cambio utente
     const profileService = require('./profile.service');
@@ -1347,42 +1369,6 @@ export const deleteAccount = async (): Promise<AuthResponse> => {
         console.error('Error deleting profiles:', profilesError);
       } else {
         console.log('Profiles deleted successfully');
-      }
-      
-      // 🔧 FIX CRITICO: Elimina le preferenze utente (incluso stato premium)
-      const { error: preferencesError } = await supabase
-        .from('user_preferences')
-        .delete()
-        .eq('user_id', userId);
-      
-      if (preferencesError && !preferencesError.message.includes('does not exist')) {
-        console.error('Error deleting user preferences:', preferencesError);
-      } else {
-        console.log('User preferences deleted successfully');
-      }
-      
-      // Elimina le sessioni dell'utente
-      const { error: sessionsError } = await supabase
-        .from('sessions')
-        .delete()
-        .eq('user_id', userId);
-      
-      if (sessionsError && !sessionsError.message.includes('does not exist')) {
-        console.error('Error deleting sessions:', sessionsError);
-      } else {
-        console.log('Sessions deleted successfully');
-      }
-      
-      // Elimina i log dell'app
-      const { error: logsError } = await supabase
-        .from('app_logs')
-        .delete()
-        .eq('user_id', userId);
-      
-      if (logsError && !logsError.message.includes('does not exist')) {
-        console.error('Error deleting app logs:', logsError);
-      } else {
-        console.log('App logs deleted successfully');
       }
       
       // Elimina le sessioni attive

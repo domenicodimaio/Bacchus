@@ -145,7 +145,7 @@ function DashboardScreen() {
       // Setup un timer per controlli continui
       const timer = setInterval(() => {
         // Controllo e aggiorna la sessione periodicamente
-        const currentSession = sessionService.getActiveSession();
+        const currentSession = sessionService.getActiveSession(true);
         if (currentSession) {
           // Aggiorna la UI solo se il BAC è cambiato
           if (session?.currentBAC !== currentSession.currentBAC) {
@@ -174,7 +174,7 @@ function DashboardScreen() {
     // Aggiorna il BAC solo ogni minuto invece che ogni 2 secondi
     const forceUpdateTimer = setInterval(() => {
       // Ottieni la sessione attiva aggiornata
-      const currentActiveSession = sessionService.getActiveSession();
+      const currentActiveSession = sessionService.getActiveSession(true);
       if (currentActiveSession) {
         setSession(currentActiveSession);
         
@@ -198,8 +198,8 @@ function DashboardScreen() {
     // Prima aggiorna il BAC per assicurarsi che i dati siano corretti
     sessionService.updateSessionBAC();
     
-    // Poi verifica se c'è una sessione attiva
-    const currentSession = sessionService.getActiveSession();
+    // Poi verifica se c'è una sessione attiva (con caricamento esplicito)
+    const currentSession = sessionService.getActiveSession(true);
     
     if (currentSession) {
       console.log('Dashboard: sessione attiva trovata:', currentSession.id);

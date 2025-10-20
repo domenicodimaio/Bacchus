@@ -22,14 +22,14 @@ export default function DashboardScreen() {
     console.log('Caricamento sessione attiva...');
     
     // Ottieni la sessione attiva direttamente dal servizio
-    const session = sessionService.getActiveSession();
+    const session = sessionService.getActiveSession(true);
     
     if (session) {
       console.log(`Sessione attiva trovata: ${session.id}`);
       // Aggiorna il BAC per assicurarci che sia attuale
       sessionService.updateSessionBAC();
       // Ottieni la sessione aggiornata
-      const updatedSession = sessionService.getActiveSession();
+      const updatedSession = sessionService.getActiveSession(true);
       setActiveSession(updatedSession);
       setHasActiveSession(true);
     } else {
@@ -57,7 +57,7 @@ export default function DashboardScreen() {
       // Imposta un interval per aggiornare il BAC mentre la schermata è visibile
       const bacUpdateInterval = setInterval(() => {
         // Verifica che la sessione sia ancora attiva prima di aggiornare
-        if (sessionService.getActiveSession()) {
+        if (sessionService.getActiveSession(false)) {
           console.log('Aggiornamento periodico BAC');
           sessionService.updateSessionBAC();
           loadActiveSession();
@@ -135,7 +135,7 @@ export default function DashboardScreen() {
         // Verifica che la sessione sia stata realmente eliminata
         setTimeout(() => {
           // Ricontrolla che non ci siano sessioni attive
-          const checkSession = sessionService.getActiveSession();
+          const checkSession = sessionService.getActiveSession(false);
           
           if (checkSession) {
             console.log('Sessione ancora presente, forzando rimozione');

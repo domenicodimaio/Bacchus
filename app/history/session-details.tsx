@@ -17,7 +17,7 @@ import { Session, Drink, FoodRecord } from '../types/session';
 import AppHeader from '../components/AppHeader';
 import BACChartSimple from '../components/BACChartSimple';
 import { SIZES } from '../constants/theme';
-import { GestureHandlerRootView, Swipeable, GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
 // Funzioni di formattazione delle date
 const formatSessionDate = (dateValue: Date | string): string => {
@@ -128,15 +128,6 @@ export default function SessionDetailsScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const swipeableRef = React.useRef<Swipeable>(null);
-
-  // 🔧 FIX SWIPE BACK: Aggiungi supporto per swipe back
-  const swipeGesture = Gesture.Pan()
-    .onEnd((event) => {
-      if (event.translationX > 100) {
-        console.log('🎯 SESSION DETAILS SWIPE: Tornando indietro...');
-        router.back();
-      }
-    });
 
   // Carica la sessione storica in base all'ID
   useEffect(() => {
@@ -396,19 +387,19 @@ export default function SessionDetailsScreen() {
           const [namespace, key] = displayName.split('.');
           displayName = t(key, { ns: namespace, defaultValue: key });
         } else {
-          // 🔥 FIX: Prova a tradurre dal namespace session con drinkTypes
+          // 🔥 FIX BUG 4: Correzione logica traduzione bevande
           const translationKey = `drinkTypes.${displayName}`;
-          const translatedFromDrinkTypes = t(translationKey, { ns: 'session', defaultValue: displayName });
+          const translatedFromDrinkTypes = t(translationKey, { ns: 'session', defaultValue: null });
           
           console.log('🔍 TRANSLATION DEBUG:', {
             originalName: displayName,
             translationKey: translationKey,
             translated: translatedFromDrinkTypes,
-            isTranslated: translatedFromDrinkTypes !== displayName,
+            isTranslated: translatedFromDrinkTypes !== null && translatedFromDrinkTypes !== displayName,
             namespace: 'session'
           });
           
-          // Se la traduzione è diversa dal nome originale, usala
+          // Se la traduzione esiste e non è null, usala
           if (translatedFromDrinkTypes && translatedFromDrinkTypes !== displayName) {
             displayName = translatedFromDrinkTypes;
           }
@@ -454,15 +445,23 @@ export default function SessionDetailsScreen() {
           const [namespace, key] = displayName.split('.');
           displayName = t(key, { ns: namespace, defaultValue: key });
         } else {
-          // 🔧 FIX CRITICO: Prova a tradurre dal namespace session con foodTypes
+          // 🔥 FIX BUG 4: Correzione logica traduzione cibi
           const translationKey = `foodTypes.${displayName}`;
-          const translatedFromFoodTypes = t(translationKey, { ns: 'session', defaultValue: displayName });
+          const translatedFromFoodTypes = t(translationKey, { ns: 'session', defaultValue: null });
+          
+          console.log('🔍 FOOD TRANSLATION DEBUG:', {
+            originalName: displayName,
+            translationKey: translationKey,
+            translated: translatedFromFoodTypes,
+            isTranslated: translatedFromFoodTypes !== null && translatedFromFoodTypes !== displayName,
+            namespace: 'session'
+          });
+          
+          // Se la traduzione esiste e non è null, usala
           if (translatedFromFoodTypes && translatedFromFoodTypes !== displayName) {
             displayName = translatedFromFoodTypes;
-          } else {
-            // Fallback: usa il nome così com'è
-            displayName = displayName;
           }
+          // Altrimenti mantieni il nome originale
         }
       }
 
@@ -543,16 +542,15 @@ export default function SessionDetailsScreen() {
         onBackPress={() => router.back()}
       />
 
-      <GestureDetector gesture={swipeGesture}>
-        <Swipeable
-          ref={swipeableRef}
-          renderRightActions={renderRightActions}
-          onSwipeableRightOpen={handleSwipeRight}
-          friction={1} // Ridotto per rendere il gesto più facile
-          rightThreshold={20} // Ridotto per attivare più facilmente
-          overshootRight={false} // Previene un movimento troppo ampio
-        >
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        onSwipeableRightOpen={handleSwipeRight}
+        friction={1} // Ridotto per rendere il gesto più facile
+        rightThreshold={20} // Ridotto per attivare più facilmente
+        overshootRight={false} // Previene un movimento troppo ampio
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Header della sessione */}
           <View style={[styles.sessionHeader, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.sessionInfo}>
@@ -629,9 +627,8 @@ export default function SessionDetailsScreen() {
               </Text>
             )}
           </View>
-          </ScrollView>
-        </Swipeable>
-      </GestureDetector>
+        </ScrollView>
+      </Swipeable>
     </GestureHandlerRootView>
   );
 }

@@ -128,42 +128,29 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       if (isInitialized && !force) return true;
       
-      // 🔧 FIX CRITICO: Carica stato premium dal server se disponibile
-      let serverPremiumStatus: boolean | null = null;
-      try {
-        serverPremiumStatus = await purchaseService.loadPremiumStatusFromServer();
-        if (serverPremiumStatus !== null) {
-          console.log('🔥 PURCHASE_CONTEXT: Stato premium dal server:', serverPremiumStatus);
-          
-          // Aggiorna lo storage locale con lo stato del server
-          await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, serverPremiumStatus ? 'true' : 'false');
-          console.log('🔥 PURCHASE_CONTEXT: Stato premium sincronizzato localmente');
-        }
-      } catch (serverError) {
-        console.warn('🔥 PURCHASE_CONTEXT: Errore caricamento stato premium dal server:', serverError);
-        // Continua con l'inizializzazione normale
-      }
-      
-      // Check if premium simulation is enabled (ora potrebbe essere stato aggiornato dal server)
+      // 🔥 FIX BUG 2: Controlla SEMPRE SIMULATE_PREMIUM prima di tutto
       const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
+      console.log('🎯 INIT: Controllo SIMULATE_PREMIUM:', simulatePremium);
+      
+      let isPremium = false;
+      let isAdFree = false;
+      
       if (simulatePremium === 'true') {
-        console.log('SIMULATION: Premium mode enabled');
-        safeSetState({
-          isPremium: true,
-          isAdFree: true,
-          isLoading: false
-        });
-        setIsInitialized(true);
-        return true;
+        console.log('🎯 INIT: Modalità simulazione premium attiva');
+        isPremium = true;
+        isAdFree = true;
+      } else {
+        console.log('🎯 INIT: Modalità normale - controllo servizio acquisti');
+        
+        // Inizializza il servizio acquisti solo se non in modalità simulazione
+        const success = await purchaseService.initPurchases();
+        
+        // Ottieni stato premium e ad-free dal servizio
+        isPremium = await purchaseService.isPremium();
+        isAdFree = await purchaseService.isAdFree();
+        
+        console.log('🎯 INIT: Stato dal servizio - isPremium:', isPremium, 'isAdFree:', isAdFree);
       }
-      
-      // Inizializza il servizio acquisti
-      const success = await purchaseService.initPurchases();
-      
-      // Anche se l'inizializzazione fallisce, continuiamo per non bloccare l'app
-      // Ottieni stato premium e ad-free
-      const isPremium = await purchaseService.isPremium();
-      const isAdFree = await purchaseService.isAdFree();
       
       // Ottenere prodotti potrebbe fallire, iniziamo con lista vuota
       let products = [];
@@ -186,7 +173,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔧 FIX: Se l'utente è premium, sessioni infinite (-1), altrimenti usa il valore reale
       const finalRemainingSessions = isPremium ? -1 : Math.max(0, remainingSessions);
       
-      console.log(`🎯 PURCHASE_CONTEXT INIT: isPremium=${isPremium}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}`);
+      console.log(`🎯 PURCHASE_CONTEXT INIT: isPremium=${isPremium}, isAdFree=${isAdFree}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}, simulatePremium=${simulatePremium}`);
       
       // Aggiorna lo stato
       safeSetState({
@@ -237,14 +224,25 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔧 FIX: Ricarica anche il counter sessioni quando cambia utente
       const reloadSessionCounter = async () => {
         try {
-          const isPremium = await purchaseService.isPremium();
+          // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM anche qui
+          const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
+          
+          let isPremium = false;
+          if (simulatePremium === 'true') {
+            console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
+            isPremium = true;
+          } else {
+            isPremium = await purchaseService.isPremium();
+          }
+          
           const remainingSessions = await purchaseService.getRemainingSessionsCount();
           const finalRemainingSessions = isPremium ? -1 : Math.max(0, remainingSessions);
           
-          console.log(`🎯 USER CHANGED RELOAD: isPremium=${isPremium}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}`);
+          console.log(`🎯 USER CHANGED RELOAD: isPremium=${isPremium}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}, simulatePremium=${simulatePremium}`);
           
           safeSetState({ 
             isPremium,
+            isAdFree: isPremium, // Se premium simulato, anche ad-free
             remainingFreeSessions: finalRemainingSessions 
           });
         } catch (error) {
@@ -597,26 +595,13 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Valore ricevuto:', value);
       
-      // Salva il valore localmente
+      // Salva il valore
       await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, value ? 'true' : 'false');
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Salvato in AsyncStorage');
       
       // Imposta anche lo stato di simulazione nel servizio
       await purchaseService.setMockPremiumStatus(value);
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Aggiornato purchase service');
-      
-      // 🔧 FIX CRITICO: Sincronizza con il server per persistenza
-      try {
-        const syncSuccess = await purchaseService.syncPremiumStatusWithServer(value);
-        if (syncSuccess) {
-          console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Stato premium sincronizzato con server');
-        } else {
-          console.warn('🎯 TOGGLE_SIMULATE_PREMIUM: Fallimento sincronizzazione server, ma stato locale salvato');
-        }
-      } catch (syncError) {
-        console.error('🎯 TOGGLE_SIMULATE_PREMIUM: Errore sincronizzazione server:', syncError);
-        // Non bloccare il processo se la sincronizzazione fallisce
-      }
       
       // 🔧 FIX CRITICO: Ricalcola sessioni rimanenti in base al nuovo stato premium
       let newRemainingSessions;

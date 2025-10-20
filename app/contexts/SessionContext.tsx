@@ -10,7 +10,7 @@ import { calculateAlcoholGrams } from '../lib/bac/calculator';
 // Chiavi di storage
 const ACTIVE_SESSIONS_KEY = 'bacchus_active_sessions';
 const CURRENT_SESSION_ID_KEY = 'bacchus_current_session_id';
-const PAST_SESSIONS_KEY = 'bacchus_past_sessions';
+// 🔥 FIX CRITICO: PAST_SESSIONS_KEY rimosso - ora usa session.service per la cronologia
 
 // Definizione del contesto
 interface SessionContextType {
@@ -76,8 +76,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const saveSessions = async () => {
     try {
       await AsyncStorage.setItem(ACTIVE_SESSIONS_KEY, JSON.stringify(activeSessions));
-      await AsyncStorage.setItem(PAST_SESSIONS_KEY, JSON.stringify(pastSessions));
-      console.log('Sessioni salvate con successo');
+      // 🔥 FIX CRITICO: Non salviamo più pastSessions qui, usa session.service
+      console.log('Sessioni attive salvate con successo');
       return true;
     } catch (error) {
       console.error('Errore durante il salvataggio delle sessioni:', error);
@@ -128,27 +128,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setActiveSessions(formattedActiveSessions);
           }
           
-          // Carica la cronologia delle sessioni da Supabase
-          const historySessions = await sessionService.loadSessionHistoryFromSupabase();
+          // 🔥 FIX CRITICO: Carica la cronologia usando il servizio unificato
+          await sessionService.loadSessionHistoryFromStorage();
+          const historySessions = sessionService.getSessionHistory();
+          
           if (historySessions && historySessions.length > 0) {
-            // Converti le sessioni nel formato utilizzato dal context
-            const formattedHistorySessions = historySessions.map(session => ({
-              id: session.id,
-              profileId: session.profile.id,
-              drinks: session.drinks.map(drink => ({
-                id: drink.id,
-                name: drink.name,
-                alcoholPercentage: drink.alcoholPercentage,
-                volumeInMl: drink.volume,
-                timestamp: drink.time
-              })),
-              startTime: session.startTime.toISOString(),
-              endTime: session.sessionStartTime.toISOString(),
-              maxBac: session.currentBAC,
-              isActive: false
-            }));
-            
-            setPastSessions(formattedHistorySessions);
+            console.log(`✅ SessionContext: Caricate ${historySessions.length} sessioni dalla cronologia unificata`);
+            setPastSessions(historySessions);
           }
           
           // Se non ci sono sessioni caricate, prova a caricarle da locale
@@ -162,12 +148,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }
           
           if (historySessions.length === 0) {
-            // Carica le sessioni passate dal local storage
-            const storedPastSessions = await AsyncStorage.getItem(PAST_SESSIONS_KEY);
-            if (storedPastSessions) {
-              const sessions = JSON.parse(storedPastSessions);
-              setPastSessions(sessions);
-            }
+            // 🔥 FIX CRITICO: Anche offline, usa il servizio unificato
+            await sessionService.loadSessionHistoryFromStorage();
+            const fallbackHistory = sessionService.getSessionHistory();
+            setPastSessions(fallbackHistory);
           }
         } else {
           // Utente non autenticato o offline, carica dallo storage locale
@@ -204,27 +188,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             
             setActiveSessions(activeSes);
             
-            // Aggiunge le sessioni terminate alle sessioni passate
-            const storedPastSessions = await AsyncStorage.getItem(PAST_SESSIONS_KEY);
-            let allPastSessions = pastSes;
-            if (storedPastSessions) {
-              const existingPastSessions = JSON.parse(storedPastSessions);
-              allPastSessions = [...existingPastSessions, ...pastSes];
-            }
-            
+            // 🔥 FIX CRITICO: Le sessioni terminate vengono gestite dal session.service
+            // Non salviamo più in PAST_SESSIONS_KEY, ma aggiorniamo la cronologia unificata
             if (pastSes.length > 0) {
-              await AsyncStorage.setItem(PAST_SESSIONS_KEY, JSON.stringify(allPastSessions));
+              const sessionService = require('../lib/services/session.service');
+              // Aggiungi le sessioni terminate alla cronologia del servizio
+              for (const session of pastSes) {
+                await sessionService.addSessionToHistory(session);
+              }
             }
             
-            setPastSessions(allPastSessions);
+            // Le sessioni terminate sono già state aggiunte alla cronologia del servizio
           }
           
-          // Carica le sessioni passate se non ci sono sessioni terminate
-          const storedPastSessions = await AsyncStorage.getItem(PAST_SESSIONS_KEY);
-          if (storedPastSessions && pastSessions.length === 0) {
-            const sessions = JSON.parse(storedPastSessions);
-            setPastSessions(sessions);
-          }
+          // 🔥 FIX CRITICO: Carica sempre la cronologia dal servizio unificato
+          await sessionService.loadSessionHistoryFromStorage();
+          const offlineHistory = sessionService.getSessionHistory();
+          setPastSessions(offlineHistory);
         }
         
         // Carica l'ID della sessione corrente (se c'è un profilo corrente)
@@ -322,20 +302,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [currentSessionId, isLoading]);
 
-  // Salva le sessioni passate nel local storage
-  useEffect(() => {
-    const savePastSessions = async () => {
-      try {
-        await AsyncStorage.setItem(PAST_SESSIONS_KEY, JSON.stringify(pastSessions));
-      } catch (error) {
-        console.error('Error saving past sessions:', error);
-      }
-    };
-    
-    if (!isLoading) {
-      savePastSessions();
-    }
-  }, [pastSessions, isLoading]);
+  // 🔥 FIX CRITICO: Non salviamo più pastSessions localmente
+  // Il servizio unificato session.service gestisce tutto il salvataggio della cronologia
 
   // Trova una sessione attiva per un profilo
   const getSessionByProfileId = (profileId: string): Session | null => {
@@ -433,46 +401,43 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const sessionToEnd = getSessionByProfileId(targetProfileId);
       
       if (sessionToEnd) {
-        // Calcola il BAC massimo
-        let maxBac = 0;
-        if (sessionToEnd.id === currentSessionId && bacData) {
-          maxBac = bacData.max;
-        } else {
-          // Se non c'è un valore BAC calcolato, usa 0
-          maxBac = 0;
-        }
+        console.log('🔄 SessionContext: Terminazione sessione per profilo', targetProfileId);
         
-        const endedSession: Session = {
-          ...sessionToEnd,
-          endTime: new Date().toISOString(),
-          isActive: false,
-          maxBac: maxBac,
-        };
-        
-        // Verifica se l'utente è autenticato
-        const authService = require('../lib/services/auth.service');
+        // 🔥 FIX CRITICO: Usa SEMPRE il session.service per terminare la sessione
+        // Questo garantisce che la cronologia venga aggiornata correttamente
         const sessionService = require('../lib/services/session.service');
+        const authService = require('../lib/services/auth.service');
         const currentUser = await authService.getCurrentUser();
         
-        if (currentUser) {
-          // Se l'utente è autenticato, usa la funzione del servizio
-          sessionService.endSession();
-        }
+        // Termina la sessione usando il servizio unificato
+        const success = await sessionService.endSession();
         
-        // Aggiungi alla lista delle sessioni passate
-        setPastSessions([...pastSessions, endedSession]);
-        
-        // Rimuovi dalle sessioni attive
-        const updatedActiveSessions = activeSessions.filter(s => s.id !== sessionToEnd.id);
-        setActiveSessions(updatedActiveSessions);
-        
-        // Se era la sessione corrente, imposta il currentSessionId a null
-        if (sessionToEnd.id === currentSessionId) {
-          setCurrentSessionId(null);
+        if (success) {
+          console.log('✅ SessionContext: Sessione terminata con successo dal servizio');
+          
+          // Ricarica la cronologia dal servizio per sincronizzare
+          await sessionService.loadSessionHistoryFromStorage();
+          const updatedHistory = sessionService.getSessionHistory();
+          
+          // Aggiorna lo stato locale per riflettere i cambiamenti
+          const updatedActiveSessions = activeSessions.filter(s => s.id !== sessionToEnd.id);
+          setActiveSessions(updatedActiveSessions);
+          
+          // Aggiorna pastSessions con la cronologia dal servizio
+          setPastSessions(updatedHistory);
+          
+          // Se era la sessione corrente, imposta il currentSessionId a null
+          if (sessionToEnd.id === currentSessionId) {
+            setCurrentSessionId(null);
+          }
+          
+          console.log('✅ SessionContext: Stato locale sincronizzato con il servizio');
+        } else {
+          console.error('❌ SessionContext: Errore nella terminazione della sessione dal servizio');
         }
       }
     } catch (error) {
-      console.error('Error ending session:', error);
+      console.error('❌ SessionContext: Errore nella terminazione della sessione:', error);
     }
   };
 
@@ -956,7 +921,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       (async () => {
         try {
           await AsyncStorage.setItem(ACTIVE_SESSIONS_KEY, JSON.stringify(stillActiveSessions));
-          await AsyncStorage.setItem(PAST_SESSIONS_KEY, JSON.stringify([...pastSessions, ...newlyEndedSessions]));
+          // 🔥 FIX CRITICO: Usa session.service per le sessioni terminate
+          const sessionService = require('../lib/services/session.service');
+          for (const session of newlyEndedSessions) {
+            await sessionService.addSessionToHistory(session);
+          }
         } catch (error) {
           console.error('Error saving sessions after auto-termination:', error);
         }
@@ -989,9 +958,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveSessions(updatedActiveSessions);
         await AsyncStorage.setItem(ACTIVE_SESSIONS_KEY, JSON.stringify(updatedActiveSessions));
       } else {
-        const updatedPastSessions = pastSessions.filter(s => s.id !== sessionId);
-        setPastSessions(updatedPastSessions);
-        await AsyncStorage.setItem(PAST_SESSIONS_KEY, JSON.stringify(updatedPastSessions));
+        // 🔥 FIX CRITICO: Usa session.service per eliminare dalla cronologia
+        const sessionService = require('../lib/services/session.service');
+        sessionService.deleteSession(sessionId);
+        
+        // Ricarica la cronologia aggiornata
+        await sessionService.loadSessionHistoryFromStorage();
+        const updatedHistory = sessionService.getSessionHistory();
+        setPastSessions(updatedHistory);
       }
       
       // Se è l'unica sessione attiva per un profilo, considera di aggiornare il profilo corrente

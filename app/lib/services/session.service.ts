@@ -20,19 +20,9 @@ import { Session, UserProfile, Drink, FoodRecord } from '../../types/session';
 
 // ===== STATO SEMPLIFICATO =====
 let _initialized = false;
-export let activeSession: Session | null = null; // 🔧 FIX CRITICO: Flag per controllare l'avvio automatico delle sessioni
-let autoStartSessionsEnabled = false;
-
-// 🔧 FIX CRITICO: Funzione per abilitare/disabilitare l'avvio automatico
-export function setAutoStartSessionsEnabled(enabled: boolean): void {
-  autoStartSessionsEnabled = enabled;
-  console.log('🔧 AUTO START SESSIONS:', enabled ? 'ABILITATO' : 'DISABILITATO');
-}
-
-// 🔧 FIX CRITICO: Funzione per verificare se l'avvio automatico è abilitato
-export function isAutoStartSessionsEnabled(): boolean {
-  return autoStartSessionsEnabled;
-}
+export let activeSession: Session | null = null; // 🔥 Export per reset da auth.service
+export let sessionHistory: Session[] = []; // 🔥 Export per reset da auth.service
+let _currentUserId: string | null = null;
 
 // 🔥 Timer globale per aggiornamento BAC automatico
 let bacUpdateTimer: NodeJS.Timeout | null = null;
@@ -105,12 +95,7 @@ export function resetSessionState(): void {
 // 🔥 Carica la sessione attiva da storage e avvia il timer se necessario
 async function loadActiveSessionFromStorage() {
   try {
-    // 🔧 FIX CRITICO: Controlla se l'avvio automatico è disabilitato
-    if (!autoStartSessionsEnabled) {
-      console.log('🔧 AUTO START DISABILITATO: Non carico sessioni automaticamente');
-      return;
-    }
-    
+    console.log('🔍 DIAGNOSTIC: loadActiveSessionFromStorage chiamato');
     const userId = await getCurrentUserId();
     const { active } = await loadSessionsFromLocalStorage(userId);
     
@@ -120,12 +105,20 @@ async function loadActiveSessionFromStorage() {
       const sessionAge = now.getTime() - new Date(active.startTime).getTime();
       const maxSessionAge = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
       
+      console.log('🔍 DIAGNOSTIC: Sessione trovata in storage:', {
+        sessionId: active.id,
+        ageHours: Math.round(sessionAge / (60 * 60 * 1000)),
+        maxAgeHours: 24,
+        isClosed: active.isClosed,
+        startTime: active.startTime
+      });
+      
       if (sessionAge > maxSessionAge) {
         console.log('🔄 Sessione troppo vecchia, non la carico come attiva:', active.id, 'Age:', Math.round(sessionAge / (60 * 60 * 1000)), 'hours');
         return;
       }
       
-      console.log('🔄 Sessione attiva caricata da storage:', active.id);
+      console.log('🔄 DIAGNOSTIC: Sessione attiva caricata da storage e timer avviato:', active.id);
       activeSession = active;
       
       // 🔥 Avvia il timer se c'è una sessione attiva
@@ -133,6 +126,8 @@ async function loadActiveSessionFromStorage() {
       
       // Aggiorna il BAC immediatamente
       await updateSessionBAC();
+    } else {
+      console.log('🔍 DIAGNOSTIC: Nessuna sessione attiva trovata in storage o sessione chiusa');
     }
   } catch (error) {
     console.error('🔴 Errore caricamento sessione attiva da storage:', error);
@@ -165,9 +160,25 @@ const LAST_KNOWN_SESSION_KEY = 'bacchus_last_known_session';
 // ===== FUNZIONI DI BASE =====
 
 // Ottiene la sessione attiva
-export function getActiveSession(): Session | null {
-  // Se non esiste nessuna sessione in memoria, prova a caricarla da storage
-  if (!activeSession) {
+// 🔥 FIX BUG 6: Feature flag per disabilitare auto-caricamento sessioni
+let autoLoadSessionsEnabled = false;
+
+export function setAutoLoadSessions(enabled: boolean): void {
+  autoLoadSessionsEnabled = enabled;
+  console.log(`🔧 Auto-caricamento sessioni ${enabled ? 'abilitato' : 'disabilitato'}`);
+}
+
+export function getActiveSession(forceLoad: boolean = false): Session | null {
+  console.log('🔍 DIAGNOSTIC: getActiveSession chiamato', {
+    hasActiveSession: !!activeSession,
+    forceLoad,
+    autoLoadEnabled: autoLoadSessionsEnabled,
+    willLoad: !activeSession && (forceLoad || autoLoadSessionsEnabled)
+  });
+  
+  // Se non esiste nessuna sessione in memoria, prova a caricarla da storage SOLO se esplicitamente richiesto
+  if (!activeSession && (forceLoad || autoLoadSessionsEnabled)) {
+    console.log('🔄 DIAGNOSTIC: Caricamento sessione da storage richiesto');
     // Carica asincrono senza bloccare (per evitare problemi di performance)
     loadActiveSessionFromStorage();
     return null;
@@ -219,13 +230,54 @@ export function setSessionHistory(history: Session[]): void {
   }
 }
 
+/**
+ * 🔥 FIX CRITICO: Aggiunge una sessione alla cronologia
+ * Usata per sincronizzare sessioni terminate dal SessionContext
+ */
+export async function addSessionToHistory(session: Session): Promise<boolean> {
+  try {
+    console.log(`📝 ADDTOHISTORY: Aggiunta sessione ${session.id} alla cronologia`);
+    
+    // Verifica che la sessione non sia già presente
+    const existingIndex = sessionHistory.findIndex(s => s.id === session.id);
+    if (existingIndex >= 0) {
+      // Aggiorna la sessione esistente
+      sessionHistory[existingIndex] = session;
+      console.log(`📝 ADDTOHISTORY: Sessione ${session.id} aggiornata nella cronologia`);
+    } else {
+      // Aggiungi la nuova sessione
+      sessionHistory.push(session);
+      console.log(`📝 ADDTOHISTORY: Sessione ${session.id} aggiunta alla cronologia`);
+    }
+    
+    // Salva la cronologia aggiornata
+    const success = await saveSessionLocally(sessionHistory, 'history');
+    if (success) {
+      console.log(`✅ ADDTOHISTORY: Cronologia salvata con ${sessionHistory.length} sessioni totali`);
+    }
+    
+    return success;
+  } catch (error) {
+    console.error('❌ ADDTOHISTORY: Errore nell\'aggiunta sessione alla cronologia:', error);
+    return false;
+  }
+}
+
 // 🔥 FIX CRITICO: Reset completo del servizio per cambio utente
-export function resetSessionService(): void {
+export function resetSessionService(preserveHistory: boolean = false): void {
   console.log('🔄 RESET: Resettando session service per cambio utente');
   
   // Reset variabili globali
   activeSession = null;
-  sessionHistory = [];
+  
+  // 🔥 FIX BUG 1: NON cancellare la cronologia per utenti autenticati
+  if (!preserveHistory) {
+    sessionHistory = [];
+    console.log('🔄 RESET: Cronologia cancellata (modalità ospite)');
+  } else {
+    console.log('🔄 RESET: Cronologia preservata (utente autenticato)');
+  }
+  
   _currentUserId = null;
   
   // Ferma timer BAC se attivo
@@ -356,12 +408,18 @@ export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
 // Inizializza il servizio delle sessioni
 export async function initSessionService(userId?: string): Promise<void> {
   try {
-    console.log('[SESSION_SERVICE] Inizializzazione ULTRA semplificata...');
+    console.log('[SESSION_SERVICE] Inizializzazione con ricaricamento cronologia...');
     
-    // FARE ASSOLUTAMENTE NIENTE - solo impostare il flag
+    // 🔥 FIX BUG 1: Ricarica la cronologia dopo il login
+    if (userId) {
+      console.log(`[SESSION_SERVICE] Ricaricamento cronologia per utente ${userId}...`);
+      await loadSessionHistoryFromStorage();
+      console.log(`[SESSION_SERVICE] ✅ Cronologia ricaricata: ${sessionHistory.length} sessioni`);
+    }
+    
     _initialized = true;
     
-    console.log('[SESSION_SERVICE] ✅ Inizializzato (nessuna operazione)');
+    console.log('[SESSION_SERVICE] ✅ Inizializzato completamente');
   } catch (error) {
     console.error('[SESSION_SERVICE] Errore:', error);
     _initialized = true; // Marca come inizializzato anche in caso di errore
@@ -932,43 +990,9 @@ export async function endSession(): Promise<boolean> {
     sessionHistory = existingHistory;
     console.log(`✅ ENDESSION: Cronologia aggiornata con ${sessionHistory.length} sessioni totali`);
     
-    // Salva su Supabase se l'utente è autenticato - FIX CRITICO: Salvataggio immediato con retry
+    // Salva su Supabase se l'utente è autenticato
     if (userId) {
-      console.log('🔥 ENDSESSION: Salvataggio immediato su Supabase...');
-      
-      // Tentativo immediato
-      let saveSuccess = false;
-      try {
-        const saveResult = await saveSessionToSupabase(sessionToSave, false);
-        if (saveResult) {
-          console.log('✅ ENDSESSION: Sessione salvata su Supabase con successo');
-          saveSuccess = true;
-        } else {
-          console.error('❌ ENDSESSION: Fallimento salvataggio su Supabase');
-        }
-      } catch (supabaseError) {
-        console.error('❌ ENDSESSION: Errore salvataggio Supabase:', supabaseError);
-      }
-      
-      // Se il salvataggio fallisce, programma un retry in background
-      if (!saveSuccess) {
-        console.log('🔄 ENDSESSION: Programmando retry salvataggio in background...');
-        setTimeout(async () => {
-          try {
-            console.log('🔄 RETRY: Tentativo salvataggio sessione su Supabase...');
-            const retryResult = await saveSessionToSupabase(sessionToSave, false);
-            if (retryResult) {
-              console.log('✅ RETRY: Sessione salvata su Supabase con successo');
-            } else {
-              console.error('❌ RETRY: Fallimento retry salvataggio Supabase');
-            }
-          } catch (retryError) {
-            console.error('❌ RETRY: Errore retry salvataggio Supabase:', retryError);
-          }
-        }, 5000); // Retry dopo 5 secondi
-      }
-    } else {
-      console.log('⚠️ ENDSESSION: Utente non autenticato - salvataggio solo locale');
+      await saveSessionToSupabase(sessionToSave, false);
     }
     
     // Ottieni la chiave corretta per la sessione attiva
@@ -1880,12 +1904,6 @@ export async function ensureSessionIntegrity(): Promise<boolean> {
  */
 export async function getOrCreateSessionWithFirstProfile(): Promise<Session | null> {
   try {
-    // 🔧 FIX CRITICO: Controlla se l'avvio automatico è disabilitato
-    if (!autoStartSessionsEnabled) {
-      console.log('🔧 AUTO START DISABILITATO: Non creo sessioni automaticamente');
-      return null;
-    }
-    
     // Controlla se c'è già una sessione attiva
     if (activeSession) {
       return activeSession;
@@ -2093,6 +2111,7 @@ export async function getLastKnownSession(): Promise<Session | null> {
 // Default export - Esporta tutte le funzioni del servizio
 export default {
   getActiveSession,
+  setAutoLoadSessions,
   getSessionHistory,
   setSessionHistory,
   resetSessionService,

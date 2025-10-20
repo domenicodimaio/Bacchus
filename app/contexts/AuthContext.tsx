@@ -161,6 +161,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           
           console.log('[AUTH_CONTEXT] ✅ Login completato per:', currentUser.email);
           
+          // 🔥 FIX BUG 3: Ricarica i profili dopo il login
+          console.log('[AUTH_CONTEXT] Ricaricamento profili dopo login...');
+          await loadUserProfiles(currentUser.id);
+          
+          // 🔥 FIX PERSISTENZA: Ricarica anche le sessioni dal database dopo login
+          console.log('[AUTH_CONTEXT] Ricaricamento sessioni dal database dopo login...');
+          const sessionService = require('../lib/services/session.service');
+          await sessionService.loadSessionHistoryFromStorage();
+          
           // Controllo stato wizard semplificato
           console.log('[AUTH_CONTEXT] Controllo stato wizard...');
           
