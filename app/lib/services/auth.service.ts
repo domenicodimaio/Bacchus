@@ -611,6 +611,13 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               hasValidProfiles = false;
             }
             
+            // 🔥 FIX BUG 6: FORZA wizard se non ci sono profili NESSUN profilo
+            // Questo copre il caso quando l'utente elimina il profilo ma l'account rimane
+            if (!hasValidProfiles && profiles && profiles.length === 0 && !isReactivatedUser) {
+              isReactivatedUser = true;
+              console.log('🔥 BUG 6 FIX: Account Apple SENZA profili -> Mostro wizard');
+            }
+            
             // 🔥 FIX BUG 3: Logica decisione wizard migliorata
             const needsWizard = isNewUser || isCreatedToday || !hasValidProfiles || isReactivatedUser;
             
@@ -660,9 +667,12 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                   'Utente esistente con profili validi'
               });
               
-              // Rimuovi eventuali flag di wizard completato
-              await AsyncStorage.removeItem('profile_wizard_completed');
-              await AsyncStorage.removeItem('bacchus_wizard_completed');
+              // 🔥 FIX BUG 6: Rimuovi flag wizard per QUESTO user ID
+              const wizardKeyForUser = `profile_wizard_completed_${data.user.id}`;
+              await AsyncStorage.removeItem(wizardKeyForUser);
+              await AsyncStorage.removeItem('profile_wizard_completed'); // Legacy
+              await AsyncStorage.removeItem('bacchus_wizard_completed'); // Legacy
+              console.log(`🔥 Flag wizard rimossi per utente ${data.user.id}`);
               
               return {
                 success: true,
@@ -1162,12 +1172,26 @@ export const hasCompletedProfileWizard = async (): Promise<boolean> => {
   try {
     console.log('[AUTH] Verifica completamento wizard...');
     
-    // STEP 1: Controlla i flag diretti in AsyncStorage (più veloce e affidabile)
-    const wizardCompleted = await AsyncStorage.getItem('profile_wizard_completed');
-    const wizardCompletedAlt = await AsyncStorage.getItem('bacchus_wizard_completed');
+    // 🔥 FIX BUG 6: Usa chiavi specifiche per USER ID per evitare conflitti
+    const currentUser = await getCurrentUser();
+    const userId = currentUser?.id || 'guest';
     
-    if (wizardCompleted === 'true' || wizardCompletedAlt === 'true') {
-      console.log('[AUTH] ✅ Wizard completato (da AsyncStorage flag)');
+    // STEP 1: Controlla i flag diretti in AsyncStorage (più veloce e affidabile)
+    const wizardKey = `profile_wizard_completed_${userId}`;
+    const wizardCompleted = await AsyncStorage.getItem(wizardKey);
+    const wizardCompletedAlt = await AsyncStorage.getItem('bacchus_wizard_completed'); // Fallback legacy
+    
+    if (wizardCompleted === 'true') {
+      console.log(`[AUTH] ✅ Wizard completato per utente ${userId} (da AsyncStorage flag)`);
+      return true;
+    }
+    
+    // Fallback per vecchi utenti con chiave legacy
+    if (wizardCompletedAlt === 'true' && currentUser) {
+      console.log('[AUTH] ✅ Wizard completato (da flag legacy, migrazione...)');
+      // Migra alla nuova chiave
+      await AsyncStorage.setItem(wizardKey, 'true');
+      await AsyncStorage.removeItem('bacchus_wizard_completed');
       return true;
     }
     
@@ -1197,8 +1221,9 @@ export const hasCompletedProfileWizard = async (): Promise<boolean> => {
         if (profiles && profiles.length > 0) {
           console.log('[AUTH] ✅ Profilo trovato, wizard considerato completato');
           
-          // Salva il flag per le prossime volte
-          await AsyncStorage.setItem('profile_wizard_completed', 'true');
+          // 🔥 FIX BUG 6: Salva con chiave specifica user
+          const userIdForKey = currentUser?.id || 'guest';
+          await AsyncStorage.setItem(`profile_wizard_completed_${userIdForKey}`, 'true');
           return true;
         } else {
           console.log('[AUTH] Nessun profilo trovato, wizard da completare');
@@ -1237,6 +1262,14 @@ export const setProfileWizardCompleted = async (completed: boolean = true): Prom
     // Salva le impostazioni aggiornate in modo sincrono
     await AsyncStorage.setItem(SELECTED_PROFILE_KEY, JSON.stringify(profileSettings));
     console.log('Stato wizard salvato in AsyncStorage:', completed);
+    
+    // 🔥 FIX BUG 6: Salva anche con chiave specifica user
+    const currentUser = await getCurrentUser();
+    if (currentUser && completed) {
+      const wizardKeyForUser = `profile_wizard_completed_${currentUser.id}`;
+      await AsyncStorage.setItem(wizardKeyForUser, 'true');
+      console.log(`🔥 Flag wizard salvato con chiave specifica: ${wizardKeyForUser}`);
+    }
     
     // 🔥 FIX BUG 6: Se il wizard è completato, pulisci i flag di eliminazione account
     if (completed) {

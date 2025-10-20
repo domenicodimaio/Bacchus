@@ -232,6 +232,43 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       clearInterval(sessionCleanupTimer);
     };
   }, []);
+  
+  // 🔥 FIX BUG 1: Ricarica la cronologia quando l'utente effettua login/logout
+  useEffect(() => {
+    const setupAuthListener = async () => {
+      const authService = require('../lib/services/auth.service');
+      const sessionService = require('../lib/services/session.service');
+      
+      // Ascolta i cambiamenti di autenticazione
+      const { data: { subscription } } = authService.supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('🔥 SessionContext: Evento autenticazione:', event);
+          
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+            console.log('🔥 SessionContext: Ricaricando cronologia dopo evento:', event);
+            // Ricarica la cronologia
+            await sessionService.loadSessionHistoryFromStorage();
+            const updatedHistory = sessionService.getSessionHistory();
+            setPastSessions(updatedHistory);
+            console.log(`🔥 SessionContext: Cronologia ricaricata - ${updatedHistory.length} sessioni`);
+          }
+        }
+      );
+      
+      return () => {
+        subscription?.unsubscribe();
+      };
+    };
+    
+    let unsubscribe: (() => void) | undefined;
+    setupAuthListener().then(unsub => {
+      unsubscribe = unsub;
+    });
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   // Effetto per gestire il cambio di profilo
   useEffect(() => {

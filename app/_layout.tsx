@@ -167,13 +167,20 @@ export default function RootLayout() {
                   <PurchaseProvider>
                     <NavigationHandler />
                     <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        animation: 'fade',
-                        contentStyle: { backgroundColor: 'transparent' },
-                        // 🔥 FIX: DISABILITA swipe back globale, sarà abilitato solo nelle schermate specifiche
-                        gestureEnabled: false,
-                        fullScreenGestureEnabled: false,
+                      screenOptions={({ route }) => {
+                        // 🔥 FIX BUG 3: Abilita swipe back SOLO per schermate specifiche
+                        const routeName = route.name || '';
+                        const gestureRoutes = ['session-details', 'add-drink', 'add-food', 'settings'];
+                        const shouldEnable = gestureRoutes.some(r => routeName.includes(r));
+                        
+                        return {
+                          headerShown: false,
+                          animation: 'fade',
+                          contentStyle: { backgroundColor: 'transparent' },
+                          gestureEnabled: shouldEnable,
+                          fullScreenGestureEnabled: shouldEnable,
+                          gestureDirection: 'horizontal'
+                        };
                       }}
                     />
                     <StatusBar style="auto" />

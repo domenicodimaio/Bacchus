@@ -1212,8 +1212,8 @@ export async function updateSessionBAC(): Promise<Session | null> {
       }
       
       // Calcola tempo per raggiungere il limite legale
-      if (totalBAC > 0.05) {
-        const hoursToLegal = (totalBAC - 0.05) / metabolismRate;
+      if (totalBAC > 0.5) {
+        const hoursToLegal = (totalBAC - 0.5) / metabolismRate;
         activeSession.legalTime = `${Math.floor(hoursToLegal)}h ${Math.round((hoursToLegal % 1) * 60)}m`;
         activeSession.timeToLegal = Math.ceil(hoursToLegal * 60);
       } else {
