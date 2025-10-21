@@ -42,8 +42,7 @@
         "scheme": "Bacchus",
         "cache": {
           "disabled": true
-        },
-        "autoIncrement": true
+        }
       },
       "channel": "production"
     },
