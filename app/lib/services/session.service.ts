@@ -990,6 +990,16 @@ export async function endSession(): Promise<boolean> {
     sessionHistory = existingHistory;
     console.log(`✅ ENDESSION: Cronologia aggiornata con ${sessionHistory.length} sessioni totali`);
     
+    // 🔥 FIX DEFINITIVO: Notifica IMMEDIATA al SessionContext
+    try {
+      // Usa un evento globale per notificare il cambio di cronologia
+      if (typeof global !== 'undefined') {
+        global.__SESSION_HISTORY_UPDATED__ = Date.now();
+      }
+    } catch (e) {
+      // Ignora errori
+    }
+    
     // Salva su Supabase se l'utente è autenticato
     if (userId) {
       await saveSessionToSupabase(sessionToSave, false);

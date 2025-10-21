@@ -18,7 +18,6 @@ import { Session, Drink, FoodRecord } from '../types/session';
 import AppHeader from '../components/AppHeader';
 import BACChartSimple from '../components/BACChartSimple';
 import { SIZES } from '../constants/theme';
-import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
 // Funzioni di formattazione delle date
 const formatSessionDate = (dateValue: Date | string): string => {
@@ -129,8 +128,7 @@ export default function SessionDetailsScreen() {
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const swipeableRef = React.useRef<Swipeable>(null);
-
+  
   // 🔥 FIX: Configura swipe back come nelle Impostazioni
   useEffect(() => {
     // Supporta lo swipe back su iOS
@@ -306,9 +304,7 @@ export default function SessionDetailsScreen() {
   };
 
   // Gestione dello swipe per tornare indietro
-  const renderRightActions = () => {
-    return null; // Non mostriamo azioni a destra, ma usiamo solo il gesto
-  };
+  
 
   const handleSwipeRight = () => {
     router.back();
@@ -502,14 +498,6 @@ export default function SessionDetailsScreen() {
         onBackPress={() => router.back()}
       />
 
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-        onSwipeableRightOpen={handleSwipeRight}
-        friction={1} // Ridotto per rendere il gesto più facile
-        rightThreshold={20} // Ridotto per attivare più facilmente
-        overshootRight={false} // Previene un movimento troppo ampio
-      >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Header della sessione */}
           <View style={[styles.sessionHeader, { backgroundColor: colors.cardBackground }]}>
@@ -588,7 +576,6 @@ export default function SessionDetailsScreen() {
             )}
           </View>
         </ScrollView>
-      </Swipeable>
     </GestureHandlerRootView>
   );
 }

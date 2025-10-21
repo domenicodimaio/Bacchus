@@ -233,7 +233,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
   
-  // 🔥 FIX BUG 1: Ricarica la cronologia quando l'utente effettua login/logout
+  // 🔥 FIX DEFINITIVO: Ricaricamento IMMEDIATO cronologia dopo eventi auth
   useEffect(() => {
     const setupAuthListener = async () => {
       const authService = require('../lib/services/auth.service');
@@ -244,13 +244,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         async (event, session) => {
           console.log('🔥 SessionContext: Evento autenticazione:', event);
           
-          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-            console.log('🔥 SessionContext: Ricaricando cronologia dopo evento:', event);
-            // Ricarica la cronologia
-            await sessionService.loadSessionHistoryFromStorage();
-            const updatedHistory = sessionService.getSessionHistory();
-            setPastSessions(updatedHistory);
-            console.log(`🔥 SessionContext: Cronologia ricaricata - ${updatedHistory.length} sessioni`);
+          if (event === 'SIGNED_IN') {
+            console.log('🔥 SessionContext: LOGIN - Ricaricamento FORZATO cronologia...');
+            // Aspetta un momento per permettere al sistema di stabilizzarsi
+            setTimeout(async () => {
+              try {
+                await sessionService.loadSessionHistoryFromStorage();
+                const updatedHistory = sessionService.getSessionHistory();
+                setPastSessions(updatedHistory);
+                console.log(`🔥 SessionContext: LOGIN - Cronologia ricaricata: ${updatedHistory.length} sessioni`);
+              } catch (error) {
+                console.error('🔥 SessionContext: Errore ricaricamento cronologia dopo login:', error);
+              }
+            }, 1000);
+          } else if (event === 'SIGNED_OUT') {
+            console.log('🔥 SessionContext: LOGOUT - Reset cronologia...');
+            setPastSessions([]);
           }
         }
       );

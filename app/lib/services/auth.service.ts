@@ -443,11 +443,23 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         
         console.log('🍎 AUTH: Richiesta credenziali Apple...');
         await logInfo('Apple Auth: Inizio processo di autenticazione');
+        
+        // 🔥 FIX: Log dettagliato per debug
+        console.log('🍎 AUTH: Chiamando AppleAuthentication.signInAsync...');
+        
         const credential = await AppleAuthentication.signInAsync({
           requestedScopes: [
             AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
             AppleAuthentication.AppleAuthenticationScope.EMAIL,
           ],
+        });
+        
+        console.log('🍎 AUTH: Credenziali Apple ricevute:', {
+          user: credential.user,
+          hasIdentityToken: !!credential.identityToken,
+          hasAuthorizationCode: !!credential.authorizationCode,
+          email: credential.email,
+          fullName: credential.fullName
         });
         
         console.log('🍎 AUTH: Credenziali Apple ricevute:', {
@@ -701,12 +713,19 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         
       } catch (error: any) {
         console.error('🍎 AUTH: Errore dettagliato Apple:', error);
+        console.error('🍎 AUTH: Error details:', {
+          message: error.message,
+          code: error.code,
+          name: error.name,
+          stack: error.stack
+        });
         
         // Log remoto dell'errore per debugging su TestFlight
         await logError('Apple Sign In Failed', error, {
           provider: 'apple',
           errorCode: error.code,
           errorName: error.name,
+          errorMessage: error.message,
           platform: Platform.OS,
           critical: true
         });
@@ -884,7 +903,7 @@ export const signOut = async (): Promise<AuthResponse> => {
       // Per utenti autenticati, NON cancellare cronologia sessioni e profili
       // perché verranno ricaricati dal database
       if (currentUserId) {
-        // Cancella solo chiavi temporanee e cache
+        // 🔥 FIX DEFINITIVO: NON cancellare session_history per utenti autenticati
         return key.startsWith('bacchus_wizard') ||
                key.startsWith('bacchus_temp') ||
                key.includes('active_session') ||
@@ -912,6 +931,12 @@ export const signOut = async (): Promise<AuthResponse> => {
     // 🔥 FIX BUG 1: Preserva cronologia per utenti autenticati
     const preserveHistory = currentUserId !== null;
     sessionService.resetSessionService(preserveHistory);
+    
+    // 🔥 FIX DEFINITIVO: Se è logout di utente autenticato, forza salvataggio cronologia
+    if (preserveHistory && sessionService.getSessionHistory().length > 0) {
+      console.log('🔥 LOGOUT: Forzando salvataggio cronologia prima del logout...');
+      await sessionService.saveSessionLocally(sessionService.getSessionHistory(), 'history');
+    }
     
     // 🔥 FIX CRITICO: Reset completo profile service per cambio utente
     const profileService = require('./profile.service');

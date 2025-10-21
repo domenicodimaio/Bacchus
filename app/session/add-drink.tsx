@@ -1052,10 +1052,12 @@ export default function AddDrinkScreen() {
               style={[
                 styles.nextButton, 
                 {
-                  backgroundColor: colors.primary
+                  backgroundColor: colors.primary,
+                  opacity: selectedDrink ? 1 : 0.5
                 }
               ]} 
               onPress={goToNextStep}
+              disabled={!selectedDrink}
             >
               <Text style={styles.nextButtonText}>
                 {t('next', { defaultValue: 'Avanti' })}
