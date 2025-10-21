@@ -22,16 +22,16 @@
       },
       "channel": "preview"
     },
-        "production": {
-            "autoIncrement": false,
-            "distribution": "store",
-            "env": {
-                "APP_ENVIRONMENT": "production",
-                "EAS_BUILD_VERBOSE": "true",
-                "COCOAPODS_VERSION": "1.15.2",
-                "SWIFT_VERSION": "5.9",
-                "DEBUG_SWIFT_COMPILATION": "true"
-            },
+    "production": {
+      "autoIncrement": false,
+      "distribution": "store",
+      "env": {
+        "APP_ENVIRONMENT": "production",
+        "EAS_BUILD_VERBOSE": "true",
+        "COCOAPODS_VERSION": "1.15.2",
+        "SWIFT_VERSION": "5.9",
+        "DEBUG_SWIFT_COMPILATION": "true"
+      },
       "android": {
         "buildType": "app-bundle"
       },
@@ -42,7 +42,8 @@
         "scheme": "Bacchus",
         "cache": {
           "disabled": true
-        }
+        },
+        "autoIncrement": true
       },
       "channel": "production"
     },
