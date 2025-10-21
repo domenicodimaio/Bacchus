@@ -77,7 +77,7 @@ fi
 
 # STEP 4: Build iOS con EAS
 log_info "STEP 4: Avviando build iOS con EAS..."
-eas build --platform ios --profile production --non-interactive
+eas build --platform ios --profile production
 if [ $? -eq 0 ]; then
     log_success "Build iOS con EAS completata"
 else
