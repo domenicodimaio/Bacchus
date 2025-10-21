@@ -384,8 +384,8 @@ export default function SessionDetailsScreen() {
           : (item.alcoholGrams as number);
       }
 
-      // 🔥 FIX: Copia da Sessione Attiva - cerca nel namespace 'session' sotto 'drinkTypes'
-      let displayName = t(`drinkTypes.${item.name}`, { ns: 'session', defaultValue: t(item.name, { defaultValue: item.name }) });
+      // Usa la stessa logica della sessione attiva
+      let displayName = t(item.name, { defaultValue: item.name });
 
       return (
         <View style={[styles.itemCard, { backgroundColor: colors.cardBackground }]}>
@@ -418,8 +418,8 @@ export default function SessionDetailsScreen() {
         console.warn('Errore nel parsing dell\'orario del cibo:', e);
       }
 
-      // 🔥 FIX: Copia da Sessione Attiva - cerca nel namespace 'session' sotto 'foodTypes'
-      let displayName = t(`foodTypes.${item.name}`, { ns: 'session', defaultValue: t(item.name, { defaultValue: item.name }) });
+      // Usa la stessa logica della sessione attiva
+      let displayName = t(item.name, { defaultValue: item.name });
 
       return (
         <View style={[styles.itemCard, { backgroundColor: colors.cardBackground }]}>

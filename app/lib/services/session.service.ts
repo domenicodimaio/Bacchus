@@ -506,49 +506,38 @@ export async function loadSessionsFromLocalStorage(userId: string | null = null)
       const allKeys = await AsyncStorage.getAllKeys();
       console.log(`📣 DIAGNOSTICA: Tutte le chiavi in AsyncStorage: ${allKeys.join(', ')}`);
       
-      // Chiave standard
+      // 🔒 FIX CRITICO: Carica SOLO la chiave esatta per questo utente
       const historyKey = getSessionHistoryKey(userId);
-      console.log(`📣 DIAGNOSTICA: Tentativo caricamento cronologia con chiave: ${historyKey}`);
+      console.log(`📣 DIAGNOSTICA: Caricamento SOLO chiave esatta: ${historyKey}`);
       
-      // Ricerchiamo anche chiavi simili se l'utente ha un ID
-      const possibleKeys = userId 
-        ? allKeys.filter(key => key.includes(userId) && key.includes('session_history'))
-        : [];
-      
-      if (possibleKeys.length > 0 && !allKeys.includes(historyKey)) {
-        console.log(`📣 DIAGNOSTICA: Trovate chiavi alternative per session_history: ${possibleKeys.join(', ')}`);
-      }
-      
-      // Prova prima la chiave standard
+      // Carica SOLO dalla chiave esatta - nessun fallback per evitare contaminazione
       let historyData = await AsyncStorage.getItem(historyKey);
-      
-      // Se non trova nulla con la chiave standard e ci sono chiavi alternative, prova quelle
-      if (!historyData && possibleKeys.length > 0) {
-        for (const altKey of possibleKeys) {
-          console.log(`📣 DIAGNOSTICA: Tentativo con chiave alternativa: ${altKey}`);
-          const altData = await AsyncStorage.getItem(altKey);
-          if (altData) {
-            historyData = altData;
-            console.log(`📣 DIAGNOSTICA: Dati trovati con chiave alternativa: ${altKey}`);
-            break;
-          }
-        }
-      }
       
       if (historyData) {
         try {
-        history = JSON.parse(historyData);
-        // Converti le date in oggetti Date
-        history = history.map(session => ({
-          ...session,
-          startTime: new Date(session.startTime),
-          sessionStartTime: new Date(session.sessionStartTime),
-          endTime: session.endTime ? new Date(session.endTime) : undefined,
-          drinks: session.drinks.map(drink => ({
-            ...drink,
-            time: drink.time
-          }))
-        }));
+          let rawHistory = JSON.parse(historyData);
+          
+          // 🔒 FIX CRITICO: Filtra SOLO le sessioni che appartengono a questo utente
+          if (userId) {
+            rawHistory = rawHistory.filter(session => session.user_id === userId);
+            console.log(`📣 DIAGNOSTICA: Filtrate sessioni per user ${userId}: ${rawHistory.length} sessioni valide`);
+          } else {
+            // Per utenti guest, prendi solo sessioni senza user_id
+            rawHistory = rawHistory.filter(session => !session.user_id);
+            console.log(`📣 DIAGNOSTICA: Filtrate sessioni guest: ${rawHistory.length} sessioni valide`);
+          }
+          
+          // Converti le date in oggetti Date
+          history = rawHistory.map(session => ({
+            ...session,
+            startTime: new Date(session.startTime),
+            sessionStartTime: new Date(session.sessionStartTime),
+            endTime: session.endTime ? new Date(session.endTime) : undefined,
+            drinks: session.drinks.map(drink => ({
+              ...drink,
+              time: drink.time
+            }))
+          }));
           console.log(`📣 DIAGNOSTICA: Caricate ${history.length} sessioni nella cronologia da localStorage`);
           
           // Aggiorniamo anche la variabile globale sessionHistory

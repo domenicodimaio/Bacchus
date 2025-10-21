@@ -702,7 +702,9 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               data: {
                 user: data.user,
                 session: data.session
-              }
+              },
+              redirectToProfileCreation: false, // 🔥 FIX: Esplicito per evitare ambiguità
+              isNewUser: false
             };
           } else {
             throw new Error('Nessuna sessione ricevuta da Supabase');
