@@ -561,7 +561,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             try {
               const { data: profiles, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, name, weight_kg, gender, birth_date, created_at')
+                .select('id, name, weight, gender, birth_date, created_at')
                 .eq('user_id', data.user.id);
               
               if (profileError) {
@@ -574,8 +574,8 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                                  profiles.some(p => 
                                    p.name && 
                                    p.name.trim().length > 0 && 
-                                   p.weight_kg && 
-                                   p.weight_kg > 0 && 
+                                   p.weight && 
+                                   p.weight > 0 && 
                                    p.gender &&
                                    p.birth_date
                                  );
@@ -586,7 +586,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                   profilesDetails: profiles?.map(p => ({
                     id: p.id,
                     name: p.name,
-                    hasWeight: !!p.weight_kg,
+                    hasWeight: !!p.weight,
                     hasGender: !!p.gender,
                     hasBirthDate: !!p.birth_date,
                     createdAt: p.created_at
