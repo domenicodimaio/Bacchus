@@ -133,7 +133,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const historySessions = sessionService.getSessionHistory();
           
           if (historySessions && historySessions.length > 0) {
-            console.log(`✅ SessionContext: Caricate ${historySessions.length} sessioni dalla cronologia unificata`);
+            console.log(`BACCHUS_DEBUG: SessionContext - Caricate ${historySessions.length} sessioni dalla cronologia unificata`);
             setPastSessions(historySessions);
           }
           

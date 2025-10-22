@@ -265,7 +265,7 @@ export async function addSessionToHistory(session: Session): Promise<boolean> {
 
 // 🔥 FIX CRITICO: Reset completo del servizio per cambio utente
 export function resetSessionService(preserveHistory: boolean = false): void {
-  console.log('🔄 RESET: Resettando session service per cambio utente');
+  console.log('BACCHUS_DEBUG: Resettando session service per cambio utente');
   
   // Reset variabili globali
   activeSession = null;
@@ -273,9 +273,9 @@ export function resetSessionService(preserveHistory: boolean = false): void {
   // 🔥 FIX BUG 1: NON cancellare la cronologia per utenti autenticati
   if (!preserveHistory) {
     sessionHistory = [];
-    console.log('🔄 RESET: Cronologia cancellata (modalità ospite)');
+    console.log('BACCHUS_DEBUG: Cronologia cancellata (modalità ospite)');
   } else {
-    console.log('🔄 RESET: Cronologia preservata (utente autenticato)');
+    console.log('BACCHUS_DEBUG: Cronologia preservata (utente autenticato)');
   }
   
   _currentUserId = null;
@@ -289,12 +289,12 @@ export function resetSessionService(preserveHistory: boolean = false): void {
 // Nuova funzione asincrona per caricare la cronologia
 export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
   try {
-    console.log('[loadSessionHistoryFromStorage] 🔄 Caricamento forzato cronologia...');
+    console.log('BACCHUS_DEBUG: Caricamento forzato cronologia...');
     const userId = await getCurrentUserId();
     
     // 🔧 FIX CRITICO: Carica prima dal database se l'utente è autenticato
     if (userId) {
-      console.log('[loadSessionHistoryFromStorage] 🗄️ Utente autenticato - caricamento da database Supabase...');
+      console.log('BACCHUS_DEBUG: Utente autenticato - caricamento da database Supabase...');
       try {
         // Carica sessioni dal database
         const { data: supabaseSessions, error } = await supabase
@@ -306,7 +306,7 @@ export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
         if (error) {
           console.error('[loadSessionHistoryFromStorage] ❌ Errore database:', error);
         } else if (supabaseSessions && supabaseSessions.length > 0) {
-          console.log(`[loadSessionHistoryFromStorage] ✅ Caricate ${supabaseSessions.length} sessioni dal database`);
+          console.log(`BACCHUS_DEBUG: Caricate ${supabaseSessions.length} sessioni dal database`);
           
           // Converti le sessioni Supabase in formato locale
           const convertedSessions: Session[] = [];
@@ -465,13 +465,13 @@ async function loadSessionHistoryInBackground(userId: string | null = null): Pro
 // Carica le sessioni dal localStorage
 export async function loadSessionsFromLocalStorage(userId: string | null = null): Promise<{active: Session | null, history: Session[]}> {
   try {
-    console.log(`📣📣📣 DIAGNOSTICA: loadSessionsFromLocalStorage chiamato per user: ${userId || 'guest'} 📣📣📣`);
+    console.log(`BACCHUS_DEBUG: loadSessionsFromLocalStorage chiamato per user: ${userId || 'guest'}`);
     
     // Carica la sessione attiva
     let active: Session | null = null;
     try {
       const activeKey = getActiveSessionKey(userId);
-      console.log(`📣 DIAGNOSTICA: Tentativo caricamento sessione attiva con chiave: ${activeKey}`);
+      console.log(`BACCHUS_DEBUG: Tentativo caricamento sessione attiva con chiave: ${activeKey}`);
       const activeData = await AsyncStorage.getItem(activeKey);
       if (activeData) {
         active = JSON.parse(activeData);
@@ -579,7 +579,7 @@ export async function saveSessionLocally(session: Session | Session[] | null, ty
       }
       
       const key = getActiveSessionKey(userId);
-      console.log(`🔵 DIAGNOSTICA: Salvando sessione attiva con chiave: ${key}`);
+      console.log(`BACCHUS_DEBUG: Salvando sessione attiva con chiave: ${key}`);
       await AsyncStorage.setItem(key, JSON.stringify(session));
       
       // Salva anche come ultima sessione conosciuta per fallback
@@ -595,7 +595,7 @@ export async function saveSessionLocally(session: Session | Session[] | null, ty
       }
       
       const key = getSessionHistoryKey(userId);
-      console.log(`🔵 DIAGNOSTICA: Salvando cronologia sessioni con chiave: ${key}, user_id: ${userId || 'guest'}`);
+      console.log(`BACCHUS_DEBUG: Salvando cronologia sessioni con chiave: ${key}, user_id: ${userId || 'guest'}`);
       const sessionsToSave = Array.isArray(session) ? session : [session];
       await AsyncStorage.setItem(key, JSON.stringify(sessionsToSave));
       sessionHistory = sessionsToSave;
@@ -606,12 +606,12 @@ export async function saveSessionLocally(session: Session | Session[] | null, ty
         const saved = await AsyncStorage.getItem(key);
         if (saved) {
           const parsed = JSON.parse(saved);
-          console.log(`🔵 DIAGNOSTICA: Verifica salvataggio cronologia: ${parsed.length} sessioni salvate correttamente`);
+          console.log(`BACCHUS_DEBUG: Verifica salvataggio cronologia: ${parsed.length} sessioni salvate correttamente`);
         } else {
-          console.error(`🔵 DIAGNOSTICA: ERRORE: Nessun dato trovato dopo il salvataggio della cronologia!`);
+          console.error(`BACCHUS_DEBUG: ERRORE: Nessun dato trovato dopo il salvataggio della cronologia!`);
         }
       } catch (verifyError) {
-        console.error(`🔵 DIAGNOSTICA: Errore verifica salvataggio: ${verifyError}`);
+        console.error(`BACCHUS_DEBUG: Errore verifica salvataggio: ${verifyError}`);
       }
       
       return true;
@@ -945,7 +945,7 @@ export async function endSession(): Promise<boolean> {
       return false;
     }
     
-    console.log(`=== TERMINAZIONE SESSIONE ${activeSession.id} ===`);
+    console.log(`BACCHUS_DEBUG: === TERMINAZIONE SESSIONE ${activeSession.id} ===`);
     
     // Imposta prima il flag isClosed
     activeSession.isClosed = true;
@@ -965,9 +965,9 @@ export async function endSession(): Promise<boolean> {
     const userId = await getCurrentUserId();
     
     // 🔥 FIX CRITICO: Carica cronologia esistente direttamente da sessionHistory globale
-    console.log('🔄 ENDESSION: Caricamento cronologia esistente...');
+    console.log('BACCHUS_DEBUG: Caricamento cronologia esistente...');
     const existingHistory = [...sessionHistory]; // Copia la cronologia esistente
-    console.log(`🔄 ENDESSION: Trovate ${existingHistory.length} sessioni esistenti in memoria`);
+    console.log(`BACCHUS_DEBUG: Trovate ${existingHistory.length} sessioni esistenti in memoria`);
     
     // Aggiungi la nuova sessione alla cronologia esistente
     existingHistory.push(sessionToSave);
@@ -977,7 +977,7 @@ export async function endSession(): Promise<boolean> {
     
     // Aggiorna la variabile globale IMMEDIATAMENTE
     sessionHistory = existingHistory;
-    console.log(`✅ ENDESSION: Cronologia aggiornata con ${sessionHistory.length} sessioni totali`);
+    console.log(`BACCHUS_DEBUG: Cronologia aggiornata con ${sessionHistory.length} sessioni totali`);
     
     // 🔥 FIX DEFINITIVO: Notifica IMMEDIATA al SessionContext
     try {
