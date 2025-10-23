@@ -57,7 +57,11 @@ fi
 
 # STEP 1: Aggiorna build number
 log_info "STEP 1: Aggiornando build number..."
-./update-build-number.sh
+# Calcola automaticamente il prossimo build number
+CURRENT_BUILD=$(grep "buildNumber:" app.config.js | grep -o "[0-9]*" | head -1)
+NEXT_BUILD=$((CURRENT_BUILD + 1))
+log_info "Build number attuale: $CURRENT_BUILD, prossimo: $NEXT_BUILD"
+./update-build-number.sh $NEXT_BUILD
 if [ $? -eq 0 ]; then
     log_success "Build number aggiornato"
 else
