@@ -610,7 +610,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             
             // 🔥 FIX BUG 6: FORZA wizard se non ci sono profili NESSUN profilo
             // Questo copre il caso quando l'utente elimina il profilo ma l'account rimane
-            if (!hasValidProfiles && profiles && profiles.length === 0 && !isReactivatedUser) {
+            if (!hasValidProfiles && profilesData && profilesData.length === 0 && !isReactivatedUser) {
               isReactivatedUser = true;
               console.log('🔥 BUG 6 FIX: Account Apple SENZA profili -> Mostro wizard');
             }
