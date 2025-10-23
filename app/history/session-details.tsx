@@ -384,8 +384,15 @@ export default function SessionDetailsScreen() {
           : (item.alcoholGrams as number);
       }
 
-      // Usa la stessa logica della sessione attiva
-      let displayName = t(item.name, { defaultValue: item.name });
+      // 🔥 FIX CRASH: Controllo sicurezza per item.name
+      console.log('SESSION_DETAILS_DEBUG: Rendering drink -', {
+        itemName: item.name,
+        itemId: item.id,
+        hasName: !!item.name
+      });
+      
+      // Usa la stessa logica della sessione attiva con controllo sicurezza
+      let displayName = item.name ? t(item.name, { defaultValue: item.name }) : 'Bevanda sconosciuta';
 
       return (
         <View style={[styles.itemCard, { backgroundColor: colors.cardBackground }]}>
@@ -418,8 +425,15 @@ export default function SessionDetailsScreen() {
         console.warn('Errore nel parsing dell\'orario del cibo:', e);
       }
 
-      // Usa la stessa logica della sessione attiva
-      let displayName = t(item.name, { defaultValue: item.name });
+      // 🔥 FIX CRASH: Controllo sicurezza per item.name
+      console.log('SESSION_DETAILS_DEBUG: Rendering food -', {
+        itemName: item.name,
+        itemId: item.id,
+        hasName: !!item.name
+      });
+      
+      // Usa la stessa logica della sessione attiva con controllo sicurezza
+      let displayName = item.name ? t(item.name, { defaultValue: item.name }) : 'Cibo sconosciuto';
 
       return (
         <View style={[styles.itemCard, { backgroundColor: colors.cardBackground }]}>

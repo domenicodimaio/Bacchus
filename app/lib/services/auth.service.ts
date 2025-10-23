@@ -665,19 +665,23 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             console.log('🍎 AUTH: Sessione salvata correttamente');
             
             // 🎯 Se l'utente ha bisogno del wizard (nuovo o senza profili)
+            console.log('APPLE_WIZARD_DEBUG: Decisione wizard -', {
+              needsWizard,
+              isNewUser,
+              isCreatedToday,
+              hasValidProfiles,
+              isReactivatedUser,
+              profilesCount: profilesData?.length || 0,
+              reasoning: needsWizard ? 
+                (isNewUser ? 'Utente nuovo (< 5 min)' :
+                 isCreatedToday ? 'Account creato oggi' :
+                 !hasValidProfiles ? 'Nessun profilo valido' :
+                 isReactivatedUser ? 'Account riattivato' : 'Motivo sconosciuto') :
+                'Utente esistente con profili validi'
+            });
+            
             if (needsWizard) {
-              console.log('🍎 AUTH: Utente deve completare wizard -', {
-                isNewUser,
-                isCreatedToday,
-                hasValidProfiles,
-                isReactivatedUser,
-                reasoning: needsWizard ? 
-                  (isNewUser ? 'Utente nuovo (< 5 min)' :
-                   isCreatedToday ? 'Account creato oggi' :
-                   !hasValidProfiles ? 'Nessun profilo valido' :
-                   isReactivatedUser ? 'Account riattivato' : 'Motivo sconosciuto') :
-                  'Utente esistente con profili validi'
-              });
+              console.log('APPLE_WIZARD_DEBUG: Utente deve completare wizard');
               
               // 🔥 FIX BUG 6: Rimuovi flag wizard per QUESTO user ID
               const wizardKeyForUser = `profile_wizard_completed_${data.user.id}`;
@@ -710,12 +714,16 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             throw new Error('Nessuna sessione ricevuta da Supabase');
           }
         } else {
+          console.log('APPLE_LOGIN_ERROR: Nessun token di identità ricevuto da Apple');
+          await logError('Apple Login: No identity token received', null, {
+            credential: JSON.stringify(credential, null, 2)
+          });
           throw new Error('Nessun token di identità ricevuto da Apple');
         }
         
       } catch (error: any) {
-        console.error('🍎 AUTH: Errore dettagliato Apple:', error);
-        console.error('🍎 AUTH: Error details:', {
+        console.log('APPLE_LOGIN_ERROR: Errore dettagliato Apple:', error);
+        console.log('APPLE_LOGIN_ERROR: Error details:', {
           message: error.message,
           code: error.code,
           name: error.name,
@@ -932,6 +940,7 @@ export const signOut = async (): Promise<AuthResponse> => {
     const sessionService = require('./session.service');
     // 🔥 FIX BUG 1: Preserva cronologia per utenti autenticati
     const preserveHistory = currentUserId !== null;
+    console.log('SESSION_HISTORY_DEBUG: Logout - preserveHistory:', preserveHistory, 'currentUserId:', currentUserId);
     sessionService.resetSessionService(preserveHistory);
     
     // 🔥 FIX DEFINITIVO: Se è logout di utente autenticato, forza salvataggio cronologia

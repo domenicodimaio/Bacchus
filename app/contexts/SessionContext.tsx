@@ -242,19 +242,19 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Ascolta i cambiamenti di autenticazione
       const { data: { subscription } } = authService.supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('🔥 SessionContext: Evento autenticazione:', event);
+          console.log('SESSION_HISTORY_DEBUG: Evento autenticazione:', event);
           
           if (event === 'SIGNED_IN') {
-            console.log('🔥 SessionContext: LOGIN - Ricaricamento FORZATO cronologia...');
+            console.log('SESSION_HISTORY_DEBUG: LOGIN - Ricaricamento FORZATO cronologia...');
             // Aspetta un momento per permettere al sistema di stabilizzarsi
             setTimeout(async () => {
               try {
                 await sessionService.loadSessionHistoryFromStorage();
                 const updatedHistory = sessionService.getSessionHistory();
                 setPastSessions(updatedHistory);
-                console.log(`🔥 SessionContext: LOGIN - Cronologia ricaricata: ${updatedHistory.length} sessioni`);
+                console.log(`SESSION_HISTORY_DEBUG: LOGIN - Cronologia ricaricata: ${updatedHistory.length} sessioni`);
               } catch (error) {
-                console.error('🔥 SessionContext: Errore ricaricamento cronologia dopo login:', error);
+                console.error('SESSION_HISTORY_DEBUG: Errore ricaricamento cronologia dopo login:', error);
               }
             }, 1000);
           } else if (event === 'SIGNED_OUT') {
