@@ -3,26 +3,15 @@
 # 🚀 BACCHUS BUILD & DEPLOY AUTOMATICO
 # Questo script aggiorna il build number, fa la build, e pusha su GitHub
 #
-# USO:
-#   ./build-and-deploy.sh           -> Build production + submit App Store
-#   ./build-and-deploy.sh dev       -> Build development per test diretto
-#
 # FEATURES:
-#   - Pulizia automatica cache locale ed EAS
+#   - Pulizia automatica cache locale ed EAS per evitare problemi
 #   - Build number automatico
 #   - Commit e push automatico
-#   - Submit App Store (solo production)
+#   - Build production + submit TestFlight
 
 set -e  # Esce se c'è un errore
 
 echo "🔧 BACCHUS: Iniziando build e deploy automatico..."
-
-# Controlla se è richiesta una build development
-BUILD_PROFILE="production"
-if [ "$1" = "dev" ] || [ "$1" = "development" ]; then
-    BUILD_PROFILE="development-device"
-    echo "🔧 MODALITÀ DEVELOPMENT: Build per testing diretto"
-fi
 
 # Colori per output
 RED='\033[0;31m'
@@ -100,7 +89,7 @@ log_success "Cache locale pulita"
 
 # STEP 5: Build iOS con EAS
 log_info "STEP 5: Avviando build iOS con EAS (con pulizia cache)..."
-eas build --platform ios --profile $BUILD_PROFILE --non-interactive --clear-cache
+eas build --platform ios --profile production --non-interactive --clear-cache
 if [ $? -eq 0 ]; then
     log_success "Build iOS con EAS completata"
 else
@@ -108,43 +97,27 @@ else
     exit 1
 fi
 
-# STEP 6: Submit su App Store (solo per build production)
-if [ "$BUILD_PROFILE" = "production" ]; then
-    log_info "STEP 6: Submitting su App Store..."
-    eas submit -p ios --latest
-    if [ $? -eq 0 ]; then
-        log_success "Submit su App Store completato"
-    else
-        log_error "Errore nel submit su App Store"
-        log_info "Puoi riprovare manualmente con: eas submit -p ios --latest"
-        exit 1
-    fi
+# STEP 6: Submit su App Store
+log_info "STEP 6: Submitting su App Store..."
+eas submit -p ios --latest
+if [ $? -eq 0 ]; then
+    log_success "Submit su App Store completato"
 else
-    log_info "STEP 6: Skip submit (build development)"
-    log_success "Build development completata - pronta per installazione diretta"
+    log_error "Errore nel submit su App Store"
+    log_info "Puoi riprovare manualmente con: eas submit -p ios --latest"
+    exit 1
 fi
 
 # SUCCESSO COMPLETO
 echo ""
 log_success "🎉 BUILD & DEPLOY COMPLETATO CON SUCCESSO!"
-if [ "$BUILD_PROFILE" = "production" ]; then
-    log_success "📱 App buildata e submittata su App Store"
-    log_success "🌐 Codice aggiornato su GitHub"
-    log_success "🔢 Build number aggiornato automaticamente"
-    echo ""
-    log_info "Prossimi passi:"
-    log_info "1. Controlla TestFlight per la nuova build"
-    log_info "2. Verifica su GitHub che le modifiche siano visibili"
-    log_info "3. Testa l'app se necessario"
-else
-    log_success "📱 Build development completata"
-    log_success "🌐 Codice aggiornato su GitHub"
-    log_success "🔢 Build number aggiornato automaticamente"
-    log_success "🧹 Cache pulita completamente"
-    echo ""
-    log_info "Prossimi passi:"
-    log_info "1. Scarica la build dal link EAS"
-    log_info "2. Installa direttamente sull'iPhone"
-    log_info "3. Testa i fix implementati"
-fi
+log_success "📱 App buildata e submittata su TestFlight"
+log_success "🌐 Codice aggiornato su GitHub"
+log_success "🔢 Build number aggiornato automaticamente"
+log_success "🧹 Cache pulita completamente"
+echo ""
+log_info "Prossimi passi:"
+log_info "1. Controlla TestFlight per la nuova build"
+log_info "2. Installa e testa l'app"
+log_info "3. Verifica che i fix funzionino"
 echo ""
