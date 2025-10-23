@@ -347,7 +347,7 @@ export default function LoginScreen() {
     try {
       setIsLoading(true);
       setDebugInfo('Inizializzazione Apple Sign In...');
-      console.log('🍎 Login con Apple - Avvio processo OAuth');
+      console.log('APPLE_FLOW: Login con Apple - Avvio processo OAuth');
       
       // Log remoto per debugging
       const { logInfo, logError } = await import('../lib/services/logging.service');
@@ -359,21 +359,21 @@ export default function LoginScreen() {
       const { success, error, data, redirectToProfileCreation, isNewUser } = await loginWithProvider('apple');
       
       if (success) {
-        console.log('🍎 Login con Apple - Successo immediato');
+        console.log('APPLE_FLOW: Login con Apple - Successo immediato');
         setDebugInfo('Login completato! Reindirizzamento...');
         await logInfo('Apple Login Success', { immediate: true, isNewUser });
         
         // 🎯 Se deve completare il wizard (nuovo utente, senza profili, o riattivato)
         if (redirectToProfileCreation) {
-          console.log('🍎 Utente Apple deve completare wizard - Reindirizzamento...');
+          console.log('APPLE_FLOW: Utente Apple deve completare wizard - Reindirizzamento...');
           router.replace('/onboarding/profile-wizard');
         } else {
-          console.log('🍎 Utente Apple esistente con profilo - Dashboard');
+          console.log('APPLE_FLOW: Utente Apple esistente con profilo - Dashboard');
           router.replace('/(tabs)/dashboard');
         }
       } else if (error === 'oauth_in_progress') {
         // OAuth avviato correttamente, il sistema gestirà il callback automaticamente
-        console.log('🍎 Login con Apple - OAuth avviato, attendo callback automatico...');
+        console.log('APPLE_FLOW: Login con Apple - OAuth avviato, attendo callback automatico...');
         setDebugInfo('Apertura Apple Sign In...');
         await logInfo('Apple Login OAuth Started');
         
@@ -381,7 +381,7 @@ export default function LoginScreen() {
         // Il sistema di callback lo gestirà automaticamente tramite deep linking
         
       } else {
-        console.error('🍎 Login con Apple - Errore:', error);
+        console.error('APPLE_FLOW: Login con Apple - Errore:', error);
         setIsLoading(false);
         setDebugInfo('');
         
@@ -406,7 +406,7 @@ export default function LoginScreen() {
         );
       }
     } catch (error) {
-      console.error('🍎 Login con Apple - Errore generale:', error);
+      console.error('APPLE_FLOW: Login con Apple - Errore generale:', error);
       setIsLoading(false);
       setDebugInfo('');
       

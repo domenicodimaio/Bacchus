@@ -372,13 +372,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const loginWithProvider = async (provider: 'google' | 'apple') => {
     try {
       setIsLoading(true);
-      console.log(`[AUTH_CONTEXT] Inizio login ${provider}...`);
+      console.log(`APPLE_FLOW: [AUTH_CONTEXT] Inizio login ${provider}...`);
       
       // Delega TUTTO al servizio - nessuna business logic qui
       const result = await authService.signInWithProvider(provider);
       
       if (result.success) {
-        console.log(`[AUTH_CONTEXT] ✅ Login ${provider} completato`);
+        console.log(`APPLE_FLOW: [AUTH_CONTEXT] ✅ Login ${provider} completato`);
         
         // Solo gestione stato - nessuna logica business
         if (result.user) {
@@ -391,18 +391,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           }
           
         // 🔥 FIX PERSISTENZA: Carica profili e sessioni dopo login con provider
-        console.log('[AUTH_CONTEXT] Caricamento profili dopo login con provider...');
+        console.log('APPLE_FLOW: [AUTH_CONTEXT] Caricamento profili dopo login con provider...');
         await loadUserProfiles(result.user.id);
         
         // 🔥 FIX CRITICO APPLE: Se non ci sono profili, forza ricaricamento dal database
         if (profiles.length === 0) {
-          console.log('[AUTH_CONTEXT] ⚠️ Nessun profilo trovato - ricaricamento forzato dal database...');
+          console.log('APPLE_FLOW: [AUTH_CONTEXT] ⚠️ Nessun profilo trovato - ricaricamento forzato dal database...');
           setTimeout(async () => {
             try {
               await loadUserProfiles(result.user.id);
-              console.log('[AUTH_CONTEXT] ✅ Ricaricamento profili completato');
+              console.log('APPLE_FLOW: [AUTH_CONTEXT] ✅ Ricaricamento profili completato');
             } catch (error) {
-              console.error('[AUTH_CONTEXT] ❌ Errore ricaricamento profili:', error);
+              console.error('APPLE_FLOW: [AUTH_CONTEXT] ❌ Errore ricaricamento profili:', error);
             }
           }, 2000); // Aumento a 2 secondi per permettere la sincronizzazione
         }
@@ -428,7 +428,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         return { success: false, error: result.error || `Errore durante il login con ${provider}`, data: result.data };
       }
     } catch (error: any) {
-      console.error(`[AUTH_CONTEXT] Errore durante il login con ${provider}:`, error);
+      console.error(`APPLE_FLOW: [AUTH_CONTEXT] Errore durante il login con ${provider}:`, error);
       return { success: false, error: error.message || `Errore durante il login con ${provider}` };
     } finally {
       setIsLoading(false);
