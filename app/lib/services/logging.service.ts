@@ -13,7 +13,7 @@ interface LogEntry {
   user_id?: string;
   device_info?: any;
   app_version?: string;
-  timestamp?: string;
+  created_at?: string;
 }
 
 class RemoteLoggingService {
@@ -120,7 +120,7 @@ class RemoteLoggingService {
       user_id: await this.getCurrentUserId(),
       device_info: await this.getDeviceInfo(),
       app_version: Constants.expoConfig?.version,
-      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
 
     // Log locale per debug immediato
@@ -144,7 +144,7 @@ class RemoteLoggingService {
       user_id: await this.getCurrentUserId(),
       device_info: await this.getDeviceInfo(),
       app_version: Constants.expoConfig?.version,
-      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
 
     console.log('🔵 [REMOTE LOG]', message);
@@ -160,7 +160,7 @@ class RemoteLoggingService {
       user_id: await this.getCurrentUserId(),
       device_info: await this.getDeviceInfo(),
       app_version: Constants.expoConfig?.version,
-      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
 
     console.warn('🟡 [REMOTE LOG]', message);

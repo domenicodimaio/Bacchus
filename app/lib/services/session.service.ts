@@ -716,7 +716,7 @@ export async function saveSessionToSupabase(session: Session, is_active: boolean
       id: session.id,
       user_id: userId, // Usa sempre l'ID dell'utente correntemente autenticato
       profile_id: session.profile.id,
-      data: {
+      session_data: {
         start_time: new Date(session.startTime).toISOString(),
         end_time: session.endTime ? new Date(session.endTime).toISOString() : null,
         max_bac: session.currentBAC || 0,
@@ -897,8 +897,8 @@ export async function syncWithSupabase(userId: string): Promise<boolean> {
 
 // Funzione di utilità per mappare una sessione da Supabase al formato locale
 function mapSupabaseSessionToLocal(supabaseSession: any): Session {
-  // Estrai i dati della sessione dal campo data
-  const sessionData = supabaseSession.data || {};
+  // Estrai i dati della sessione dal campo session_data
+  const sessionData = supabaseSession.session_data || {};
   
   // Crea un oggetto di sessione locale dal formato Supabase
   return {
