@@ -570,8 +570,8 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 profilesData = profiles;
                 
                 // Controlla se ci sono profili COMPLETI e VALIDI
-                hasValidProfiles = profiles && profiles.length > 0 && 
-                                 profiles.some(p => 
+                hasValidProfiles = profilesData && profilesData.length > 0 && 
+                                 profilesData.some(p => 
                                    p.name && 
                                    p.name.trim().length > 0 && 
                                    p.weight && 
@@ -581,9 +581,9 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                                  );
                 
                 console.log('🍎 AUTH: Analisi profili:', {
-                  totalProfiles: profiles?.length || 0,
+                  totalProfiles: profilesData?.length || 0,
                   hasValidProfiles,
-                  profilesDetails: profiles?.map(p => ({
+                  profilesDetails: profilesData?.map(p => ({
                     id: p.id,
                     name: p.name,
                     hasWeight: !!p.weight,
@@ -598,7 +598,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 // Caso 2: Account creato oggi ma non negli ultimi 5 minuti = possibile ricreazione
                 // Caso 3: 🔥 FIX BUG 6: Account con metadata di eliminazione = account "eliminato" che si rilogga
                 if (!hasValidProfiles) {
-                  if (!isNewUser && profiles && profiles.length === 0) {
+                  if (!isNewUser && profilesData && profilesData.length === 0) {
                     isReactivatedUser = true;
                     console.log('🍎 AUTH: Rilevato account riattivato - nessun profilo per account esistente');
                   } else if (isCreatedToday && !isNewUser) {
