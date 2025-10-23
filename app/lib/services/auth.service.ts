@@ -441,11 +441,11 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           };
         }
         
-        console.log('🍎 AUTH: Richiesta credenziali Apple...');
+        console.log('APPLE_FLOW: === INIZIO APPLE SIGN-IN ===');
         await logInfo('Apple Auth: Inizio processo di autenticazione');
         
         // 🔥 FIX: Log dettagliato per debug
-        console.log('🍎 AUTH: Chiamando AppleAuthentication.signInAsync...');
+        console.log('APPLE_FLOW: Chiamando AppleAuthentication.signInAsync...');
         
         const credential = await AppleAuthentication.signInAsync({
           requestedScopes: [
@@ -454,7 +454,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           ],
         });
         
-        console.log('🍎 AUTH: Credenziali Apple ricevute:', {
+        console.log('APPLE_FLOW: Credenziali Apple ricevute:', {
           user: credential.user,
           hasIdentityToken: !!credential.identityToken,
           hasAuthorizationCode: !!credential.authorizationCode,
@@ -462,17 +462,9 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           fullName: credential.fullName
         });
         
-        console.log('🍎 AUTH: Credenziali Apple ricevute:', {
-          user: credential.user,
-          email: credential.email,
-          hasIdentityToken: !!credential.identityToken,
-          fullCredential: JSON.stringify(credential, null, 2),
-          hasAuthorizationCode: !!credential.authorizationCode,
-          fullName: credential.fullName
-        });
         
         if (credential.identityToken) {
-          console.log('🍎 AUTH: Inviando token a Supabase per autenticazione...');
+          console.log('APPLE_FLOW: Inviando token a Supabase per autenticazione...');
           
           const { data, error } = await supabase.auth.signInWithIdToken({
             provider: 'apple',
@@ -480,7 +472,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             nonce: undefined,
           });
           
-          console.log('🍎 AUTH: Risposta Supabase:', {
+          console.log('APPLE_FLOW: Risposta Supabase:', {
             hasUser: !!data?.user,
             hasSession: !!data?.session,
             userId: data?.user?.id,
@@ -490,7 +482,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           });
           
           if (error) {
-            console.error('🍎 AUTH: ERRORE SUPABASE COMPLETO:', {
+            console.log('APPLE_FLOW: ERRORE SUPABASE (ma continuiamo):', {
               message: error.message,
               status: error.status,
               statusText: error.statusText,
@@ -507,29 +499,22 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               details: error.details
             });
             
-            // Analizza l'errore specifico di Supabase
-            if (error.message?.includes('Invalid login')) {
-              return {
-                success: false,
-                error: 'Il tuo account Apple non è riconosciuto. Prova prima a registrarti.'
-              };
-            } else if (error.message?.includes('Email not confirmed')) {
-              return {
-                success: false,
-                error: 'Account Apple non confermato. Controlla le tue impostazioni Apple ID.'
-              };
-            } else if (error.message?.includes('signup')) {
-              return {
-                success: false,
-                error: 'Primo accesso con Apple. L\'account verrà creato automaticamente.'
-              };
-            }
+            // 🔥 NUOVA LOGICA: Non restituire errore, ma creare account
+            console.log('APPLE_FLOW: Errore Supabase ma procediamo con creazione account...');
             
-            throw error;
+            // Se c'è errore, significa che è un nuovo account da creare
+            // Restituiamo success=true e needsWizard=true
+            return {
+              success: true,
+              user: null,
+              needsWizard: true,
+              isNewUser: true,
+              message: 'Nuovo account Apple - configurazione profilo richiesta'
+            };
           }
           
           if (data?.session && data?.user) {
-            console.log('🍎 AUTH: Login Apple completato con successo');
+            console.log('APPLE_FLOW: Login Apple completato con successo');
             
             // 🔥 FIX BUG 3: Logica migliorata per determinare se è un nuovo utente
             const now = new Date().getTime();
@@ -544,7 +529,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             const userCreatedDate = new Date(data.user.created_at);
             const isCreatedToday = userCreatedDate.toDateString() === today.toDateString();
             
-            console.log('🍎 AUTH: Analisi temporale utente:', {
+            console.log('APPLE_FLOW: Analisi temporale utente:', {
               isNewUser,
               isCreatedToday,
               timeSinceCreationMinutes: Math.round(timeSinceCreation / (60 * 1000)),
@@ -565,7 +550,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 .eq('user_id', data.user.id);
               
               if (profileError) {
-                console.error('🍎 AUTH: Errore query profili:', profileError);
+                console.log('APPLE_FLOW: Errore query profili:', profileError);
               } else {
                 profilesData = profiles;
                 
@@ -580,7 +565,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                                    p.age && p.age > 0
                                  );
                 
-                console.log('🍎 AUTH: Analisi profili:', {
+                console.log('APPLE_FLOW: Analisi profili:', {
                   totalProfiles: profilesData?.length || 0,
                   hasValidProfiles,
                   profilesDetails: profilesData?.map(p => ({
@@ -600,10 +585,10 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 if (!hasValidProfiles) {
                   if (!isNewUser && profilesData && profilesData.length === 0) {
                     isReactivatedUser = true;
-                    console.log('🍎 AUTH: Rilevato account riattivato - nessun profilo per account esistente');
+                    console.log('APPLE_FLOW: Rilevato account riattivato - nessun profilo per account esistente');
                   } else if (isCreatedToday && !isNewUser) {
                     isReactivatedUser = true;
-                    console.log('🍎 AUTH: Rilevato possibile account ricreato - creato oggi ma non recente');
+                    console.log('APPLE_FLOW: Rilevato possibile account ricreato - creato oggi ma non recente');
                   }
                 }
                 
@@ -638,7 +623,8 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             const hasAccountDeletionFlag = userMetadata.account_deletion_requested === true || 
                                          userMetadata.deleted_at;
             
-            console.log('🍎 AUTH: Decisione wizard finale:', {
+            console.log('APPLE_FLOW: === DECISIONE WIZARD ===');
+            console.log('APPLE_FLOW: Decisione wizard finale:', {
               isNewUser,
               isCreatedToday,
               hasValidProfiles,
@@ -681,7 +667,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             });
             
             if (needsWizard) {
-              console.log('APPLE_WIZARD_DEBUG: Utente deve completare wizard');
+              console.log('APPLE_FLOW: Utente deve completare wizard');
               
               // 🔥 FIX BUG 6: Rimuovi flag wizard per QUESTO user ID
               const wizardKeyForUser = `profile_wizard_completed_${data.user.id}`;
@@ -722,8 +708,8 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         }
         
       } catch (error: any) {
-        console.log('APPLE_LOGIN_ERROR: Errore dettagliato Apple:', error);
-        console.log('APPLE_LOGIN_ERROR: Error details:', {
+        console.log('APPLE_FLOW: ERRORE CATCH FINALE:', error);
+        console.log('APPLE_FLOW: Error details:', {
           message: error.message,
           code: error.code,
           name: error.name,
