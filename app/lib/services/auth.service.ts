@@ -561,7 +561,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             try {
               const { data: profiles, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, name, weight, gender, birth_date, created_at')
+                .select('id, name, weight, gender, age, created_at')
                 .eq('user_id', data.user.id);
               
               if (profileError) {
@@ -577,7 +577,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                                    p.weight && 
                                    p.weight > 0 && 
                                    p.gender &&
-                                   p.birth_date
+                                   p.age && p.age > 0
                                  );
                 
                 console.log('🍎 AUTH: Analisi profili:', {
@@ -588,7 +588,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                     name: p.name,
                     hasWeight: !!p.weight,
                     hasGender: !!p.gender,
-                    hasBirthDate: !!p.birth_date,
+                    hasAge: !!p.age,
                     createdAt: p.created_at
                   })) || []
                 });
