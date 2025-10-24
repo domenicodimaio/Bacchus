@@ -107,8 +107,7 @@ log_success "Cache locale pulita"
 
 # STEP 5: Build iOS con EAS
 log_info "STEP 5: Avviando build iOS con EAS (con pulizia cache)..."
-echo -e "${YELLOW}⚠️  PRIMO BUILD CON NUOVO ACCOUNT: Configurazione credenziali richiesta${NC}"
-eas build --platform ios --profile production --clear-cache
+eas build --platform ios --profile production --non-interactive --clear-cache
 if [ $? -eq 0 ]; then
     log_success "Build iOS con EAS completata"
 else
