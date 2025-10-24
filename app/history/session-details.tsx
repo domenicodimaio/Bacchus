@@ -9,6 +9,7 @@ import {
   StatusBar,
   Platform
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
