@@ -149,6 +149,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     
     // Listener auth semplificato
     const { data: authListener } = authService.onAuthStateChange(async (event, session) => {
+      console.log('🚨 DEBUG_APPLE: onAuthStateChange evento:', event);
       console.log('[AUTH_CONTEXT] Evento auth:', event);
       
       try {
