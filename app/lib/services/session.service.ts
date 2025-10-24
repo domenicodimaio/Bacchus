@@ -321,11 +321,12 @@ export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
                 
               if (profileData) {
                 // Crea sessione locale dal formato database
+                const sessionData = dbSession.session_data || {};
                 const localSession: Session = {
                   id: dbSession.id,
-                  startTime: new Date(dbSession.data.start_time),
-                  sessionStartTime: new Date(dbSession.data.start_time),
-                  endTime: dbSession.data.end_time ? new Date(dbSession.data.end_time) : undefined,
+                  startTime: sessionData.start_time ? new Date(sessionData.start_time) : new Date(),
+                  sessionStartTime: sessionData.start_time ? new Date(sessionData.start_time) : new Date(),
+                  endTime: sessionData.end_time ? new Date(sessionData.end_time) : undefined,
                   profile: {
                     id: profileData.id,
                     userId: profileData.user_id,
@@ -343,15 +344,15 @@ export async function loadSessionHistoryFromStorage(): Promise<Session[]> {
                     updatedAt: profileData.updated_at,
                     hasCompletedWizard: true
                   },
-                  drinks: dbSession.data.drinks || [],
-                  foods: dbSession.data.foods || [],
-                  currentBAC: dbSession.data.current_bac || 0,
-                  status: dbSession.data.status || 'safe',
+                  drinks: sessionData.drinks || [],
+                  foods: sessionData.foods || [],
+                  currentBAC: sessionData.current_bac || 0,
+                  status: sessionData.status || 'safe',
                   bacTimePoints: [],
-                  soberTime: dbSession.data.soberTime || '0:00',
+                  soberTime: sessionData.soberTime || '0:00',
                   sessionDuration: '0:00',
                   timeToSober: 0,
-                  legalTime: dbSession.data.legalTime || '0:00',
+                  legalTime: sessionData.legalTime || '0:00',
                   timeToLegal: 0,
                   bacSeries: [],
                   user_id: dbSession.user_id,
