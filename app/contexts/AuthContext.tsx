@@ -220,7 +220,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
               const { router } = require('expo-router');
               setTimeout(() => {
                 router.replace('/onboarding/profile-wizard');
-              }, 1000); // Aspetta che il caricamento sia completo
+              }, 100); // Navigazione quasi immediata
             }
           } catch (wizardError) {
             console.log('[AUTH_CONTEXT] Errore controllo wizard, assumo non completato');
