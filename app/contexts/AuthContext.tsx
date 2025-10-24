@@ -372,6 +372,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const loginWithProvider = async (provider: 'google' | 'apple') => {
     try {
       setIsLoading(true);
+      console.log('🚨 DEBUG_APPLE: INIZIO loginWithProvider - QUESTO DEVE APPARIRE NEI LOG!');
       console.log(`APPLE_FLOW: [AUTH_CONTEXT] Inizio login ${provider}...`);
       
       // Delega TUTTO al servizio - nessuna business logic qui

@@ -347,6 +347,7 @@ export default function LoginScreen() {
     try {
       setIsLoading(true);
       setDebugInfo('Inizializzazione Apple Sign In...');
+      console.log('🚨 DEBUG_APPLE: INIZIO handleAppleLogin - QUESTO DEVE APPARIRE NEI LOG!');
       console.log('APPLE_FLOW: Login con Apple - Avvio processo OAuth');
       
       // Log remoto per debugging
