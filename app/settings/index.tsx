@@ -185,7 +185,7 @@ export default function SettingsScreen() {
     const newCount = secretTapCount + 1;
     setSecretTapCount(newCount);
     
-    // Sequenza segreta: 7 tap rapidi sulla versione
+    // Sequenza segreta: 7 tap rapidi sulla versione + password "mimmomodem"
     if (newCount === 7) {
       // Verifica se siamo in modalità sviluppo o build di test
       const isDev = __DEV__ || Constants.appOwnership === 'expo';
@@ -201,27 +201,37 @@ export default function SettingsScreen() {
           [{ text: 'OK', style: 'default' }]
         );
       } else {
-        // In produzione, richiedi conferma aggiuntiva
-        Alert.alert(
+        // In produzione, richiedi password per sicurezza
+        Alert.prompt(
           '🔐 Accesso Developer',
-          'Vuoi attivare gli strumenti per sviluppatori?\n\n⚠️ Questi strumenti sono destinati solo agli sviluppatori e possono influire sul funzionamento dell\'app.',
+          'Inserisci la password per accedere agli strumenti sviluppatore:\n\n⚠️ Questi strumenti sono destinati solo agli sviluppatori autorizzati.',
           [
             { text: 'Annulla', style: 'cancel' },
             { 
-              text: 'Attiva', 
-              style: 'destructive',
-              onPress: async () => {
-                setShowDeveloperOptions(true);
-                await AsyncStorage.setItem('BACCHUS_DEV_TOOLS_ENABLED', 'true');
-                
-                Alert.alert(
-                  '🛠️ Developer Tools Attivati',
-                  'Gli strumenti per sviluppatori sono ora disponibili nelle impostazioni.\n\nPer disattivarli, riavvia l\'app.',
-                  [{ text: 'OK', style: 'default' }]
-                );
+              text: 'Accedi', 
+              style: 'default',
+              onPress: async (password) => {
+                // Password segreta: mimmomodem
+                if (password === 'mimmomodem') {
+                  setShowDeveloperOptions(true);
+                  await AsyncStorage.setItem('BACCHUS_DEV_TOOLS_ENABLED', 'true');
+                  
+                  Alert.alert(
+                    '🛠️ Developer Tools Attivati',
+                    'Gli strumenti per sviluppatori sono ora disponibili nelle impostazioni.\n\nPer disattivarli, riavvia l\'app.',
+                    [{ text: 'OK', style: 'default' }]
+                  );
+                } else {
+                  Alert.alert(
+                    '❌ Accesso Negato',
+                    'Password non corretta. Accesso agli strumenti sviluppatore negato.',
+                    [{ text: 'OK', style: 'default' }]
+                  );
+                }
               }
             }
-          ]
+          ],
+          'secure-text'  // Input password nascosto
         );
       }
       
