@@ -171,13 +171,57 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           const sessionService = require('../lib/services/session.service');
           await sessionService.loadSessionHistoryFromStorage();
           
-          // Controllo stato wizard semplificato
-          console.log('[AUTH_CONTEXT] Controllo stato wizard...');
+          // 🔥 FIX APPLE LOGIN: Controllo wizard COMPLETO per Apple Login
+          console.log('🚨 DEBUG_APPLE: onAuthStateChange - Controllo wizard per Apple Login...');
           
           try {
-            const wizardCompleted = await authService.hasCompletedProfileWizard();
-            console.log('[AUTH_CONTEXT] Wizard completato:', wizardCompleted);
-            setHasCompletedProfileWizard(wizardCompleted);
+            // Determina se è un login Apple (controlla provider metadata)
+            const isAppleLogin = currentUser.app_metadata?.provider === 'apple' || 
+                               currentUser.user_metadata?.iss === 'https://appleid.apple.com';
+            
+            console.log('🚨 DEBUG_APPLE: onAuthStateChange - isAppleLogin:', isAppleLogin);
+            
+            let needsWizard = false;
+            
+            if (isAppleLogin) {
+              // 🔥 LOGICA APPLE COMPLETA: Verifica se è nuovo utente o senza profili
+              console.log('🚨 DEBUG_APPLE: onAuthStateChange - Applicando logica Apple completa...');
+              
+              // Controlla se ha profili validi
+              const hasValidProfiles = profiles && profiles.length > 0 && 
+                                     profiles.some(p => p.name && p.name.trim().length > 0);
+              
+              // Controlla se è account nuovo (creato negli ultimi 5 minuti)
+              const accountAge = new Date().getTime() - new Date(currentUser.created_at).getTime();
+              const isNewUser = accountAge < (5 * 60 * 1000); // 5 minuti
+              
+              console.log('🚨 DEBUG_APPLE: onAuthStateChange - Analisi:', {
+                hasValidProfiles,
+                profilesCount: profiles?.length || 0,
+                isNewUser,
+                accountAge: Math.round(accountAge / 1000) + 's'
+              });
+              
+              // 🔥 DECISIONE WIZARD: Nuovo utente O senza profili validi
+              needsWizard = isNewUser || !hasValidProfiles;
+              
+              console.log('🚨 DEBUG_APPLE: onAuthStateChange - needsWizard:', needsWizard);
+            } else {
+              // Per login non-Apple, usa logica semplice
+              needsWizard = !(await authService.hasCompletedProfileWizard());
+            }
+            
+            console.log('[AUTH_CONTEXT] Wizard necessario:', needsWizard);
+            setHasCompletedProfileWizard(!needsWizard);
+            
+            // 🔥 FIX APPLE LOGIN: Se serve il wizard, naviga direttamente
+            if (needsWizard) {
+              console.log('🚨 DEBUG_APPLE: onAuthStateChange - Navigando al wizard...');
+              const { router } = require('expo-router');
+              setTimeout(() => {
+                router.replace('/onboarding/profile-wizard');
+              }, 1000); // Aspetta che il caricamento sia completo
+            }
           } catch (wizardError) {
             console.log('[AUTH_CONTEXT] Errore controllo wizard, assumo non completato');
             setHasCompletedProfileWizard(false);
