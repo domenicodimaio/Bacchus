@@ -432,25 +432,22 @@ async function loadSessionHistoryInBackground(userId: string | null = null): Pro
     const historyKey = getSessionHistoryKey(userId);
     let historyData = await AsyncStorage.getItem(historyKey);
     
-    if (!historyData && userId) {
-      // Fallback: cerca chiavi alternative per questo utente
-      const allKeys = await AsyncStorage.getAllKeys();
-      const altKey = allKeys.find(key => key.includes(userId) && key.includes('session_history'));
-      if (altKey) {
-        historyData = await AsyncStorage.getItem(altKey);
-        // Migra alla chiave standard
-        if (historyData) {
-          await AsyncStorage.setItem(historyKey, historyData);
-        }
-      }
-    }
+    // 🔥 FIX: Rimossa ricerca chiavi alternative per evitare contaminazione cross-user
+    // Usa SOLO la chiave esatta per l'utente specifico
     
     if (historyData) {
       try {
         const history = JSON.parse(historyData);
-        sessionHistory = userId 
-          ? history.filter(s => s.user_id === userId) // 🔥 FIX: Solo sessioni dell'utente specifico
-          : history.filter(s => !s.user_id); // Solo sessioni guest per utenti non autenticati
+        // 🔥 FIX CRITICO: Filtro rigoroso per isolamento utenti
+        if (userId) {
+          // Per utenti autenticati: SOLO sessioni con user_id corrispondente
+          sessionHistory = history.filter(s => s.user_id === userId);
+          console.log(`BACCHUS_DEBUG: Filtrate sessioni per user ${userId}: ${sessionHistory.length} sessioni valide`);
+        } else {
+          // Per utenti guest: SOLO sessioni senza user_id
+          sessionHistory = history.filter(s => !s.user_id);
+          console.log(`BACCHUS_DEBUG: Filtrate sessioni guest: ${sessionHistory.length} sessioni valide`);
+        }
       } catch (error) {
         sessionHistory = [];
       }
