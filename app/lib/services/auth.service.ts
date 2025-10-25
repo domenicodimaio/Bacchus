@@ -65,6 +65,7 @@ export type AuthResponse = {
   needsEmailConfirmation?: boolean;
   isMockUser?: boolean;
   isNewUser?: boolean;
+  needsWizard?: boolean;
 };
 
 // Helper function to get environment variables from various sources
@@ -502,8 +503,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               success: true,
               user: null,
               needsWizard: true,
-              isNewUser: true,
-              message: 'Nuovo account Apple - configurazione profilo richiesta'
+              isNewUser: true
             };
           }
           

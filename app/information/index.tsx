@@ -60,7 +60,7 @@ export default function Information() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={currentTheme.statusBarStyle} backgroundColor={colors.background} />
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         
         <AppHeader 
           title={t('information', { ns: 'profile', defaultValue: 'Informazioni' })}
