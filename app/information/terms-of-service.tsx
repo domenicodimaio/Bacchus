@@ -157,7 +157,7 @@ export default function TermsOfServiceScreen() {
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               Per domande sui Termini di Servizio, contattaci a:{'\n\n'}
               <Text style={{ fontWeight: '600' }}>Email:</Text> legal@bacchusapp.com{'\n'}
-              <Text style={{ fontWeight: '600' }}>Supporto:</Text> supporto@bacchusapp.com
+              <Text style={{ fontWeight: '600' }}>Supporto:</Text> support@bacchusapp.com
             </Text>
           </View>
 

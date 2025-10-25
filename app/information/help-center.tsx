@@ -14,7 +14,7 @@ export default function HelpCenterScreen() {
   const colors = currentTheme.COLORS;
 
   const handleContactSupport = () => {
-    const email = 'supporto@bacchusapp.com';
+    const email = 'support@bacchusapp.com';
     const subject = 'Richiesta Supporto - Bacchus App';
     const body = `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`;
     

@@ -484,19 +484,13 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           if (error) {
             console.log('APPLE_FLOW: ERRORE SUPABASE (ma continuiamo):', {
               message: error.message,
-              status: error.status,
-              statusText: error.statusText,
-              details: error.details,
-              hint: error.hint,
               code: error.code,
               fullError: JSON.stringify(error, null, 2)
             });
             
             await logError('Apple Auth Supabase Error', {
               message: error.message,
-              status: error.status,
-              code: error.code,
-              details: error.details
+              code: error.code
             });
             
             // 🔥 NUOVA LOGICA: Non restituire errore, ma creare account

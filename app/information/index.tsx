@@ -25,9 +25,15 @@ export default function Information() {
     };
   }, []);
 
+  // 🔧 FIX CRASH: Gestione sicura degli errori
+  const handleError = (error: any) => {
+    console.error('Information screen error:', error);
+    // Non fare nulla per evitare crash
+  };
+
   // 🔧 FIX SWIPE BACK: Funzioni per le azioni
   const handleContactSupport = () => {
-    const email = 'supporto@bacchusapp.com';
+    const email = 'support@bacchusapp.com';
     const subject = 'Richiesta Supporto - Bacchus App';
     const body = `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: ${appVersion} (${appBuild})\nDispositivo: ${Platform.OS}\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`;
     
