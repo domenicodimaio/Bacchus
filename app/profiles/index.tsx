@@ -553,19 +553,7 @@ export default function ProfilesScreen() {
                 <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
               
-              {/* Delete Account - Only for authenticated users */}
-              {!profile.isGuest && (
-                <TouchableOpacity
-                  style={styles.optionItem}
-                  onPress={handleDeleteAccount}
-                >
-                  <Ionicons name="trash-outline" size={24} color="#ff3b30" />
-                  <Text style={[styles.optionText, { color: "#ff3b30" }]}>
-                    {i18n.language === 'it' ? 'Elimina Account' : 'Delete Account'}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-                </TouchableOpacity>
-              )}
+              {/* Delete Account rimosso per sicurezza - disponibile solo nelle impostazioni avanzate */}
             </View>
           </View>
           

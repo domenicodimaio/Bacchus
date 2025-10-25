@@ -1515,21 +1515,23 @@ export const deleteAccount = async (): Promise<AuthResponse> => {
       // Invece di solo disabilitarlo, proviamo la vera eliminazione
       console.log('Attempting real account deletion...');
       
-      // Metodo 1: Usare l'Admin API di Supabase se disponibile
+      // Metodo 1: Eliminazione diretta tramite RPC function (più sicura)
       try {
-        // Questo richiede che nel progetto Supabase sia abilitata l'API admin
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+        console.log('Attempting account deletion via RPC function...');
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('delete_user_account', {
+          user_id_to_delete: userId
+        });
         
-        if (!deleteError) {
-          console.log('✅ Account deleted successfully via admin API');
+        if (!rpcError && rpcResult) {
+          console.log('✅ Account deleted successfully via RPC function');
           await resetAllLocalData();
           await signOut();
           return { success: true };
         } else {
-          console.warn('Admin delete failed, trying alternative method:', deleteError);
+          console.warn('RPC delete failed, trying alternative method:', rpcError);
         }
-      } catch (adminError) {
-        console.warn('Admin API not available, trying alternative method:', adminError);
+      } catch (rpcError) {
+        console.warn('RPC function not available, trying alternative method:', rpcError);
       }
       
       // Metodo 2: Eliminazione manuale completa se admin API non funziona

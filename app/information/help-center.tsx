@@ -1,0 +1,351 @@
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import AppHeader from '../components/AppHeader';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+export default function HelpCenterScreen() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { currentTheme } = useTheme();
+  const colors = currentTheme.COLORS;
+
+  const handleContactSupport = () => {
+    const email = 'supporto@bacchusapp.com';
+    const subject = 'Richiesta Supporto - Bacchus App';
+    const body = `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`;
+    
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    Linking.openURL(mailtoUrl);
+  };
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <AppHeader 
+          title="Centro Assistenza"
+          onBackPress={() => router.back()}
+        />
+        
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={[styles.headerText, { color: colors.text }]}>
+            Centro Assistenza Bacchus
+          </Text>
+          
+          <Text style={[styles.subHeaderText, { color: colors.textSecondary }]}>
+            Guida completa all'uso dell'app e informazioni importanti
+          </Text>
+
+          {/* Disclaimer Importante */}
+          <View style={[styles.warningSection, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
+            <Ionicons name="warning" size={24} color={colors.error} />
+            <View style={styles.warningContent}>
+              <Text style={[styles.warningTitle, { color: colors.error }]}>
+                ⚠️ DISCLAIMER IMPORTANTE
+              </Text>
+              <Text style={[styles.warningText, { color: colors.error }]}>
+                Bacchus è SOLO un supporto per avere un'idea del tasso alcolemico e NON è uno strumento su cui affidarsi totalmente prima di mettersi alla guida. Il calcolo è indicativo e può variare significativamente in base a molti fattori individuali.
+              </Text>
+            </View>
+          </View>
+
+          {/* Guida Rapida */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              🚀 Guida Rapida
+            </Text>
+            
+            <View style={styles.guideStep}>
+              <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>1</Text>
+              <View style={styles.stepContent}>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>Crea il tuo Profilo</Text>
+                <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                  Inserisci peso, altezza, età e sesso per calcoli più accurati
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.guideStep}>
+              <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>2</Text>
+              <View style={styles.stepContent}>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>Avvia una Sessione</Text>
+                <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                  Tocca "Inizia Sessione" dalla dashboard per iniziare a tracciare
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.guideStep}>
+              <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>3</Text>
+              <View style={styles.stepContent}>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>Aggiungi Consumi</Text>
+                <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                  Registra bevande alcoliche e cibo per calcoli più precisi
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.guideStep}>
+              <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>4</Text>
+              <View style={styles.stepContent}>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>Monitora il BAC</Text>
+                <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                  Osserva l'andamento del tuo tasso alcolemico stimato
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Funzionalità Principali */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              🔧 Funzionalità Principali
+            </Text>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="calculator" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                <Text style={{ fontWeight: '600' }}>Calcolo BAC:</Text> Stima del tasso alcolemico basata sulla formula di Widmark
+              </Text>
+            </View>
+
+            <View style={styles.featureItem}>
+              <Ionicons name="time" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                <Text style={{ fontWeight: '600' }}>Tempo di Smaltimento:</Text> Stima del tempo per tornare a 0.0 g/l e al limite legale
+              </Text>
+            </View>
+
+            <View style={styles.featureItem}>
+              <Ionicons name="bar-chart" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                <Text style={{ fontWeight: '600' }}>Cronologia:</Text> Salva e rivedi le tue sessioni passate
+              </Text>
+            </View>
+
+            <View style={styles.featureItem}>
+              <Ionicons name="restaurant" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                <Text style={{ fontWeight: '600' }}>Tracciamento Cibo:</Text> Registra il cibo per calcoli più accurati
+              </Text>
+            </View>
+
+            <View style={styles.featureItem}>
+              <Ionicons name="cloud" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                <Text style={{ fontWeight: '600' }}>Sincronizzazione:</Text> I tuoi dati sono sincronizzati tra dispositivi
+              </Text>
+            </View>
+          </View>
+
+          {/* Consigli per l'Uso */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              💡 Consigli per l'Uso
+            </Text>
+            
+            <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+              • <Text style={{ fontWeight: '600' }}>Sii Preciso:</Text> Inserisci dati accurati per stime migliori{'\n\n'}
+              • <Text style={{ fontWeight: '600' }}>Registra Tutto:</Text> Includi anche piccole quantità di alcol{'\n\n'}
+              • <Text style={{ fontWeight: '600' }}>Non Dimenticare il Cibo:</Text> Il cibo influenza l'assorbimento dell'alcol{'\n\n'}
+              • <Text style={{ fontWeight: '600' }}>Aggiorna Regolarmente:</Text> Mantieni aggiornato il tuo profilo{'\n\n'}
+              • <Text style={{ fontWeight: '600' }}>Usa Come Supporto:</Text> Non fare mai affidamento esclusivo sui calcoli
+            </Text>
+          </View>
+
+          {/* Limitazioni */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              ⚠️ Limitazioni Importanti
+            </Text>
+            
+            <Text style={[styles.limitationText, { color: colors.textSecondary }]}>
+              Il calcolo del BAC può variare significativamente a causa di:{'\n\n'}
+              • Metabolismo individuale{'\n'}
+              • Condizioni di salute{'\n'}
+              • Farmaci assunti{'\n'}
+              • Livello di idratazione{'\n'}
+              • Stress e affaticamento{'\n'}
+              • Composizione corporea{'\n'}
+              • Velocità di consumo{'\n'}
+              • Tipo di bevanda{'\n\n'}
+              
+              <Text style={{ fontWeight: '600', color: colors.error }}>
+                Per questo motivo, usa sempre il buon senso e non guidare mai se hai bevuto, indipendentemente da quello che mostra l'app.
+              </Text>
+            </Text>
+          </View>
+
+          {/* Supporto */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              🆘 Hai Bisogno di Aiuto?
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.supportButton, { backgroundColor: colors.primary }]}
+              onPress={handleContactSupport}
+            >
+              <Ionicons name="mail" size={20} color="white" />
+              <Text style={styles.supportButtonText}>
+                Contatta il Supporto
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.supportButton, { backgroundColor: colors.secondary, marginTop: 12 }]}
+              onPress={() => router.push('/information/faq')}
+            >
+              <Ionicons name="help-circle" size={20} color="white" />
+              <Text style={styles.supportButtonText}>
+                Leggi le FAQ
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer Disclaimer */}
+          <View style={[styles.footerDisclaimer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              Ricorda: Bacchus è uno strumento di supporto. La decisione di guidare è sempre e solo tua responsabilità. Bevi responsabilmente e non guidare mai sotto l'influenza dell'alcol.
+            </Text>
+          </View>
+        </ScrollView>
+      </View>
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  headerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subHeaderText: {
+    fontSize: 16,
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  warningSection: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginBottom: 24,
+  },
+  warningContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: 24,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  guideStep: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginRight: 12,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  stepText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  featureText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    marginLeft: 12,
+  },
+  tipText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  limitationText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  supportButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  footerDisclaimer: {
+    marginTop: 32,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  footerText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+});

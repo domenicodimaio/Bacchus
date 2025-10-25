@@ -1,11 +1,12 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, StyleSheet, Linking, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import AppHeader from '../components/AppHeader';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Constants from 'expo-constants';
 
 export default function Information() {
   const { t } = useTranslation();
@@ -14,32 +15,50 @@ export default function Information() {
   const colors = currentTheme.COLORS;
   const isMounted = useRef(true);
 
+  // Get app version from Constants
+  const appVersion = Constants?.expoConfig?.version || '1.2.2';
+  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '2517';
+
   useEffect(() => {
     return () => {
       isMounted.current = false;
     };
   }, []);
 
-  // 🔧 FIX DEFINITIVO: Usa ESATTAMENTE la stessa logica del back button che funziona
-  const swipeGesture = Gesture.Pan()
-    .onEnd((event) => {
-      if (!isMounted.current) return;
-      
-      if (event.translationX > 100) {
-        console.log('🎯 INFORMATION SWIPE: Usando stessa logica del back button...');
-        // 🔧 SOLUZIONE: Usa esattamente router.back() come il back button che funziona
-        router.back();
-      }
-    });
+  // 🔧 FIX SWIPE BACK: Funzioni per le azioni
+  const handleContactSupport = () => {
+    const email = 'supporto@bacchusapp.com';
+    const subject = 'Richiesta Supporto - Bacchus App';
+    const body = `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: ${appVersion} (${appBuild})\nDispositivo: ${Platform.OS}\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`;
+    
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    Linking.openURL(mailtoUrl);
+  };
+
+  const handleOpenFAQ = () => {
+    router.push('/information/faq');
+  };
+
+  const handleOpenPrivacyPolicy = () => {
+    router.push('/information/privacy-policy');
+  };
+
+  const handleOpenTermsOfService = () => {
+    router.push('/information/terms-of-service');
+  };
+
+  const handleOpenHelpCenter = () => {
+    router.push('/information/help-center');
+  };
 
   return (
-    <GestureDetector gesture={swipeGesture}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <StatusBar barStyle={currentTheme.statusBarStyle} backgroundColor={colors.background} />
         
         <AppHeader 
-          title={t('information', { ns: 'profile' })}
-          isMainScreen={false}
+          title={t('information', { ns: 'profile', defaultValue: 'Informazioni' })}
+          onBackPress={() => router.back()}
         />
         
         <ScrollView
@@ -49,13 +68,16 @@ export default function Information() {
         >
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t('aboutApp', { ns: 'profile' })}
+              Info su Bacchus
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               Bacchus è un'applicazione progettata per aiutarti a monitorare il tuo consumo di alcol e valutare il tasso alcolemico nel sangue (BAC).
             </Text>
-            <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Versione: 1.0.0
+            <Text style={[styles.sectionText, { color: colors.textSecondary, fontWeight: '600', marginTop: 12 }]}>
+              ⚠️ IMPORTANTE: Questa app è solo un supporto per avere un'idea del tasso alcolemico e NON è uno strumento su cui affidarsi totalmente prima di mettersi alla guida. Il calcolo è indicativo e può variare in base a molti fattori individuali.
+            </Text>
+            <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 12 }]}>
+              Versione: {appVersion} ({appBuild})
             </Text>
           </View>
           
@@ -65,7 +87,7 @@ export default function Information() {
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
-              onPress={() => {/* Azione per l'aiuto */}}
+              onPress={handleOpenHelpCenter}
             >
               <Ionicons name="help-circle-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
@@ -75,7 +97,7 @@ export default function Information() {
             
             <TouchableOpacity 
               style={styles.linkButton}
-              onPress={() => {/* Azione per l'FAQ */}}
+              onPress={handleOpenFAQ}
             >
               <Ionicons name="list-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
@@ -86,11 +108,11 @@ export default function Information() {
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t('privacyPolicy', { ns: 'profile' })}
+              Privacy Policy
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
-              onPress={() => {/* Azione per la privacy policy */}}
+              onPress={handleOpenPrivacyPolicy}
             >
               <Ionicons name="shield-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
@@ -101,11 +123,11 @@ export default function Information() {
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t('termsOfService', { ns: 'profile' })}
+              Termini di Servizio
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
-              onPress={() => {/* Azione per i termini di servizio */}}
+              onPress={handleOpenTermsOfService}
             >
               <Ionicons name="document-text-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
@@ -116,11 +138,11 @@ export default function Information() {
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t('contact', { ns: 'profile' })}
+              Contattaci
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
-              onPress={() => {/* Azione per contattare */}}
+              onPress={handleContactSupport}
             >
               <Ionicons name="mail-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
@@ -130,7 +152,7 @@ export default function Information() {
           </View>
         </ScrollView>
       </View>
-    </GestureDetector>
+    </GestureHandlerRootView>
   );
 }
 
