@@ -47,101 +47,62 @@ export default function TermsOfServiceScreen() {
           </Text>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              1. Accettazione dei Termini
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Utilizzando l'applicazione Bacchus ("l'App"), accetti di essere vincolato da questi Termini di Servizio. Se non accetti questi termini, non utilizzare l'App.
+              {t('termsOfServiceIntro', { ns: 'common', defaultValue: 'Scaricando, installando o utilizzando l\'applicazione Bacchus ("Servizio"), accetti di essere vincolato da questi Termini di Servizio ("Termini"). Se non accetti questi Termini, non utilizzare il Servizio.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              2. Descrizione del Servizio
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Bacchus è un'applicazione mobile progettata per aiutare gli utenti a monitorare il consumo di alcol e fornire stime indicative del tasso alcolemico nel sangue (BAC). L'App utilizza algoritmi basati su formule scientifiche riconosciute, ma i risultati sono puramente indicativi.
+              {t('termsOfServiceAcceptance', { ns: 'common', defaultValue: 'Utilizzando Bacchus, confermi di avere almeno 18 anni e la capacità legale di stipulare questo accordo. Se stai utilizzando il Servizio per conto di un\'organizzazione, dichiari di avere l\'autorità di vincolare tale organizzazione a questi Termini.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              3. Limitazioni e Disclaimer Importanti
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              <Text style={{ fontWeight: '700', color: colors.error }}>⚠️ ATTENZIONE - LEGGERE ATTENTAMENTE:</Text>{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>3.1 Solo Scopo Informativo:</Text> Bacchus fornisce solo stime indicative del BAC. NON è un dispositivo medico e NON deve essere utilizzato per prendere decisioni sulla guida.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>3.2 Variabilità Individuale:</Text> Il metabolismo dell'alcol varia significativamente tra individui in base a peso, altezza, sesso, età, salute, farmaci, cibo consumato e molti altri fattori.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>3.3 Nessuna Garanzia di Accuratezza:</Text> Non garantiamo l'accuratezza dei calcoli. I risultati possono differire significativamente dai valori reali.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>3.4 Responsabilità dell'Utente:</Text> La decisione di guidare o meno è SEMPRE e SOLO tua responsabilità. Non fare mai affidamento esclusivamente su Bacchus per questa decisione.
+              {t('termsOfServiceDescription', { ns: 'common', defaultValue: 'Bacchus è un\'applicazione mobile che fornisce stime educative del contenuto di alcol nel sangue (BAC) basate sull\'input dell\'utente. Il Servizio è solo a scopo informativo ed educativo e non dovrebbe mai essere utilizzato per determinare l\'idoneità alla guida o all\'uso di macchinari.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              4. Uso Appropriato
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              <Text style={{ fontWeight: '600' }}>4.1 Età Minima:</Text> Devi essere maggiorenne per utilizzare l'App.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>4.2 Uso Legale:</Text> Devi utilizzare l'App in conformità con tutte le leggi applicabili.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>4.3 Dati Accurati:</Text> Devi fornire informazioni accurate sui tuoi consumi e dati personali per ottenere stime più precise.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>4.4 Uso Personale:</Text> L'App è destinata esclusivamente all'uso personale e non commerciale.
+              {t('termsOfServiceDisclaimer', { ns: 'common', defaultValue: 'ATTENZIONE: Bacchus fornisce solo stime. Il BAC effettivo può variare significativamente in base a numerosi fattori tra cui metabolismo, condizioni di salute, farmaci e consumo di cibo. Non affidarti mai solo a questa app per determinare se sei in grado di guidare. Utilizza sempre attrezzature professionali per l\'etilometro e rispetta le leggi locali.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              5. Account e Sicurezza
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Se crei un account, sei responsabile di mantenere la sicurezza delle tue credenziali. Notificaci immediatamente qualsiasi uso non autorizzato del tuo account. Non siamo responsabili per perdite derivanti dall'uso non autorizzato del tuo account.
+              {t('termsOfServiceUserResponsibilities', { ns: 'common', defaultValue: 'Accetti di: Fornire informazioni accurate per i calcoli, Utilizzare il Servizio in modo responsabile e legale, Non affidarti solo all\'app per le decisioni di guida, Rispettare tutte le leggi e i regolamenti applicabili, Non tentare di decodificare o hackerare il Servizio' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              6. Limitazione di Responsabilità
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              <Text style={{ fontWeight: '600' }}>6.1 Esclusione di Garanzie:</Text> L'App è fornita "così com'è" senza garanzie di alcun tipo.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>6.2 Limitazione Danni:</Text> Non saremo responsabili per danni diretti, indiretti, incidentali o consequenziali derivanti dall'uso dell'App.{'\n\n'}
-              
-              <Text style={{ fontWeight: '600' }}>6.3 Decisioni di Guida:</Text> Non siamo in alcun modo responsabili per decisioni prese sulla base delle informazioni fornite dall'App, incluse decisioni relative alla guida di veicoli.
+              {t('termsOfServiceProhibitedUses', { ns: 'common', defaultValue: 'Non puoi utilizzare il Servizio per: Prendere decisioni sulla guida o sull\'uso di macchinari, Fornire consigli medici o legali ad altri, Aggirare qualsiasi misura di sicurezza, Caricare contenuti dannosi o malevoli, Violare qualsiasi legge o regolamento applicabile' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              7. Proprietà Intellettuale
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Tutti i contenuti dell'App, inclusi testi, grafica, loghi, icone, immagini e software, sono di nostra proprietà o concessi in licenza e sono protetti da copyright e altre leggi sulla proprietà intellettuale.
+              {t('termsOfServiceLimitation', { ns: 'common', defaultValue: 'Bacchus e i suoi sviluppatori non saranno responsabili per eventuali danni diretti, indiretti, incidentali o consequenziali derivanti dall\'uso del Servizio. Utilizzi il Servizio a tuo rischio e responsabilità.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              8. Modifiche al Servizio
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Ci riserviamo il diritto di modificare, sospendere o interrompere l'App in qualsiasi momento senza preavviso. Non saremo responsabili verso te o terzi per eventuali modifiche, sospensioni o interruzioni.
+              {t('termsOfServiceTermination', { ns: 'common', defaultValue: 'Ci riserviamo il diritto di terminare o sospendere il tuo accesso al Servizio in qualsiasi momento, con o senza causa. Puoi anche terminare il tuo uso del Servizio in qualsiasi momento eliminando l\'applicazione.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              9. Terminazione
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Possiamo terminare o sospendere il tuo accesso all'App immediatamente, senza preavviso, per qualsiasi motivo, inclusa la violazione di questi Termini. Puoi terminare il tuo account in qualsiasi momento eliminando l'App dal tuo dispositivo.
+              {t('termsOfServiceChanges', { ns: 'common', defaultValue: 'Potremmo aggiornare questi Termini di tanto in tanto. L\'uso continuato del Servizio dopo le modifiche costituisce accettazione dei nuovi Termini. Notificheremo agli utenti le modifiche significative tramite l\'app o email.' })}
+            </Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
+              {t('termsOfServiceContact', { ns: 'common', defaultValue: 'Per domande su questi Termini, contattaci a: support@bacchusapp.com' })}
             </Text>
           </View>
 

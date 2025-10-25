@@ -49,11 +49,11 @@ export default function HelpCenterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.headerText, { color: colors.text }]}>
-            Centro Assistenza Bacchus
+            {t('helpCenterHeader', { ns: 'common', defaultValue: 'Centro Assistenza Bacchus' })}
           </Text>
           
           <Text style={[styles.subHeaderText, { color: colors.textSecondary }]}>
-            Guida completa all'uso dell'app e informazioni importanti
+            {t('helpCenterWelcome', { ns: 'common', defaultValue: 'Benvenuto nel Centro Assistenza di Bacchus. Qui troverai guide e informazioni per aiutarti a utilizzare l\'app in modo efficace e sicuro.' })}
           </Text>
 
           {/* Disclaimer Importante */}
@@ -64,7 +64,7 @@ export default function HelpCenterScreen() {
                 ⚠️ DISCLAIMER IMPORTANTE
               </Text>
               <Text style={[styles.warningText, { color: colors.error }]}>
-                Bacchus è SOLO un supporto per avere un'idea del tasso alcolemico e NON è uno strumento su cui affidarsi totalmente prima di mettersi alla guida. Il calcolo è indicativo e può variare significativamente in base a molti fattori individuali.
+                {t('helpCenterImportantReminders', { ns: 'common', defaultValue: 'Promemoria Importanti: Non guidare mai basandoti solo sui calcoli dell\'app. Le stime BAC sono solo indicative. I fattori individuali influenzano il metabolismo dell\'alcol. Rispetta sempre le leggi e i regolamenti locali. Usa un etilometro professionale per letture accurate.' })}
               </Text>
             </View>
           </View>
