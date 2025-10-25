@@ -39,11 +39,11 @@ export default function PrivacyPolicyScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.headerText, { color: colors.text }]}>
-            Privacy Policy di Bacchus
+            {t('privacyPolicyHeader', { ns: 'common', defaultValue: 'Privacy Policy di Bacchus' })}
           </Text>
           
           <Text style={[styles.lastUpdated, { color: colors.textSecondary }]}>
-            Ultimo aggiornamento: 25 Ottobre 2025
+            {t('privacyPolicyLastUpdated', { ns: 'common', defaultValue: 'Ultimo aggiornamento: 25 Ottobre 2025' })}
           </Text>
 
           <View style={styles.section}>

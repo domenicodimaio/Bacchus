@@ -33,44 +33,44 @@ export default function FAQScreen() {
 
   const faqData: FAQItem[] = [
     {
-      question: "Come funziona il calcolo del tasso alcolemico?",
-      answer: "Bacchus utilizza la formula di Widmark per calcolare il tasso alcolemico nel sangue (BAC). Il calcolo tiene conto del peso corporeo, del sesso, della quantità di alcol consumato e del tempo trascorso. Tuttavia, questo è solo un calcolo indicativo e può variare in base a molti fattori individuali come il metabolismo, la salute, i farmaci assunti e il cibo consumato."
+      question: t('faqQuestion1', { ns: 'common', defaultValue: "Come funziona il calcolo del tasso alcolemico?" }),
+      answer: t('faqAnswer1', { ns: 'common', defaultValue: "Bacchus utilizza la formula di Widmark per calcolare il tasso alcolemico nel sangue (BAC). Il calcolo tiene conto del peso corporeo, del sesso, della quantità di alcol consumato e del tempo trascorso. Tuttavia, questo è solo un calcolo indicativo e può variare in base a molti fattori individuali come il metabolismo, la salute, i farmaci assunti e il cibo consumato." })
     },
     {
-      question: "Posso fidarmi completamente del calcolo per guidare?",
-      answer: "NO, assolutamente no. Bacchus è solo uno strumento di supporto per avere un'idea approssimativa del tasso alcolemico. NON deve essere utilizzato come unico riferimento per decidere se guidare o meno. Il calcolo può variare significativamente in base a fattori individuali. La responsabilità della guida è sempre e solo tua."
+      question: t('faqQuestion2', { ns: 'common', defaultValue: "Posso fidarmi completamente del calcolo per guidare?" }),
+      answer: t('faqAnswer2', { ns: 'common', defaultValue: "NO, assolutamente no. Bacchus è solo uno strumento di supporto per avere un'idea approssimativa del tasso alcolemico. NON deve essere utilizzato come unico riferimento per decidere se guidare o meno. Il calcolo può variare significativamente in base a fattori individuali. La responsabilità della guida è sempre e solo tua." })
     },
     {
-      question: "Quali fattori influenzano il tasso alcolemico?",
-      answer: "Molti fattori possono influenzare il BAC: peso corporeo, altezza, sesso, età, percentuale di grasso corporeo, velocità di consumo, tipo di bevanda, cibo nello stomaco, farmaci, stato di salute, livello di idratazione, stress e affaticamento. Per questo il calcolo è sempre indicativo."
+      question: t('faqQuestion3', { ns: 'common', defaultValue: "Come posso creare un profilo accurato?" }),
+      answer: t('faqAnswer3', { ns: 'common', defaultValue: "Per ottenere calcoli più precisi, inserisci informazioni accurate nel tuo profilo: peso corporeo attuale, sesso, età e frequenza di consumo di alcol. Questi dati influenzano significativamente il calcolo del BAC." })
     },
     {
-      question: "Come posso aggiungere bevande personalizzate?",
-      answer: "Nella sezione 'Aggiungi Bevanda' puoi selezionare 'Personalizzata' e inserire manualmente la gradazione alcolica e la quantità. Questo ti permette di tracciare qualsiasi tipo di bevanda alcolica non presente nella lista predefinita."
+      question: t('faqQuestion4', { ns: 'common', defaultValue: "Quali fattori influenzano il tasso alcolemico?" }),
+      answer: t('faqAnswer4', { ns: 'common', defaultValue: "Molti fattori possono influenzare il BAC: peso corporeo, altezza, sesso, età, percentuale di grasso corporeo, velocità di consumo, tipo di bevanda, cibo nello stomaco, farmaci, stato di salute, livello di idratazione, stress e affaticamento. Per questo il calcolo è sempre indicativo." })
     },
     {
-      question: "Cosa succede ai miei dati se cambio dispositivo?",
-      answer: "Se hai un account registrato, i tuoi dati (profili e cronologia sessioni) sono salvati nel cloud e saranno disponibili su qualsiasi dispositivo dopo il login. Se usi l'app come ospite, i dati sono salvati solo localmente e non saranno trasferiti."
+      question: t('faqQuestion5', { ns: 'common', defaultValue: "Come posso aggiungere bevande personalizzate?" }),
+      answer: t('faqAnswer5', { ns: 'common', defaultValue: "Nella sezione 'Aggiungi Bevanda' puoi selezionare 'Personalizzata' e inserire manualmente la gradazione alcolica e la quantità. Questo ti permette di tracciare qualsiasi tipo di bevanda alcolica non presente nella lista predefinita." })
     },
     {
-      question: "Come posso eliminare una sessione dalla cronologia?",
-      answer: "Nella cronologia delle sessioni, scorri verso sinistra sulla sessione che vuoi eliminare e tocca il pulsante 'Elimina'. Puoi anche aprire i dettagli della sessione e utilizzare l'opzione di eliminazione dal menu."
+      question: t('faqQuestion6', { ns: 'common', defaultValue: "Cosa succede ai miei dati se cambio dispositivo?" }),
+      answer: t('faqAnswer6', { ns: 'common', defaultValue: "Se hai un account registrato, i tuoi dati (profili e cronologia sessioni) sono salvati nel cloud e saranno disponibili su qualsiasi dispositivo dopo il login. Se usi l'app come ospite, i dati sono salvati solo localmente e non saranno trasferiti." })
     },
     {
-      question: "Cosa significa 'Tempo per tornare a 0.0 g/l'?",
-      answer: "È il tempo stimato necessario perché il tuo corpo metabolizzi completamente tutto l'alcol consumato, riportando il BAC a zero. Questo calcolo assume un tasso di metabolismo standard di 0.15 g/l per ora, ma può variare significativamente tra individui."
+      question: t('faqQuestion7', { ns: 'common', defaultValue: "Come posso eliminare una sessione dalla cronologia?" }),
+      answer: t('faqAnswer7', { ns: 'common', defaultValue: "Nella cronologia delle sessioni, scorri verso sinistra sulla sessione che vuoi eliminare e tocca il pulsante 'Elimina'. Puoi anche aprire i dettagli della sessione e utilizzare l'opzione di eliminazione dal menu." })
     },
     {
-      question: "Posso usare l'app offline?",
-      answer: "Sì, puoi utilizzare tutte le funzioni principali dell'app anche senza connessione internet. I dati saranno sincronizzati automaticamente quando tornerai online. Tuttavia, alcune funzioni come il backup nel cloud richiedono una connessione."
+      question: t('faqQuestion8', { ns: 'common', defaultValue: "Cosa significa 'Tempo per tornare a 0.0 g/l'?" }),
+      answer: t('faqAnswer8', { ns: 'common', defaultValue: "È il tempo stimato necessario perché il tuo corpo metabolizzi completamente tutto l'alcol consumato, riportando il BAC a zero. Questo calcolo assume un tasso di metabolismo standard di 0.15 g/l per ora, ma può variare significativamente tra individui." })
     },
     {
-      question: "Come posso contattare il supporto?",
-      answer: "Puoi contattarci tramite email all'indirizzo supporto@bacchusapp.com. Includi sempre la versione dell'app e una descrizione dettagliata del problema per ricevere assistenza più rapida."
+      question: t('faqQuestion9', { ns: 'common', defaultValue: "Posso usare l'app offline?" }),
+      answer: t('faqAnswer9', { ns: 'common', defaultValue: "Sì, puoi utilizzare tutte le funzioni principali dell'app anche senza connessione internet. I dati saranno sincronizzati automaticamente quando tornerai online. Tuttavia, alcune funzioni come il backup nel cloud richiedono una connessione." })
     },
     {
-      question: "L'app è gratuita?",
-      answer: "Bacchus offre funzioni base gratuite per tutti gli utenti. La versione Premium include funzionalità avanzate come statistiche dettagliate, backup illimitato e personalizzazioni aggiuntive. Puoi provare Premium gratuitamente per un periodo limitato."
+      question: t('faqQuestion10', { ns: 'common', defaultValue: "Come posso contattare il supporto?" }),
+      answer: t('faqAnswer10', { ns: 'common', defaultValue: "Puoi contattarci tramite email all'indirizzo support@bacchusapp.com. Includi sempre la versione dell'app e una descrizione dettagliata del problema per ricevere assistenza più rapida." })
     }
   ];
 
