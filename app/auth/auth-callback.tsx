@@ -76,10 +76,11 @@ export default function AuthCallback() {
         console.log('✅ AUTH_CALLBACK: OAuth completato, delego navigazione al NavigationHandler');
         setStatus('Autenticazione completata! Caricamento...');
         
-        // Naviga alla dashboard - NavigationHandler rileverà lo stato e farà il redirect appropriato
-            setTimeout(() => {
+        // 🔧 FIX RACE CONDITION: Delay più lungo per evitare conflitti con AuthContext
+        setTimeout(() => {
+          console.log('✅ AUTH_CALLBACK: Navigazione ritardata alla dashboard');
           router.replace('/(tabs)/dashboard');
-          }, 1000);
+        }, 1500); // Delay maggiore per evitare race condition
       } else {
         console.log('❌ AUTH_CALLBACK: Nessun utente trovato dopo callback OAuth');
         setStatus('Autenticazione non riuscita');

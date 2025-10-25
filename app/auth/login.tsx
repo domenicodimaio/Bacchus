@@ -366,8 +366,9 @@ export default function LoginScreen() {
         
         // 🎯 Se deve completare il wizard (nuovo utente, senza profili, o riattivato)
         if (redirectToProfileCreation) {
-          console.log('APPLE_FLOW: Utente Apple deve completare wizard - Reindirizzamento...');
-          router.replace('/onboarding/profile-wizard');
+          console.log('APPLE_FLOW: Utente Apple deve completare wizard - Delegato ad AuthContext');
+          // 🔧 FIX RACE CONDITION: Non navigare qui, lascia che AuthContext gestisca
+          // La navigazione sarà gestita da AuthContext.onAuthStateChange
         } else {
           console.log('APPLE_FLOW: Utente Apple esistente con profilo - Dashboard');
           router.replace('/(tabs)/dashboard');

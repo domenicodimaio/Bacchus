@@ -218,9 +218,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             if (needsWizard) {
               console.log('🚨 DEBUG_APPLE: onAuthStateChange - Navigando al wizard...');
               const { router } = require('expo-router');
+              
+              // 🔧 FIX RACE CONDITION: Delay più lungo per evitare conflitti
               setTimeout(() => {
+                console.log('🚨 DEBUG_APPLE: Eseguendo navigazione al wizard...');
                 router.replace('/onboarding/profile-wizard');
-              }, 100); // Navigazione quasi immediata
+              }, 500); // Delay più sicuro per evitare race condition
             }
           } catch (wizardError) {
             console.log('[AUTH_CONTEXT] Errore controllo wizard, assumo non completato');
