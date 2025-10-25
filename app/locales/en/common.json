@@ -153,6 +153,7 @@
   "supportEmail": "Support Email",
   "appVersion": "App Version",
   "buildNumber": "Build Number",
+  "details": "Details",
   "faqQuestion1": "How does blood alcohol content calculation work?",
   "faqAnswer1": "Bacchus uses the Widmark formula to calculate blood alcohol content (BAC). The calculation takes into account body weight, gender, amount of alcohol consumed, and time elapsed. However, this is only an indicative calculation and may vary based on many individual factors such as metabolism, health, medications taken, and food consumed.",
   "faqQuestion2": "Can the app replace a breathalyzer?",
@@ -178,7 +179,7 @@
   "privacyPolicyHeader": "Bacchus Privacy Policy",
   "privacyPolicyLastUpdated": "Last updated: October 25, 2025",
   "privacyPolicyIntro": "This Privacy Policy describes how Bacchus (\"we\", \"our\", or \"us\") collects, uses, and protects your personal information when you use our mobile application (\"Service\").",
-  "privacyPolicyDataCollection": "**Data Collection**\\n\\nWe collect the following types of information:\\n\\n• **Profile Information**: Name, weight, height, age, gender, and drinking habits for BAC calculations\\n• **Usage Data**: Session data, drinks consumed, and app usage statistics\\n• **Device Information**: Device type, operating system, and app version\\n• **Authentication Data**: Email address and encrypted authentication tokens",
+  "privacyPolicyDataCollection": "Data Collection: We collect the following types of information: Profile Information (Name, weight, height, age, gender, and drinking habits for BAC calculations), Usage Data (Session data, drinks consumed, and app usage statistics), Device Information (Device type, operating system, and app version), Authentication Data (Email address and encrypted authentication tokens)",
   "privacyPolicyDataUse": "**How We Use Your Data**\\n\\nYour information is used to:\\n\\n• Provide accurate BAC calculations\\n• Save your session history\\n• Improve app functionality\\n• Provide customer support\\n• Ensure app security",
   "privacyPolicyDataSharing": "**Data Sharing**\\n\\nWe do not sell, trade, or rent your personal information to third parties. We may share data only in these cases:\\n\\n• With your explicit consent\\n• To comply with legal obligations\\n• To protect our rights and safety",
   "privacyPolicyDataSecurity": "**Data Security**\\n\\nWe implement appropriate security measures to protect your information:\\n\\n• Encrypted data transmission\\n• Secure cloud storage\\n• Regular security audits\\n• Limited access to personal data",
@@ -208,5 +209,5 @@
   "helpCenterTroubleshooting": "**Troubleshooting**\\n\\n**App crashes or freezes:**\\n• Restart the app\\n• Update to the latest version\\n• Restart your device\\n\\n**Inaccurate calculations:**\\n• Verify your profile information\\n• Ensure drink quantities are correct\\n• Remember that individual factors vary\\n\\n**Data not syncing:**\\n• Check internet connection\\n• Verify you're logged in\\n• Try logging out and back in",
   "helpCenterSupport": "**Need More Help?**\\n\\nIf you need additional assistance, contact our support team at support@bacchusapp.com. Include your app version and a detailed description of the issue.",
   "emailSubject": "Support Request - Bacchus App",
-  "emailBody": "Hello Bacchus team,\\n\\nI need assistance with the app.\\n\\nApp version: __VERSION__ (__BUILD__)\\nDevice: __PLATFORM__\\n\\nProblem description:\\n[Describe your problem here]\\n\\nThank you!"
+  "emailBody": "Hello Bacchus team, I need assistance with the app. App version: __VERSION__ (__BUILD__) Device: __PLATFORM__ Problem description: [Describe your problem here] Thank you!"
 }

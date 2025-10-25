@@ -102,7 +102,7 @@ export default function Information() {
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t('help', { ns: 'profile' })}
+              {t('helpAndSupport', { ns: 'common', defaultValue: 'Help & Support' })}
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
@@ -110,7 +110,7 @@ export default function Information() {
             >
               <Ionicons name="help-circle-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
-                Centro Assistenza
+                {t('helpCenter', { ns: 'common', defaultValue: 'Centro Assistenza' })}
               </Text>
             </TouchableOpacity>
             
@@ -127,7 +127,7 @@ export default function Information() {
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Privacy Policy
+              {t('privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
@@ -135,14 +135,14 @@ export default function Information() {
             >
               <Ionicons name="shield-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
-                Leggi Privacy Policy
+                {t('privacyPolicy', { ns: 'common', defaultValue: 'Leggi Privacy Policy' })}
               </Text>
             </TouchableOpacity>
           </View>
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Termini di Servizio
+              {t('termsOfService', { ns: 'common', defaultValue: 'Termini di Servizio' })}
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
@@ -150,14 +150,14 @@ export default function Information() {
             >
               <Ionicons name="document-text-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
-                Leggi Termini di Servizio
+                {t('termsOfService', { ns: 'common', defaultValue: 'Leggi Termini di Servizio' })}
               </Text>
             </TouchableOpacity>
           </View>
           
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Contattaci
+              {t('contact', { ns: 'common', defaultValue: 'Contattaci' })}
             </Text>
             <TouchableOpacity 
               style={styles.linkButton}
@@ -165,7 +165,7 @@ export default function Information() {
             >
               <Ionicons name="mail-outline" size={24} color={colors.primary} style={styles.linkIcon} />
               <Text style={[styles.linkText, { color: colors.primary }]}>
-                Contattaci
+                {t('contact', { ns: 'common', defaultValue: 'Contattaci' })}
               </Text>
             </TouchableOpacity>
           </View>

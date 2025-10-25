@@ -39,11 +39,11 @@ export default function TermsOfServiceScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.headerText, { color: colors.text }]}>
-            Termini di Servizio di Bacchus
+            {t('termsOfServiceHeader', { ns: 'common', defaultValue: 'Termini di Servizio di Bacchus' })}
           </Text>
           
           <Text style={[styles.lastUpdated, { color: colors.textSecondary }]}>
-            Ultimo aggiornamento: 25 Ottobre 2025
+            {t('termsOfServiceLastUpdated', { ns: 'common', defaultValue: 'Ultimo aggiornamento: 25 Ottobre 2025' })}
           </Text>
 
           <View style={styles.section}>
