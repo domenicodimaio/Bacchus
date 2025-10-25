@@ -47,64 +47,32 @@ export default function PrivacyPolicyScreen() {
           </Text>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              1. Introduzione
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Bacchus ("noi", "la nostra app") rispetta la tua privacy e si impegna a proteggere i tuoi dati personali. Questa Privacy Policy spiega come raccogliamo, utilizziamo e proteggiamo le tue informazioni quando utilizzi la nostra applicazione mobile.
+              {t('privacyPolicyIntro', { ns: 'common', defaultValue: 'Questa Privacy Policy descrive come Bacchus ("noi", "nostro" o "ci") raccoglie, utilizza e protegge le tue informazioni personali quando utilizzi la nostra applicazione mobile ("Servizio").' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              2. Dati che Raccogliamo
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              <Text style={{ fontWeight: '600' }}>Dati del Profilo:</Text> Nome, età, peso, altezza, sesso - necessari per il calcolo del tasso alcolemico.{'\n\n'}
-              <Text style={{ fontWeight: '600' }}>Dati delle Sessioni:</Text> Informazioni sui consumi di alcol, orari, quantità - per tracciare le tue sessioni.{'\n\n'}
-              <Text style={{ fontWeight: '600' }}>Dati Tecnici:</Text> Tipo di dispositivo, versione dell'app, log di errori - per migliorare l'app.{'\n\n'}
-              <Text style={{ fontWeight: '600' }}>Dati di Autenticazione:</Text> Email (se crei un account) - per sincronizzare i dati tra dispositivi.
+              {t('privacyPolicyDataCollection', { ns: 'common', defaultValue: '**Raccolta Dati**\n\nRaccogliamo i seguenti tipi di informazioni:\n\n• **Informazioni del Profilo**: Nome, peso, altezza, età, sesso e abitudini di consumo per i calcoli BAC\n• **Dati di Utilizzo**: Dati delle sessioni, bevande consumate e statistiche di utilizzo dell\'app\n• **Informazioni del Dispositivo**: Tipo di dispositivo, sistema operativo e versione dell\'app\n• **Dati di Autenticazione**: Indirizzo email e token di autenticazione crittografati' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              3. Come Utilizziamo i Tuoi Dati
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              • Calcolare il tuo tasso alcolemico stimato{'\n'}
-              • Salvare e sincronizzare la cronologia delle tue sessioni{'\n'}
-              • Fornire statistiche personalizzate sui tuoi consumi{'\n'}
-              • Migliorare l'accuratezza dei calcoli{'\n'}
-              • Risolvere problemi tecnici e migliorare l'app{'\n'}
-              • Comunicare aggiornamenti importanti sull'app
+              {t('privacyPolicyDataUse', { ns: 'common', defaultValue: '**Come Utilizziamo i Tuoi Dati**\n\nLe tue informazioni sono utilizzate per:\n\n• Fornire calcoli BAC accurati\n• Salvare la cronologia delle tue sessioni\n• Migliorare le funzionalità dell\'app\n• Fornire supporto clienti\n• Garantire la sicurezza dell\'app' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              4. Condivisione dei Dati
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              <Text style={{ fontWeight: '600' }}>Non vendiamo mai i tuoi dati personali.</Text>{'\n\n'}
-              Possiamo condividere dati solo in questi casi:{'\n'}
-              • Con fornitori di servizi cloud (Supabase) per il backup sicuro{'\n'}
-              • Se richiesto dalla legge o dalle autorità competenti{'\n'}
-              • Per proteggere i diritti e la sicurezza degli utenti{'\n'}
-              • Dati anonimi e aggregati per ricerca e miglioramenti
+              {t('privacyPolicyDataSharing', { ns: 'common', defaultValue: '**Condivisione Dati**\n\nNon vendiamo, scambiamo o affittiamo le tue informazioni personali a terze parti. Potremmo condividere i dati solo in questi casi:\n\n• Con il tuo consenso esplicito\n• Per rispettare obblighi legali\n• Per proteggere i nostri diritti e sicurezza' })}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              5. Sicurezza dei Dati
-            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Implementiamo misure di sicurezza appropriate per proteggere i tuoi dati:{'\n'}
-              • Crittografia dei dati in transito e a riposo{'\n'}
-              • Accesso limitato ai dati solo al personale autorizzato{'\n'}
-              • Monitoraggio regolare per rilevare accessi non autorizzati{'\n'}
-              • Backup sicuri e ridondanti dei tuoi dati
+              {t('privacyPolicyDataSecurity', { ns: 'common', defaultValue: '**Sicurezza dei Dati**\n\nImplementiamo misure di sicurezza appropriate per proteggere le tue informazioni:\n\n• Trasmissione dati crittografata\n• Archiviazione cloud sicura\n• Audit di sicurezza regolari\n• Accesso limitato ai dati personali' })}
             </Text>
           </View>
 

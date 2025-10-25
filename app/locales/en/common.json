@@ -186,8 +186,20 @@
   "privacyPolicyContact": "**Contact Us**\\n\\nFor privacy-related questions, contact us at:\\n\\nsupport@bacchusapp.com",
   "termsOfServiceTitle": "Terms of Service",
   "termsOfServiceContent": "By using the Bacchus application, you agree to comply with and be bound by the following terms and conditions.",
+  "termsOfServiceHeader": "Bacchus Terms of Service",
+  "termsOfServiceLastUpdated": "Last updated: October 25, 2025",
+  "termsOfServiceIntro": "By downloading, installing, or using the Bacchus application (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree to these Terms, do not use the Service.",
+  "termsOfServiceAcceptance": "**Acceptance of Terms**\\n\\nBy using Bacchus, you confirm that you are at least 18 years old and have the legal capacity to enter into this agreement. If you are using the Service on behalf of an organization, you represent that you have the authority to bind that organization to these Terms.",
+  "termsOfServiceDescription": "**Service Description**\\n\\nBacchus is a mobile application that provides educational estimates of blood alcohol content (BAC) based on user input. The Service is for informational and educational purposes only and should never be used to determine fitness to drive or operate machinery.",
+  "termsOfServiceDisclaimer": "**Important Disclaimer**\\n\\n⚠️ **WARNING**: Bacchus provides estimates only. Actual BAC can vary significantly based on numerous factors including metabolism, health conditions, medications, and food consumption. Never rely solely on this app to determine if you are safe to drive. Always use professional breathalyzer equipment and follow local laws.",
+  "termsOfServiceUserResponsibilities": "**User Responsibilities**\\n\\nYou agree to:\\n\\n• Provide accurate information for calculations\\n• Use the Service responsibly and legally\\n• Not rely solely on the app for driving decisions\\n• Comply with all applicable laws and regulations\\n• Not attempt to reverse engineer or hack the Service",
+  "termsOfServiceProhibitedUses": "**Prohibited Uses**\\n\\nYou may not use the Service to:\\n\\n• Make decisions about driving or operating machinery\\n• Provide medical or legal advice to others\\n• Circumvent any security measures\\n• Upload harmful or malicious content\\n• Violate any applicable laws or regulations",
+  "termsOfServiceLimitation": "**Limitation of Liability**\\n\\nBacchus and its developers shall not be liable for any direct, indirect, incidental, or consequential damages arising from your use of the Service. You use the Service at your own risk and responsibility.",
+  "termsOfServiceTermination": "**Termination**\\n\\nWe reserve the right to terminate or suspend your access to the Service at any time, with or without cause. You may also terminate your use of the Service at any time by deleting the application.",
+  "termsOfServiceChanges": "**Changes to Terms**\\n\\nWe may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance of the new Terms. We will notify users of significant changes through the app or email.",
+  "termsOfServiceContact": "**Contact Information**\\n\\nFor questions about these Terms, contact us at:\\n\\nsupport@bacchusapp.com",
   "helpCenterTitle": "Help Center",
   "helpCenterContent": "Welcome to the Bacchus Help Center. Here you'll find guides and information to help you use the app effectively.",
   "emailSubject": "Support Request - Bacchus App",
-  "emailBody": "Hello Bacchus team,\\n\\nI need assistance with the app.\\n\\nApp version: {{version}} ({{build}})\\nDevice: {{platform}}\\n\\nProblem description:\\n[Describe your problem here]\\n\\nThank you!"
+  "emailBody": "Hello Bacchus team,\\n\\nI need assistance with the app.\\n\\nApp version: __VERSION__ (__BUILD__)\\nDevice: __PLATFORM__\\n\\nProblem description:\\n[Describe your problem here]\\n\\nThank you!"
 }
