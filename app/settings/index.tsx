@@ -569,8 +569,14 @@ export default function SettingsScreen() {
   const handleContactSupport = () => {
     // Apri l'email per il supporto
     const email = 'support@bacchusapp.com';
-    const subject = 'Richiesta Supporto - Bacchus App';
-    const body = `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: ${appVersion} (${appBuild})\nDispositivo: ${Platform.OS}\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`;
+    const subject = t('emailSubject', { ns: 'common', defaultValue: 'Richiesta Supporto - Bacchus App' });
+    const body = t('emailBody', { 
+      ns: 'common', 
+      defaultValue: `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: ${appVersion} (${appBuild})\nDispositivo: ${Platform.OS}\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`,
+      version: appVersion,
+      build: appBuild,
+      platform: Platform.OS
+    });
     
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     Linking.openURL(mailtoUrl);

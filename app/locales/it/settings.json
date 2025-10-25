@@ -69,5 +69,8 @@
   "error": "Errore",
   "errorGeneric": "Si è verificato un errore. Riprova.",
   "privacyPolicy": "Privacy Policy",
-  "termsOfService": "Termini di Servizio"
+  "termsOfService": "Termini di Servizio",
+  "legal": "Legale",
+  "supportAndFeedback": "Supporto e Feedback",
+  "contactSupport": "Contatta Supporto"
 } 

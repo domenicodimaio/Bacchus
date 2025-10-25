@@ -179,5 +179,19 @@
   "helpCenter": "Centro Assistenza",
   "supportEmail": "Email Supporto",
   "appVersion": "Versione App",
-  "buildNumber": "Numero Build"
+  "buildNumber": "Numero Build",
+  "faqQuestion1": "Come funziona il calcolo del tasso alcolemico?",
+  "faqAnswer1": "Bacchus utilizza la formula di Widmark per calcolare il tasso alcolemico nel sangue (BAC). Il calcolo tiene conto del peso corporeo, del sesso, della quantità di alcol consumato e del tempo trascorso. Tuttavia, questo è solo un calcolo indicativo e può variare in base a molti fattori individuali come il metabolismo, la salute, i farmaci assunti e il cibo consumato.",
+  "faqQuestion2": "L'app può sostituire un etilometro?",
+  "faqAnswer2": "Assolutamente no. Bacchus è uno strumento educativo e di supporto che fornisce stime indicative. Non deve mai essere utilizzato per determinare se si è in grado di guidare. Solo un etilometro professionale può fornire misurazioni accurate del tasso alcolemico.",
+  "faqQuestion3": "Come posso creare un profilo accurato?",
+  "faqAnswer3": "Per ottenere calcoli più precisi, inserisci informazioni accurate nel tuo profilo: peso corporeo attuale, sesso, età e frequenza di consumo di alcol. Questi dati influenzano significativamente il calcolo del BAC.",
+  "privacyPolicyTitle": "Privacy Policy",
+  "privacyPolicyContent": "Questa Privacy Policy descrive come Bacchus raccoglie, utilizza e protegge le tue informazioni personali quando utilizzi la nostra applicazione mobile.",
+  "termsOfServiceTitle": "Termini di Servizio",
+  "termsOfServiceContent": "Utilizzando l'applicazione Bacchus, accetti di rispettare e di essere vincolato dai seguenti termini e condizioni.",
+  "helpCenterTitle": "Centro Assistenza",
+  "helpCenterContent": "Benvenuto nel Centro Assistenza di Bacchus. Qui troverai guide e informazioni per aiutarti a utilizzare l'app in modo efficace.",
+  "emailSubject": "Richiesta Supporto - Bacchus App",
+  "emailBody": "Ciao team Bacchus,\\n\\nHo bisogno di assistenza con l'app.\\n\\nVersione app: {{version}} ({{build}})\\nDispositivo: {{platform}}\\n\\nDescrizione del problema:\\n[Descrivi qui il tuo problema]\\n\\nGrazie!"
 }

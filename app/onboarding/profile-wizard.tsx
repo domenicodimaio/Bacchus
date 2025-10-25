@@ -156,8 +156,8 @@ export default function ProfileWizardScreen() {
         const originalPush = router.push;
         
         router.back = () => {
-          console.log('[WIZARD] 🚫 router.back() BLOCCATO');
-          Alert.alert('🚫 Navigazione bloccata', 'Completa il wizard per continuare');
+          console.log('[WIZARD] 🚫 router.back() BLOCCATO - ma non mostriamo alert');
+          // Rimosso Alert.alert fastidioso
         };
         
         router.replace = (href) => {
@@ -170,7 +170,7 @@ export default function ProfileWizardScreen() {
             originalReplace(href);
           } else {
             console.log('[WIZARD] 🚫 router.replace() BLOCCATO:', hrefStr);
-            Alert.alert('🚫 Navigazione bloccata', 'Completa il wizard per continuare');
+            // Rimosso Alert.alert fastidioso
           }
         };
         
@@ -184,7 +184,7 @@ export default function ProfileWizardScreen() {
             originalPush(href);
           } else {
             console.log('[WIZARD] 🚫 router.push() BLOCCATO:', hrefStr);
-            Alert.alert('🚫 Navigazione bloccata', 'Completa il wizard per continuare');
+            // Rimosso Alert.alert fastidioso
           }
         };
         

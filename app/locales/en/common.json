@@ -152,5 +152,19 @@
   "helpCenter": "Help Center",
   "supportEmail": "Support Email",
   "appVersion": "App Version",
-  "buildNumber": "Build Number"
+  "buildNumber": "Build Number",
+  "faqQuestion1": "How does blood alcohol content calculation work?",
+  "faqAnswer1": "Bacchus uses the Widmark formula to calculate blood alcohol content (BAC). The calculation takes into account body weight, gender, amount of alcohol consumed, and time elapsed. However, this is only an indicative calculation and may vary based on many individual factors such as metabolism, health, medications taken, and food consumed.",
+  "faqQuestion2": "Can the app replace a breathalyzer?",
+  "faqAnswer2": "Absolutely not. Bacchus is an educational and support tool that provides indicative estimates. It should never be used to determine if you are able to drive. Only a professional breathalyzer can provide accurate blood alcohol measurements.",
+  "faqQuestion3": "How can I create an accurate profile?",
+  "faqAnswer3": "To get more accurate calculations, enter accurate information in your profile: current body weight, gender, age, and alcohol consumption frequency. This data significantly affects BAC calculation.",
+  "privacyPolicyTitle": "Privacy Policy",
+  "privacyPolicyContent": "This Privacy Policy describes how Bacchus collects, uses, and protects your personal information when you use our mobile application.",
+  "termsOfServiceTitle": "Terms of Service",
+  "termsOfServiceContent": "By using the Bacchus application, you agree to comply with and be bound by the following terms and conditions.",
+  "helpCenterTitle": "Help Center",
+  "helpCenterContent": "Welcome to the Bacchus Help Center. Here you'll find guides and information to help you use the app effectively.",
+  "emailSubject": "Support Request - Bacchus App",
+  "emailBody": "Hello Bacchus team,\\n\\nI need assistance with the app.\\n\\nApp version: {{version}} ({{build}})\\nDevice: {{platform}}\\n\\nProblem description:\\n[Describe your problem here]\\n\\nThank you!"
 }
