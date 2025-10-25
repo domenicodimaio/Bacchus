@@ -66,5 +66,8 @@
   "error": "Error",
   "errorGeneric": "An error occurred. Please try again.",
   "privacyPolicy": "Privacy Policy",
-  "termsOfService": "Terms of Service"
+  "termsOfService": "Terms of Service",
+  "legal": "Legal",
+  "supportAndFeedback": "Support & Feedback",
+  "contactSupport": "Contact Support"
 } 

@@ -61,7 +61,7 @@ export default function HelpCenterScreen() {
             <Ionicons name="warning" size={24} color={colors.error} />
             <View style={styles.warningContent}>
               <Text style={[styles.warningTitle, { color: colors.error }]}>
-                ⚠️ DISCLAIMER IMPORTANTE
+                {t('importantDisclaimer', { ns: 'common', defaultValue: '⚠️ DISCLAIMER IMPORTANTE' })}
               </Text>
               <Text style={[styles.warningText, { color: colors.error }]}>
                 {t('helpCenterImportantReminders', { ns: 'common', defaultValue: 'Promemoria Importanti: Non guidare mai basandoti solo sui calcoli dell\'app. Le stime BAC sono solo indicative. I fattori individuali influenzano il metabolismo dell\'alcol. Rispetta sempre le leggi e i regolamenti locali. Usa un etilometro professionale per letture accurate.' })}
@@ -72,7 +72,7 @@ export default function HelpCenterScreen() {
           {/* Guida Rapida */}
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              🚀 Guida Rapida
+              {t('helpCenterGettingStarted', { ns: 'common', defaultValue: '🚀 Guida Rapida' })}
             </Text>
             
             <View style={styles.guideStep}>

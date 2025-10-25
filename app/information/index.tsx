@@ -87,13 +87,16 @@ export default function Information() {
         >
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Info su Bacchus
+              {t('about', { ns: 'common', defaultValue: 'Info su Bacchus' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Bacchus è un'applicazione progettata per aiutarti a monitorare il tuo consumo di alcol e valutare il tasso alcolemico nel sangue (BAC).
+              {t('appDescription', { ns: 'common', defaultValue: 'Bacchus è un\'applicazione progettata per aiutarti a monitorare il tuo consumo di alcol e valutare il tasso alcolemico nel sangue (BAC).' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary, fontWeight: '600', marginTop: 12 }]}>
-              ⚠️ IMPORTANTE: Questa app è solo un supporto per avere un'idea del tasso alcolemico e NON è uno strumento su cui affidarsi totalmente prima di mettersi alla guida. Il calcolo è indicativo e può variare in base a molti fattori individuali.
+              {t('importantDisclaimer', { ns: 'common', defaultValue: '⚠️ DISCLAIMER IMPORTANTE' })}
+            </Text>
+            <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 8 }]}>
+              {t('importantDisclaimerText', { ns: 'common', defaultValue: 'Questa app è solo un supporto per avere un\'idea del tasso alcolemico e NON è uno strumento su cui affidarsi totalmente prima di mettersi alla guida. Il calcolo è indicativo e può variare in base a molti fattori individuali.' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 12 }]}>
               Versione: {appVersion} ({appBuild})

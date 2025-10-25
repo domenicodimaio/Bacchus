@@ -490,7 +490,7 @@ export default function SessionDetailsScreen() {
   if (loading || !session) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <AppHeader title={t('details', { defaultValue: 'Dettagli' })} />
+        <AppHeader title={t('details', { ns: 'common', defaultValue: 'Dettagli' })} />
         <View style={styles.loadingContainer}>
           <Ionicons name="time" size={40} color={colors.textSecondary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -508,7 +508,7 @@ export default function SessionDetailsScreen() {
     <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <AppHeader 
-        title={t('details', { defaultValue: 'Dettagli' })}
+        title={t('details', { ns: 'common', defaultValue: 'Dettagli' })}
         isMainScreen={false} 
         onBackPress={() => router.back()}
       />
