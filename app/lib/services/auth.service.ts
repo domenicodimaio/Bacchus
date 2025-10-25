@@ -1523,8 +1523,30 @@ export const deleteAccount = async (): Promise<AuthResponse> => {
         
         if (!rpcError && rpcResult) {
           console.log('✅ DELETE_ACCOUNT: Account deleted successfully via RPC function');
-          await resetAllLocalData();
+          
+          // 🔧 FIX: Pulizia completa e aggressiva di TUTTI i dati locali
+          console.log('🗑️ DELETE_ACCOUNT: Pulizia completa dati locali...');
+          
+          // 1. Prima pulisci le sessioni specificamente
+          await sessionServiceDirect.clearAllSessions();
+          
+          // 2. Poi elimina TUTTO da AsyncStorage (tranne lingua)
+          const allKeys = await AsyncStorage.getAllKeys();
+          const keysToKeep = allKeys.filter(key => 
+            key.includes('APP_LANGUAGE') || 
+            key.includes('i18n')
+          );
+          const keysToRemove = allKeys.filter(key => !keysToKeep.includes(key));
+          
+          if (keysToRemove.length > 0) {
+            console.log('🗑️ DELETE_ACCOUNT: Eliminando', keysToRemove.length, 'chiavi locali');
+            await AsyncStorage.multiRemove(keysToRemove);
+          }
+          
+          // 3. Logout finale
           await signOut();
+          
+          console.log('✅ DELETE_ACCOUNT: Pulizia completa terminata');
           return { success: true };
         } else {
           console.warn('⚠️ DELETE_ACCOUNT: RPC delete failed, trying alternative method:', rpcError);
