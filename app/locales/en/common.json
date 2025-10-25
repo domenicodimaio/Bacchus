@@ -200,6 +200,13 @@
   "termsOfServiceContact": "**Contact Information**\\n\\nFor questions about these Terms, contact us at:\\n\\nsupport@bacchusapp.com",
   "helpCenterTitle": "Help Center",
   "helpCenterContent": "Welcome to the Bacchus Help Center. Here you'll find guides and information to help you use the app effectively.",
+  "helpCenterHeader": "Bacchus Help Center",
+  "helpCenterWelcome": "Welcome to the Bacchus Help Center. Here you'll find guides and information to help you use the app effectively and safely.",
+  "helpCenterGettingStarted": "**Getting Started**\\n\\n1. **Create Your Profile**: Enter accurate information (weight, height, age, gender) for better BAC calculations\\n\\n2. **Start a Session**: Tap 'Start Session' when you begin drinking\\n\\n3. **Add Drinks**: Record each alcoholic beverage you consume with accurate quantities\\n\\n4. **Monitor Your BAC**: Watch the real-time BAC estimation and time to sobriety\\n\\n5. **End Session**: Tap 'End Session' when you stop drinking",
+  "helpCenterImportantReminders": "**⚠️ Important Reminders**\\n\\n• **Never drive based solely on app calculations**\\n• **BAC estimates are indicative only**\\n• **Individual factors affect alcohol metabolism**\\n• **Always follow local laws and regulations**\\n• **Use professional breathalyzer for accurate readings**",
+  "helpCenterFeatures": "**Key Features**\\n\\n• **Real-time BAC Calculation**: Based on Widmark formula\\n• **Session History**: Track your drinking patterns over time\\n• **Multiple Profiles**: Create profiles for different users\\n• **Offline Mode**: Works without internet connection\\n• **Data Sync**: Backup your data to the cloud (with account)",
+  "helpCenterTroubleshooting": "**Troubleshooting**\\n\\n**App crashes or freezes:**\\n• Restart the app\\n• Update to the latest version\\n• Restart your device\\n\\n**Inaccurate calculations:**\\n• Verify your profile information\\n• Ensure drink quantities are correct\\n• Remember that individual factors vary\\n\\n**Data not syncing:**\\n• Check internet connection\\n• Verify you're logged in\\n• Try logging out and back in",
+  "helpCenterSupport": "**Need More Help?**\\n\\nIf you need additional assistance, contact our support team at support@bacchusapp.com. Include your app version and a detailed description of the issue.",
   "emailSubject": "Support Request - Bacchus App",
   "emailBody": "Hello Bacchus team,\\n\\nI need assistance with the app.\\n\\nApp version: __VERSION__ (__BUILD__)\\nDevice: __PLATFORM__\\n\\nProblem description:\\n[Describe your problem here]\\n\\nThank you!"
 }
