@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, StyleSheet, Linking, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -11,6 +11,7 @@ import Constants from 'expo-constants';
 export default function Information() {
   const { t } = useTranslation();
   const router = useRouter();
+  const navigation = useNavigation();
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   const isMounted = useRef(true);
@@ -19,17 +20,20 @@ export default function Information() {
   const appVersion = Constants?.expoConfig?.version || '1.2.2';
   const appBuild = Constants?.expoConfig?.ios?.buildNumber || '2517';
 
+  // 🔥 FIX: Configura swipe back come nelle Impostazioni
   useEffect(() => {
+    // Supporta lo swipe back su iOS
+    if (Platform.OS === 'ios' && navigation) {
+      navigation.setOptions({
+        gestureEnabled: true,
+        gestureDirection: 'horizontal'
+      });
+    }
+    
     return () => {
       isMounted.current = false;
     };
-  }, []);
-
-  // 🔧 FIX CRASH: Gestione sicura degli errori
-  const handleError = (error: any) => {
-    console.error('Information screen error:', error);
-    // Non fare nulla per evitare crash
-  };
+  }, [navigation]);
 
   // 🔧 FIX SWIPE BACK: Funzioni per le azioni
   const handleContactSupport = () => {
@@ -64,6 +68,7 @@ export default function Information() {
         
         <AppHeader 
           title={t('information', { ns: 'profile', defaultValue: 'Informazioni' })}
+          isMainScreen={false}
           onBackPress={() => router.back()}
         />
         

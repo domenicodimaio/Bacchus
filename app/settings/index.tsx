@@ -557,18 +557,23 @@ export default function SettingsScreen() {
   };
 
   const handleOpenPrivacyPolicy = () => {
-    // Apri il link alla privacy policy
-    Linking.openURL('https://www.bacchusapp.com/privacy-policy');
+    // Naviga alla schermata Privacy Policy interna
+    router.push('/information/privacy-policy');
   };
 
   const handleOpenTerms = () => {
-    // Apri il link ai termini di servizio
-    Linking.openURL('https://www.bacchusapp.com/terms');
+    // Naviga alla schermata Termini di Servizio interna
+    router.push('/information/terms-of-service');
   };
 
   const handleContactSupport = () => {
     // Apri l'email per il supporto
-    Linking.openURL('mailto:support@bacchusapp.com?subject=Support%20Request');
+    const email = 'support@bacchusapp.com';
+    const subject = 'Richiesta Supporto - Bacchus App';
+    const body = `Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: ${appVersion} (${appBuild})\nDispositivo: ${Platform.OS}\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!`;
+    
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    Linking.openURL(mailtoUrl);
   };
 
   return (

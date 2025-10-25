@@ -172,5 +172,12 @@
   "weightRequired": "Il peso è obbligatorio",
   "ageRequired": "L'età è obbligatoria",
   "heightRequired": "L'altezza è obbligatoria",
-  "drinkingFrequencyRequired": "La frequenza di consumo è obbligatoria"
+  "drinkingFrequencyRequired": "La frequenza di consumo è obbligatoria",
+  "contact": "Contatto",
+  "contactSupport": "Contatta Supporto",
+  "faq": "FAQ",
+  "helpCenter": "Centro Assistenza",
+  "supportEmail": "Email Supporto",
+  "appVersion": "Versione App",
+  "buildNumber": "Numero Build"
 }

@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -10,8 +10,20 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 export default function HelpCenterScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const navigation = useNavigation();
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
+
+  // 🔥 FIX: Configura swipe back come nelle Impostazioni
+  useEffect(() => {
+    // Supporta lo swipe back su iOS
+    if (Platform.OS === 'ios' && navigation) {
+      navigation.setOptions({
+        gestureEnabled: true,
+        gestureDirection: 'horizontal'
+      });
+    }
+  }, [navigation]);
 
   const handleContactSupport = () => {
     const email = 'support@bacchusapp.com';
@@ -26,7 +38,8 @@ export default function HelpCenterScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader 
-          title="Centro Assistenza"
+          title={t('helpCenter', { ns: 'common', defaultValue: 'Centro Assistenza' })}
+          isMainScreen={false}
           onBackPress={() => router.back()}
         />
         

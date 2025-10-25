@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,9 +15,21 @@ interface FAQItem {
 export default function FAQScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const navigation = useNavigation();
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
+
+  // 🔥 FIX: Configura swipe back come nelle Impostazioni
+  useEffect(() => {
+    // Supporta lo swipe back su iOS
+    if (Platform.OS === 'ios' && navigation) {
+      navigation.setOptions({
+        gestureEnabled: true,
+        gestureDirection: 'horizontal'
+      });
+    }
+  }, [navigation]);
 
   const faqData: FAQItem[] = [
     {
@@ -74,7 +86,8 @@ export default function FAQScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader 
-          title="FAQ"
+          title={t('faq', { ns: 'common', defaultValue: 'FAQ' })}
+          isMainScreen={false}
           onBackPress={() => router.back()}
         />
         

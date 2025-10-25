@@ -145,5 +145,12 @@
   "info": "Information",
   "email": "Email",
   "notAvailable": "Not Available",
-  "now": "Now"
+  "now": "Now",
+  "contact": "Contact",
+  "contactSupport": "Contact Support",
+  "faq": "FAQ",
+  "helpCenter": "Help Center",
+  "supportEmail": "Support Email",
+  "appVersion": "App Version",
+  "buildNumber": "Build Number"
 }

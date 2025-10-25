@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import AppHeader from '../components/AppHeader';
@@ -9,14 +9,27 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 export default function PrivacyPolicyScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const navigation = useNavigation();
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
+
+  // 🔥 FIX: Configura swipe back come nelle Impostazioni
+  useEffect(() => {
+    // Supporta lo swipe back su iOS
+    if (Platform.OS === 'ios' && navigation) {
+      navigation.setOptions({
+        gestureEnabled: true,
+        gestureDirection: 'horizontal'
+      });
+    }
+  }, [navigation]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader 
-          title="Privacy Policy"
+          title={t('privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}
+          isMainScreen={false}
           onBackPress={() => router.back()}
         />
         
