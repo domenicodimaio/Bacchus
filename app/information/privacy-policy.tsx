@@ -47,32 +47,47 @@ export default function PrivacyPolicyScreen() {
           </Text>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              1. {t('introduction', { ns: 'common', defaultValue: 'Introduzione' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('privacyPolicyIntro', { ns: 'common', defaultValue: 'Questa Privacy Policy descrive come Bacchus ("noi", "nostro" o "ci") raccoglie, utilizza e protegge le tue informazioni personali quando utilizzi la nostra applicazione mobile ("Servizio").' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              2. {t('dataCollection', { ns: 'common', defaultValue: 'Raccolta Dati' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              {t('privacyPolicyDataCollection', { ns: 'common', defaultValue: '**Raccolta Dati**\n\nRaccogliamo i seguenti tipi di informazioni:\n\n• **Informazioni del Profilo**: Nome, peso, altezza, età, sesso e abitudini di consumo per i calcoli BAC\n• **Dati di Utilizzo**: Dati delle sessioni, bevande consumate e statistiche di utilizzo dell\'app\n• **Informazioni del Dispositivo**: Tipo di dispositivo, sistema operativo e versione dell\'app\n• **Dati di Autenticazione**: Indirizzo email e token di autenticazione crittografati' })}
+              {t('privacyPolicyDataCollection', { ns: 'common', defaultValue: 'Raccogliamo i seguenti tipi di informazioni: Informazioni del Profilo (Nome, peso, altezza, età, sesso e abitudini di consumo per i calcoli BAC), Dati di Utilizzo (Dati delle sessioni, bevande consumate e statistiche di utilizzo dell\'app), Informazioni del Dispositivo (Tipo di dispositivo, sistema operativo e versione dell\'app), Dati di Autenticazione (Indirizzo email e token di autenticazione crittografati)' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              3. {t('dataUse', { ns: 'common', defaultValue: 'Come Utilizziamo i Tuoi Dati' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              {t('privacyPolicyDataUse', { ns: 'common', defaultValue: '**Come Utilizziamo i Tuoi Dati**\n\nLe tue informazioni sono utilizzate per:\n\n• Fornire calcoli BAC accurati\n• Salvare la cronologia delle tue sessioni\n• Migliorare le funzionalità dell\'app\n• Fornire supporto clienti\n• Garantire la sicurezza dell\'app' })}
+              {t('privacyPolicyDataUse', { ns: 'common', defaultValue: 'Le tue informazioni sono utilizzate per fornire calcoli BAC accurati, salvare la cronologia delle tue sessioni, migliorare le funzionalità dell\'app, fornire supporto clienti e garantire la sicurezza dell\'app.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              4. {t('dataSharing', { ns: 'common', defaultValue: 'Condivisione Dati' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              {t('privacyPolicyDataSharing', { ns: 'common', defaultValue: '**Condivisione Dati**\n\nNon vendiamo, scambiamo o affittiamo le tue informazioni personali a terze parti. Potremmo condividere i dati solo in questi casi:\n\n• Con il tuo consenso esplicito\n• Per rispettare obblighi legali\n• Per proteggere i nostri diritti e sicurezza' })}
+              {t('privacyPolicyDataSharing', { ns: 'common', defaultValue: 'Non vendiamo, scambiamo o affittiamo le tue informazioni personali a terze parti. Potremmo condividere i dati solo in questi casi: Con il tuo consenso esplicito, Per rispettare obblighi legali, Per proteggere i nostri diritti e sicurezza.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              5. {t('dataSecurity', { ns: 'common', defaultValue: 'Sicurezza dei Dati' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              {t('privacyPolicyDataSecurity', { ns: 'common', defaultValue: '**Sicurezza dei Dati**\n\nImplementiamo misure di sicurezza appropriate per proteggere le tue informazioni:\n\n• Trasmissione dati crittografata\n• Archiviazione cloud sicura\n• Audit di sicurezza regolari\n• Accesso limitato ai dati personali' })}
+              {t('privacyPolicyDataSecurity', { ns: 'common', defaultValue: 'Implementiamo misure di sicurezza appropriate per proteggere le tue informazioni: Trasmissione dati crittografata, Archiviazione cloud sicura, Audit di sicurezza regolari, Accesso limitato ai dati personali.' })}
             </Text>
           </View>
 

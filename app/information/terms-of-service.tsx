@@ -47,60 +47,90 @@ export default function TermsOfServiceScreen() {
           </Text>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              1. {t('introduction', { ns: 'common', defaultValue: 'Introduzione' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceIntro', { ns: 'common', defaultValue: 'Scaricando, installando o utilizzando l\'applicazione Bacchus ("Servizio"), accetti di essere vincolato da questi Termini di Servizio ("Termini"). Se non accetti questi Termini, non utilizzare il Servizio.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              2. {t('acceptance', { ns: 'common', defaultValue: 'Accettazione dei Termini' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceAcceptance', { ns: 'common', defaultValue: 'Utilizzando Bacchus, confermi di avere almeno 18 anni e la capacità legale di stipulare questo accordo. Se stai utilizzando il Servizio per conto di un\'organizzazione, dichiari di avere l\'autorità di vincolare tale organizzazione a questi Termini.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              3. {t('serviceDescription', { ns: 'common', defaultValue: 'Descrizione del Servizio' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceDescription', { ns: 'common', defaultValue: 'Bacchus è un\'applicazione mobile che fornisce stime educative del contenuto di alcol nel sangue (BAC) basate sull\'input dell\'utente. Il Servizio è solo a scopo informativo ed educativo e non dovrebbe mai essere utilizzato per determinare l\'idoneità alla guida o all\'uso di macchinari.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              4. {t('disclaimer', { ns: 'common', defaultValue: 'Disclaimer Importante' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceDisclaimer', { ns: 'common', defaultValue: 'ATTENZIONE: Bacchus fornisce solo stime. Il BAC effettivo può variare significativamente in base a numerosi fattori tra cui metabolismo, condizioni di salute, farmaci e consumo di cibo. Non affidarti mai solo a questa app per determinare se sei in grado di guidare. Utilizza sempre attrezzature professionali per l\'etilometro e rispetta le leggi locali.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              5. {t('userResponsibilities', { ns: 'common', defaultValue: 'Responsabilità dell\'Utente' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceUserResponsibilities', { ns: 'common', defaultValue: 'Accetti di: Fornire informazioni accurate per i calcoli, Utilizzare il Servizio in modo responsabile e legale, Non affidarti solo all\'app per le decisioni di guida, Rispettare tutte le leggi e i regolamenti applicabili, Non tentare di decodificare o hackerare il Servizio' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              6. {t('prohibitedUses', { ns: 'common', defaultValue: 'Usi Proibiti' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceProhibitedUses', { ns: 'common', defaultValue: 'Non puoi utilizzare il Servizio per: Prendere decisioni sulla guida o sull\'uso di macchinari, Fornire consigli medici o legali ad altri, Aggirare qualsiasi misura di sicurezza, Caricare contenuti dannosi o malevoli, Violare qualsiasi legge o regolamento applicabile' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              7. {t('limitationOfLiability', { ns: 'common', defaultValue: 'Limitazione di Responsabilità' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceLimitation', { ns: 'common', defaultValue: 'Bacchus e i suoi sviluppatori non saranno responsabili per eventuali danni diretti, indiretti, incidentali o consequenziali derivanti dall\'uso del Servizio. Utilizzi il Servizio a tuo rischio e responsabilità.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              8. {t('termination', { ns: 'common', defaultValue: 'Terminazione' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceTermination', { ns: 'common', defaultValue: 'Ci riserviamo il diritto di terminare o sospendere il tuo accesso al Servizio in qualsiasi momento, con o senza causa. Puoi anche terminare il tuo uso del Servizio in qualsiasi momento eliminando l\'applicazione.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              9. {t('changesTerms', { ns: 'common', defaultValue: 'Modifiche ai Termini' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceChanges', { ns: 'common', defaultValue: 'Potremmo aggiornare questi Termini di tanto in tanto. L\'uso continuato del Servizio dopo le modifiche costituisce accettazione dei nuovi Termini. Notificheremo agli utenti le modifiche significative tramite l\'app o email.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              10. {t('contactInfo', { ns: 'common', defaultValue: 'Informazioni di Contatto' })}
+            </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               {t('termsOfServiceContact', { ns: 'common', defaultValue: 'Per domande su questi Termini, contattaci a: support@bacchusapp.com' })}
             </Text>
@@ -108,7 +138,7 @@ export default function TermsOfServiceScreen() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              10. Legge Applicabile
+              11. {t('applicableLaw', { ns: 'common', defaultValue: 'Legge Applicabile' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               Questi Termini sono regolati dalle leggi italiane. Eventuali controversie saranno risolte presso i tribunali competenti in Italia.
@@ -117,7 +147,7 @@ export default function TermsOfServiceScreen() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              11. Modifiche ai Termini
+              12. {t('termsModifications', { ns: 'common', defaultValue: 'Modifiche ai Termini' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               Ci riserviamo il diritto di modificare questi Termini in qualsiasi momento. Le modifiche saranno pubblicate nell'App e entreranno in vigore immediatamente. L'uso continuato dell'App costituisce accettazione dei Termini modificati.
@@ -126,7 +156,7 @@ export default function TermsOfServiceScreen() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              12. Contatti
+              13. {t('contacts', { ns: 'common', defaultValue: 'Contatti' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
               Per domande sui Termini di Servizio, contattaci a:{'\n\n'}

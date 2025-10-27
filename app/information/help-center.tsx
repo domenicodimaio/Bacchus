@@ -78,9 +78,11 @@ export default function HelpCenterScreen() {
             <View style={styles.guideStep}>
               <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>1</Text>
               <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>Crea il tuo Profilo</Text>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>
+                  {t('createProfile', { ns: 'common', defaultValue: 'Crea il tuo Profilo' })}
+                </Text>
                 <Text style={[styles.stepText, { color: colors.textSecondary }]}>
-                  Inserisci peso, altezza, età e sesso per calcoli più accurati
+                  {t('createProfileDesc', { ns: 'common', defaultValue: 'Inserisci peso, altezza, età e sesso per calcoli più accurati' })}
                 </Text>
               </View>
             </View>
@@ -88,9 +90,11 @@ export default function HelpCenterScreen() {
             <View style={styles.guideStep}>
               <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>2</Text>
               <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>Avvia una Sessione</Text>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>
+                  {t('startSession', { ns: 'common', defaultValue: 'Avvia una Sessione' })}
+                </Text>
                 <Text style={[styles.stepText, { color: colors.textSecondary }]}>
-                  Tocca "Inizia Sessione" dalla dashboard per iniziare a tracciare
+                  {t('startSessionDesc', { ns: 'common', defaultValue: 'Tocca "Inizia Sessione" dalla dashboard per iniziare a tracciare' })}
                 </Text>
               </View>
             </View>
@@ -98,9 +102,11 @@ export default function HelpCenterScreen() {
             <View style={styles.guideStep}>
               <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>3</Text>
               <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>Aggiungi Consumi</Text>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>
+                  {t('addDrinks', { ns: 'common', defaultValue: 'Aggiungi Consumi' })}
+                </Text>
                 <Text style={[styles.stepText, { color: colors.textSecondary }]}>
-                  Registra bevande alcoliche e cibo per calcoli più precisi
+                  {t('addDrinksDesc', { ns: 'common', defaultValue: 'Registra bevande alcoliche e cibo per calcoli più precisi' })}
                 </Text>
               </View>
             </View>
@@ -108,9 +114,11 @@ export default function HelpCenterScreen() {
             <View style={styles.guideStep}>
               <Text style={[styles.stepNumber, { backgroundColor: colors.primary }]}>4</Text>
               <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>Monitora il BAC</Text>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>
+                  {t('monitorBAC', { ns: 'common', defaultValue: 'Monitora il BAC' })}
+                </Text>
                 <Text style={[styles.stepText, { color: colors.textSecondary }]}>
-                  Osserva l'andamento del tuo tasso alcolemico stimato
+                  {t('monitorBACDesc', { ns: 'common', defaultValue: 'Osserva l\'andamento del tuo tasso alcolemico stimato' })}
                 </Text>
               </View>
             </View>
@@ -119,7 +127,7 @@ export default function HelpCenterScreen() {
           {/* Funzionalità Principali */}
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              🔧 Funzionalità Principali
+              {t('keyFeatures', { ns: 'common', defaultValue: '🔧 Funzionalità Principali' })}
             </Text>
             
             <View style={styles.featureItem}>
