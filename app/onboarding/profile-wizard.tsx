@@ -114,7 +114,7 @@ export default function ProfileWizardScreen() {
   const [animationsStarted, setAnimationsStarted] = useState(false);
   
   // AuthContext per refresh dopo wizard
-  const { refreshProfiles } = useAuth();
+  const { refreshProfiles, setCompletedProfileWizard } = useAuth();
   
   // Verifica se stiamo arrivando dalla registrazione
   useEffect(() => {
@@ -582,6 +582,18 @@ export default function ProfileWizardScreen() {
 
       // 🧹 CLEANUP - Nessun flag globale più necessario
       console.log('🧹 Cleanup wizard flags...');
+
+      // 🔥 FIX APPLE LOGIN: Salva il flag di completamento wizard
+      console.log('🔥 Salvando flag completamento wizard...');
+      const authService = require('../lib/services/auth.service');
+      await authService.setProfileWizardCompleted(true);
+      console.log('✅ Flag wizard completamento salvato!');
+
+      // 🔥 Aggiorna anche il context
+      if (setCompletedProfileWizard) {
+        setCompletedProfileWizard(true);
+        console.log('✅ AuthContext wizard flag aggiornato!');
+      }
 
       // 🎉 COMPLETATO - VAI ALLA DASHBOARD
       console.log('🎉 Wizard completato, navigando alla dashboard...');

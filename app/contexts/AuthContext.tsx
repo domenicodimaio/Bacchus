@@ -184,8 +184,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             let needsWizard = false;
             
             if (isAppleLogin) {
-              // 🔥 LOGICA APPLE COMPLETA: Verifica se è nuovo utente o senza profili
+              // 🔥 LOGICA APPLE COMPLETA: Verifica wizard flag, nuovo utente e profili
               console.log('🚨 DEBUG_APPLE: onAuthStateChange - Applicando logica Apple completa...');
+              
+              // 🔥 FIX: Prima controlla il flag del wizard completato
+              const hasCompletedWizard = await authService.hasCompletedProfileWizard();
               
               // Controlla se ha profili validi
               const hasValidProfiles = profiles && profiles.length > 0 && 
@@ -196,14 +199,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
               const isNewUser = accountAge < (5 * 60 * 1000); // 5 minuti
               
               console.log('🚨 DEBUG_APPLE: onAuthStateChange - Analisi:', {
+                hasCompletedWizard,
                 hasValidProfiles,
                 profilesCount: profiles?.length || 0,
                 isNewUser,
                 accountAge: Math.round(accountAge / 1000) + 's'
               });
               
-              // 🔥 DECISIONE WIZARD: Nuovo utente O senza profili validi
-              needsWizard = isNewUser || !hasValidProfiles;
+              // 🔥 FIX: DECISIONE WIZARD: Se NON ha completato wizard E (è nuovo utente O senza profili validi)
+              needsWizard = !hasCompletedWizard && (isNewUser || !hasValidProfiles);
               
               console.log('🚨 DEBUG_APPLE: onAuthStateChange - needsWizard:', needsWizard);
             } else {
