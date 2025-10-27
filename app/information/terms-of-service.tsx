@@ -141,7 +141,7 @@ export default function TermsOfServiceScreen() {
               11. {t('applicableLaw', { ns: 'common', defaultValue: 'Legge Applicabile' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Questi Termini sono regolati dalle leggi italiane. Eventuali controversie saranno risolte presso i tribunali competenti in Italia.
+              {t('termsApplicableLaw', { ns: 'common', defaultValue: 'Questi Termini sono regolati dalle leggi italiane. Eventuali controversie saranno risolte presso i tribunali competenti in Italia.' })}
             </Text>
           </View>
 
@@ -150,7 +150,7 @@ export default function TermsOfServiceScreen() {
               12. {t('termsModifications', { ns: 'common', defaultValue: 'Modifiche ai Termini' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Ci riserviamo il diritto di modificare questi Termini in qualsiasi momento. Le modifiche saranno pubblicate nell'App e entreranno in vigore immediatamente. L'uso continuato dell'App costituisce accettazione dei Termini modificati.
+              {t('termsModificationsText', { ns: 'common', defaultValue: 'Ci riserviamo il diritto di modificare questi Termini in qualsiasi momento. Le modifiche saranno pubblicate nell\'App e entreranno in vigore immediatamente. L\'uso continuato dell\'App costituisce accettazione dei Termini modificati.' })}
             </Text>
           </View>
 
@@ -159,9 +159,7 @@ export default function TermsOfServiceScreen() {
               13. {t('contacts', { ns: 'common', defaultValue: 'Contatti' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Per domande sui Termini di Servizio, contattaci a:{'\n\n'}
-              <Text style={{ fontWeight: '600' }}>Email:</Text> legal@bacchusapp.com{'\n'}
-              <Text style={{ fontWeight: '600' }}>Supporto:</Text> support@bacchusapp.com
+              {t('termsOfServiceContact', { ns: 'common', defaultValue: 'Per domande su questi Termini, contattaci a support@bacchusapp.com.' })}
             </Text>
           </View>
 

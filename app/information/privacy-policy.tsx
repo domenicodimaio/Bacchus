@@ -93,54 +93,46 @@ export default function PrivacyPolicyScreen() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              6. I Tuoi Diritti
+              6. {t('yourRights', { ns: 'common', defaultValue: 'I Tuoi Diritti' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Hai il diritto di:{'\n'}
-              • Accedere ai tuoi dati personali{'\n'}
-              • Correggere dati inesatti o incompleti{'\n'}
-              • Eliminare i tuoi dati (diritto all'oblio){'\n'}
-              • Esportare i tuoi dati in formato leggibile{'\n'}
-              • Limitare il trattamento dei tuoi dati{'\n'}
-              • Revocare il consenso in qualsiasi momento
+              {t('privacyPolicyYourRights', { ns: 'common', defaultValue: 'Hai il diritto di accedere ai tuoi dati personali, correggere informazioni inesatte, eliminare il tuo account e i dati, esportare i tuoi dati e ritirare il consenso in qualsiasi momento.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              7. Conservazione dei Dati
+              7. {t('dataRetention', { ns: 'common', defaultValue: 'Conservazione dei Dati' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Conserviamo i tuoi dati solo per il tempo necessario a fornire i nostri servizi. I dati delle sessioni vengono conservati finché mantieni il tuo account attivo. Puoi eliminare i tuoi dati in qualsiasi momento dalle impostazioni dell'app.
+              {t('privacyPolicyDataRetention', { ns: 'common', defaultValue: 'Conserviamo i tuoi dati solo per il tempo necessario a fornire i nostri servizi. I dati delle sessioni vengono conservati finché mantieni il tuo account attivo. Puoi eliminare i tuoi dati in qualsiasi momento dalle impostazioni dell\'app.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              8. Minori
+              8. {t('minors', { ns: 'common', defaultValue: 'Minori' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Bacchus è destinata a utenti maggiorenni. Non raccogliamo consapevolmente dati di minori di 18 anni. Se vieni a conoscenza che un minore ha fornito dati personali, contattaci immediatamente.
+              {t('privacyPolicyMinors', { ns: 'common', defaultValue: 'Bacchus è destinata a utenti maggiorenni. Non raccogliamo consapevolmente dati di minori di 18 anni. Se vieni a conoscenza che un minore ha fornito dati personali, contattaci immediatamente.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              9. Modifiche alla Privacy Policy
+              9. {t('policyChanges', { ns: 'common', defaultValue: 'Modifiche alla Privacy Policy' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Potremmo aggiornare questa Privacy Policy periodicamente. Ti notificheremo eventuali modifiche significative tramite l'app o via email. L'uso continuato dell'app dopo le modifiche costituisce accettazione della nuova policy.
+              {t('privacyPolicyChanges', { ns: 'common', defaultValue: 'Potremmo aggiornare questa Privacy Policy periodicamente. Ti notificheremo eventuali modifiche significative tramite l\'app o via email. L\'uso continuato dell\'app dopo le modifiche costituisce accettazione della nuova policy.' })}
             </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              10. Contatti
+              10. {t('contacts', { ns: 'common', defaultValue: 'Contatti' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-              Per domande su questa Privacy Policy o sui tuoi dati personali, contattaci a:{'\n\n'}
-              <Text style={{ fontWeight: '600' }}>Email:</Text> privacy@bacchusapp.com{'\n'}
-              <Text style={{ fontWeight: '600' }}>Supporto:</Text> support@bacchusapp.com
+              {t('privacyPolicyContact', { ns: 'common', defaultValue: 'Per domande su questa Privacy Policy, contattaci a support@bacchusapp.com.' })}
             </Text>
           </View>
 
