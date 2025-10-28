@@ -283,5 +283,6 @@
   "insufficientData": "Dati insufficienti per il grafico",
   "waitForTrend": "Attendi qualche minuto per vedere l'andamento",
   "addDrinksToChart": "Aggiungi bevande per visualizzare il grafico",
-  "bac": "BAC"
+  "bac": "BAC",
+  "startedAt": "Iniziata alle"
 }

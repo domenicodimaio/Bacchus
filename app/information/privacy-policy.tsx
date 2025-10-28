@@ -138,7 +138,7 @@ export default function PrivacyPolicyScreen() {
 
           <View style={[styles.disclaimer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.disclaimerText, { color: colors.textSecondary }]}>
-              <Text style={{ fontWeight: '600' }}>⚠️ Importante:</Text> Bacchus è uno strumento di supporto e non deve essere utilizzato come unico riferimento per decisioni sulla guida. Il calcolo del tasso alcolemico è indicativo e può variare significativamente tra individui.
+              <Text style={{ fontWeight: '600' }}>⚠️ {t('important', { ns: 'common', defaultValue: 'Importante' })}:</Text> {t('importantDisclaimerText', { ns: 'common', defaultValue: 'Bacchus è uno strumento di supporto e non deve essere utilizzato come unico riferimento per decisioni sulla guida. Il calcolo del tasso alcolemico è indicativo e può variare significativamente tra individui.' })}
             </Text>
           </View>
         </ScrollView>

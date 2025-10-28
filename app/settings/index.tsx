@@ -402,7 +402,7 @@ export default function SettingsScreen() {
   const handleLogout = async () => {
       Alert.alert(
       t('logout', { ns: 'common', defaultValue: 'Esci' }),
-        t('logoutConfirm', { ns: 'settings', defaultValue: 'Are you sure you want to logout?' }),
+      t('logoutConfirm', { ns: 'common', defaultValue: 'Are you sure you want to sign out?' }),
         [
           {
             text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),

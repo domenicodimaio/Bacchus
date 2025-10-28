@@ -165,8 +165,8 @@ export default function TermsOfServiceScreen() {
 
           <View style={[styles.warningBox, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
             <Text style={[styles.warningText, { color: colors.error }]}>
-              <Text style={{ fontWeight: '700' }}>🚨 AVVERTENZA FINALE:</Text>{'\n\n'}
-              Bacchus è SOLO uno strumento di supporto. NON guidare mai se hai consumato alcol, indipendentemente da quello che mostra l'app. La tua sicurezza e quella degli altri è la priorità assoluta.
+              <Text style={{ fontWeight: '700' }}>🚨 {t('finalWarning', { ns: 'common', defaultValue: 'AVVERTENZA FINALE' })}:</Text>{'\n\n'}
+              {t('finalWarningText', { ns: 'common', defaultValue: 'Bacchus è SOLO uno strumento di supporto. NON guidare mai se hai consumato alcol, indipendentemente da quello che mostra l\'app. La tua sicurezza e quella degli altri è la priorità assoluta.' })}
             </Text>
           </View>
         </ScrollView>

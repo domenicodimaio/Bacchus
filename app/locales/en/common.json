@@ -22,7 +22,8 @@
   "history": "History",
   "helpAndSupport": "Help & Support",
   "about": "About",
-  "logout": "Logout",
+  "logout": "Sign Out",
+  "logoutConfirm": "Are you sure you want to sign out?",
   "login": "Login",
   "register": "Register",
   "forgotPassword": "Forgot Password?",
@@ -247,6 +248,18 @@
   "privacyPolicyChanges": "We may update this Privacy Policy periodically. We will notify you of any significant changes through the app or via email. Continued use of the app after changes constitutes acceptance of the new policy.",
   "termsApplicableLaw": "These Terms are governed by Italian law. Any disputes will be resolved in competent courts in Italy.",
   "termsModificationsText": "We reserve the right to modify these Terms at any time. Changes will be published in the App and will take effect immediately. Continued use of the App constitutes acceptance of the modified Terms.",
+  "startedAt": "Started at",
+  "tabs": {
+    "dashboard": "Dashboard",
+    "session": "Session", 
+    "history": "History",
+    "profile": "Profile"
+  },
+  "monitorBAC": "Monitor BAC",
+  "monitorBACDesc": "Watch your estimated blood alcohol level progress",
+  "important": "Important",
+  "finalWarning": "FINAL WARNING",
+  "finalWarningText": "Bacchus is ONLY a support tool. NEVER drive if you have consumed alcohol, regardless of what the app shows. Your safety and that of others is the absolute priority.",
   "emailSubject": "Support Request - Bacchus App",
   "emailBody": "Hello Bacchus team,\n\nI need assistance with the app.\n\nApp version: __VERSION__ (__BUILD__)\nDevice: __PLATFORM__\n\nProblem description:\n[Describe your problem here]\n\nThank you!"
 }

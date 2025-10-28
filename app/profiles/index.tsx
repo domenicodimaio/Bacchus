@@ -167,15 +167,15 @@ export default function ProfilesScreen() {
   
   const handleLogout = () => {
     Alert.alert(
-      t('logout', { ns: 'auth', defaultValue: 'Esci' }),
-      t('confirmLogout', { ns: 'auth', defaultValue: 'Sei sicuro di voler uscire?' }),
+      t('logout', { ns: 'common', defaultValue: 'Sign Out' }),
+      t('logoutConfirm', { ns: 'common', defaultValue: 'Are you sure you want to sign out?' }),
       [
         {
           text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }),
           style: 'cancel',
         },
         {
-          text: t('logout', { ns: 'auth', defaultValue: 'Esci' }),
+          text: t('logout', { ns: 'common', defaultValue: 'Sign Out' }),
           style: 'destructive',
           onPress: async () => {
             setIsLoading(true);
@@ -536,7 +536,7 @@ export default function ProfilesScreen() {
               >
                 <Ionicons name="settings-outline" size={24} color={colors.primary} />
                 <Text style={[styles.optionText, { color: colors.text }]}>
-                  {i18n.language === 'it' ? 'Impostazioni' : 'Settings'}
+                  {t('settings', { ns: 'common', defaultValue: 'Settings' })}
                 </Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
@@ -548,7 +548,7 @@ export default function ProfilesScreen() {
               >
                 <Ionicons name="log-out-outline" size={24} color={colors.error} />
                 <Text style={[styles.optionText, { color: colors.error }]}>
-                  {i18n.language === 'it' ? 'Esci' : 'Logout'}
+                  {t('logout', { ns: 'common', defaultValue: 'Sign Out' })}
                 </Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>

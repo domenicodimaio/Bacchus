@@ -132,7 +132,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = () => {
     },
     {
       name: 'profiles',
-      label: t('common:tabs.profile', 'Profilo'),
+      label: t('common:tabs.profile', 'Profile'),
       icon: 'person-outline',
       activeIcon: 'person',
       path: '/(tabs)/profile',
