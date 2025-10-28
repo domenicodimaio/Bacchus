@@ -72,6 +72,17 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
+    // 🚨 DEBUG: Forza log per capire cosa succede
+    console.log('🛒 PURCHASES: initPurchases chiamato!');
+    console.log('🛒 PURCHASES: isRevenueCatAvailable:', isRevenueCatAvailable);
+    console.log('🛒 PURCHASES: isExpoGo:', isExpoGo);
+    console.log('🛒 PURCHASES: Platform.OS:', Platform.OS);
+    
+    // 🔧 DISATTIVA SIMULAZIONE PREMIUM per testare RevenueCat
+    console.log('🛒 PURCHASES: Disattivando simulazione premium per test RevenueCat...');
+    await AsyncStorage.removeItem('SIMULATE_PREMIUM');
+    console.log('🛒 PURCHASES: Simulazione premium disattivata!');
+    
     // 🔧 PROVA PRIMA REVENUECAT (PREFERITO)
     if (isRevenueCatAvailable && !isExpoGo) {
       console.log('🛒 INIT: Tentativo inizializzazione RevenueCat...');
