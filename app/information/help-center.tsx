@@ -169,22 +169,18 @@ export default function HelpCenterScreen() {
           {/* Consigli per l'Uso */}
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              💡 Consigli per l'Uso
+              💡 {t('usageTips', { ns: 'common', defaultValue: 'Consigli per l\'Uso' })}
             </Text>
             
             <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              • <Text style={{ fontWeight: '600' }}>Sii Preciso:</Text> Inserisci dati accurati per stime migliori{'\n\n'}
-              • <Text style={{ fontWeight: '600' }}>Registra Tutto:</Text> Includi anche piccole quantità di alcol{'\n\n'}
-              • <Text style={{ fontWeight: '600' }}>Non Dimenticare il Cibo:</Text> Il cibo influenza l'assorbimento dell'alcol{'\n\n'}
-              • <Text style={{ fontWeight: '600' }}>Aggiorna Regolarmente:</Text> Mantieni aggiornato il tuo profilo{'\n\n'}
-              • <Text style={{ fontWeight: '600' }}>Usa Come Supporto:</Text> Non fare mai affidamento esclusivo sui calcoli
+              {t('usageTipsContent', { ns: 'common', defaultValue: '• Sii Preciso: Inserisci dati accurati per stime migliori\n\n• Registra Tutto: Includi anche piccole quantità di alcol\n\n• Non Dimenticare il Cibo: Il cibo influenza l\'assorbimento dell\'alcol\n\n• Aggiorna Regolarmente: Mantieni aggiornato il tuo profilo\n\n• Usa Come Supporto: Non fare mai affidamento esclusivo sui calcoli' })}
             </Text>
           </View>
 
           {/* Limitazioni */}
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              ⚠️ Limitazioni Importanti
+              ⚠️ {t('importantLimitations', { ns: 'common', defaultValue: 'Limitazioni Importanti' })}
             </Text>
             
             <Text style={[styles.limitationText, { color: colors.textSecondary }]}>
@@ -207,7 +203,7 @@ export default function HelpCenterScreen() {
           {/* Supporto */}
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              🆘 Hai Bisogno di Aiuto?
+              🆘 {t('needHelp', { ns: 'common', defaultValue: 'Hai Bisogno di Aiuto?' })}
             </Text>
             
             <TouchableOpacity 
@@ -216,7 +212,7 @@ export default function HelpCenterScreen() {
             >
               <Ionicons name="mail" size={20} color="white" />
               <Text style={styles.supportButtonText}>
-                Contatta il Supporto
+                {t('contactSupport', { ns: 'common', defaultValue: 'Contatta il Supporto' })}
               </Text>
             </TouchableOpacity>
 
@@ -226,7 +222,7 @@ export default function HelpCenterScreen() {
             >
               <Ionicons name="help-circle" size={20} color="white" />
               <Text style={styles.supportButtonText}>
-                Leggi le FAQ
+                {t('readFAQ', { ns: 'common', defaultValue: 'Leggi le FAQ' })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -234,7 +230,7 @@ export default function HelpCenterScreen() {
           {/* Footer Disclaimer */}
           <View style={[styles.footerDisclaimer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-              Ricorda: Bacchus è uno strumento di supporto. La decisione di guidare è sempre e solo tua responsabilità. Bevi responsabilmente e non guidare mai sotto l'influenza dell'alcol.
+              {t('helpCenterDisclaimer', { ns: 'common', defaultValue: 'Ricorda: Bacchus è uno strumento di supporto. La decisione di guidare è sempre e solo tua responsabilità. Bevi responsabilmente e non guidare mai sotto l\'influenza dell\'alcol.' })}
             </Text>
           </View>
         </ScrollView>

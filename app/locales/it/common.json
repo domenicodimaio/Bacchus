@@ -286,6 +286,12 @@
   "important": "Importante",
   "finalWarning": "AVVERTENZA FINALE",
   "finalWarningText": "Bacchus è SOLO uno strumento di supporto. NON guidare mai se hai consumato alcol, indipendentemente da quello che mostra l'app. La tua sicurezza e quella degli altri è la priorità assoluta.",
+  "usageTips": "Consigli per l'Uso",
+  "usageTipsContent": "• Sii Preciso: Inserisci dati accurati per stime migliori\n\n• Registra Tutto: Includi anche piccole quantità di alcol\n\n• Non Dimenticare il Cibo: Il cibo influenza l'assorbimento dell'alcol\n\n• Aggiorna Regolarmente: Mantieni aggiornato il tuo profilo\n\n• Usa Come Supporto: Non fare mai affidamento esclusivo sui calcoli",
+  "importantLimitations": "Limitazioni Importanti",
+  "needHelp": "Hai Bisogno di Aiuto?",
+  "readFAQ": "Leggi le FAQ",
+  "helpCenterDisclaimer": "Ricorda: Bacchus è uno strumento di supporto. La decisione di guidare è sempre e solo tua responsabilità. Bevi responsabilmente e non guidare mai sotto l'influenza dell'alcol.",
   "emailSubject": "Richiesta Supporto - Bacchus App",
   "emailBody": "Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: __VERSION__ (__BUILD__)\nDispositivo: __PLATFORM__\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!"
 }
