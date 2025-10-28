@@ -15,6 +15,22 @@ let isRevenueCatAvailable = false;
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
+try {
+  if (!isExpoGo) {
+    console.log('🛒 PURCHASES: Tentativo caricamento RevenueCat...');
+    Purchases = require('react-native-purchases').default;
+    LOG_LEVEL = require('react-native-purchases').LOG_LEVEL;
+    isRevenueCatAvailable = true;
+    console.log('✅ PURCHASES: RevenueCat caricato con successo');
+  } else {
+    console.log('🛒 PURCHASES: Expo Go rilevato - RevenueCat non disponibile');
+    isRevenueCatAvailable = false;
+  }
+} catch (error) {
+  console.log('⚠️ PURCHASES: RevenueCat non disponibile:', error);
+  isRevenueCatAvailable = false;
+}
+
 // 🔧 SISTEMA ACQUISTI INTELLIGENTE: Prova reale, fallback a mock sicuro
 let ExpoInAppPurchases: any = null;
 let isInAppPurchasesAvailable = false;
@@ -34,17 +50,13 @@ try {
   isInAppPurchasesAvailable = false;
 }
 
-// 🔧 CHIAVI API REVENUECAT - Configurazione per produzione
+// 🔧 CHIAVI API REVENUECAT - Configurazione per produzione E testing
 const API_KEYS = {
-  // 🍎 iOS: Chiave RevenueCat per iOS
-  ios: __DEV__ 
-    ? 'dummy_key' 
-    : process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || 'appl_IHqsMqgHKMcDfWPFMDJDmiyGDsV',
+  // 🍎 iOS: Chiave RevenueCat per iOS (usata anche in DEV per testing)
+  ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || 'appl_IHqsMqgHKMcDfWPFMDJDmiyGDsV',
   
   // 🤖 Android: Chiave RevenueCat per Android
-  android: __DEV__ 
-    ? 'dummy_key' 
-    : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || 'goog_YOUR_REVENUECAT_ANDROID_KEY_HERE',
+  android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || 'goog_YOUR_REVENUECAT_ANDROID_KEY_HERE',
 };
 
 // Chiavi AsyncStorage per gli acquisti
@@ -60,7 +72,58 @@ const STORAGE_KEYS = {
  */
 export const initPurchases = async () => {
   try {
-    // 🔧 SISTEMA INTELLIGENTE: Tenta acquisti reali, fallback sicuro a mock
+    // 🔧 PROVA PRIMA REVENUECAT (PREFERITO)
+    if (isRevenueCatAvailable && !isExpoGo) {
+      console.log('🛒 INIT: Tentativo inizializzazione RevenueCat...');
+      
+      const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
+      
+      // Verifica se abbiamo chiavi API valide
+      if (apiKey === 'dummy_key' || apiKey.includes('YOUR_REVENUECAT')) {
+        console.log('🛒 PURCHASES: Chiavi API non configurate - usando modalità mock');
+        return await initMockMode();
+      }
+      
+      try {
+        console.log('🛒 PURCHASES: Inizializzazione RevenueCat con chiave:', apiKey.substring(0, 10) + '...');
+        
+        // Configura RevenueCat in modalità debug in ambiente di sviluppo
+        if (__DEV__) {
+          Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+        }
+        
+        // Inizializza SDK RevenueCat
+        await Purchases.configure({
+          apiKey,
+          appUserID: null, // L'ID utente sarà impostato dopo la login
+        });
+        
+        console.log('✅ PURCHASES: RevenueCat inizializzato con successo');
+        
+        // Verifica che RevenueCat sia effettivamente funzionante
+        try {
+          const offerings = await Purchases.getOfferings();
+          console.log('✅ PURCHASES: Offerings caricate:', Object.keys(offerings.all).length);
+          
+          if (offerings.current) {
+            console.log('✅ PURCHASES: Current offering trovato:', offerings.current.identifier);
+            console.log('📦 PURCHASES: Prodotti disponibili:', offerings.current.availablePackages.length);
+          }
+          
+          return true;
+        } catch (offeringsError) {
+          console.warn('⚠️ PURCHASES: Impossibile caricare offerings:', offeringsError);
+          // Non bloccare l'app, ma nota il problema
+          return true; // RevenueCat è inizializzato anche se offerings fallisce
+        }
+        
+      } catch (revenueCatError) {
+        console.warn('❌ PURCHASES: Fallimento inizializzazione RevenueCat:', revenueCatError);
+        // Se RevenueCat fallisce, proviamo Expo In-App Purchases
+      }
+    }
+    
+    // 🔧 FALLBACK A EXPO IN-APP PURCHASES
     if (isInAppPurchasesAvailable && !isExpoGo) {
       console.log('🛒 INIT: Tentativo inizializzazione acquisti reali...');
       
