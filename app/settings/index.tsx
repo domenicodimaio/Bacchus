@@ -736,11 +736,16 @@ export default function SettingsScreen() {
                 onPress={null}
                 rightComponent={
                   <Switch
-              value={isDarkMode}
-              onValueChange={handleDarkModeToggle}
-                    trackColor={{ false: '#767577', true: colors.primary }}
-                    thumbColor={isDarkMode ? '#f5dd4b' : '#f4f3f4'}
-                    ios_backgroundColor="#3e3e3e"
+                    value={isDarkMode}
+                    onValueChange={handleDarkModeToggle}
+                    trackColor={{ 
+                      false: colors.textTertiary || '#8E8E93', 
+                      true: colors.primary 
+                    }}
+                    thumbColor={Platform.OS === 'ios' ? undefined : (isDarkMode ? '#FFFFFF' : '#FFFFFF')}
+                    style={{
+                      transform: Platform.OS === 'ios' ? [{ scaleX: 0.9 }, { scaleY: 0.9 }] : undefined,
+                    }}
                   />
                 }
                 lastItem={true}
