@@ -292,6 +292,8 @@
   "needHelp": "Hai Bisogno di Aiuto?",
   "readFAQ": "Leggi le FAQ",
   "helpCenterDisclaimer": "Ricorda: Bacchus è uno strumento di supporto. La decisione di guidare è sempre e solo tua responsabilità. Bevi responsabilmente e non guidare mai sotto l'influenza dell'alcol.",
+  "limitationsContent": "Il calcolo del BAC può variare significativamente a causa di:\n\n• Metabolismo individuale\n• Condizioni di salute\n• Farmaci assunti\n• Livello di idratazione\n• Stress e affaticamento\n• Composizione corporea\n• Velocità di consumo\n• Tipo di bevanda\n\n",
+  "limitationsWarning": "Per questo motivo, usa sempre il buon senso e non guidare mai se hai bevuto, indipendentemente da quello che mostra l'app.",
   "emailSubject": "Richiesta Supporto - Bacchus App",
   "emailBody": "Ciao team Bacchus,\n\nHo bisogno di assistenza con l'app.\n\nVersione app: __VERSION__ (__BUILD__)\nDispositivo: __PLATFORM__\n\nDescrizione del problema:\n[Descrivi qui il tuo problema]\n\nGrazie!"
 }

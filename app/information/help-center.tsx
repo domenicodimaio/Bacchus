@@ -184,18 +184,10 @@ export default function HelpCenterScreen() {
             </Text>
             
             <Text style={[styles.limitationText, { color: colors.textSecondary }]}>
-              Il calcolo del BAC può variare significativamente a causa di:{'\n\n'}
-              • Metabolismo individuale{'\n'}
-              • Condizioni di salute{'\n'}
-              • Farmaci assunti{'\n'}
-              • Livello di idratazione{'\n'}
-              • Stress e affaticamento{'\n'}
-              • Composizione corporea{'\n'}
-              • Velocità di consumo{'\n'}
-              • Tipo di bevanda{'\n\n'}
+              {t('limitationsContent', { ns: 'common', defaultValue: 'Il calcolo del BAC può variare significativamente a causa di:\n\n• Metabolismo individuale\n• Condizioni di salute\n• Farmaci assunti\n• Livello di idratazione\n• Stress e affaticamento\n• Composizione corporea\n• Velocità di consumo\n• Tipo di bevanda\n\n' })}
               
               <Text style={{ fontWeight: '600', color: colors.error }}>
-                Per questo motivo, usa sempre il buon senso e non guidare mai se hai bevuto, indipendentemente da quello che mostra l'app.
+                {t('limitationsWarning', { ns: 'common', defaultValue: 'Per questo motivo, usa sempre il buon senso e non guidare mai se hai bevuto, indipendentemente da quello che mostra l\'app.' })}
               </Text>
             </Text>
           </View>
