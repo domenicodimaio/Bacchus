@@ -39,7 +39,7 @@ const API_KEYS = {
   // 🍎 iOS: Chiave RevenueCat per iOS
   ios: __DEV__ 
     ? 'dummy_key' 
-    : process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || 'appl_YOUR_REVENUECAT_IOS_KEY_HERE',
+    : process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || 'appl_IHqsMqgHKMcDfWPFMDJDmiyGDsV',
   
   // 🤖 Android: Chiave RevenueCat per Android
   android: __DEV__ 
