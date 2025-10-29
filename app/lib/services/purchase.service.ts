@@ -5,6 +5,11 @@ import Constants from 'expo-constants';
 import * as authService from './auth.service';
 import supabase from '../supabase/client';
 
+// 🚨 DEBUG ESTREMO: Questo log DEVE apparire sempre
+console.log('🚨🚨🚨 PURCHASE.SERVICE.TS CARICATO! 🚨🚨🚨');
+console.log('🚨 Platform.OS:', Platform.OS);
+console.log('🚨 Constants.appOwnership:', Constants.appOwnership);
+
 // Determina se siamo in Expo Go o non possiamo usare RevenueCat
 const isExpoGo = Constants.appOwnership === 'expo';
 

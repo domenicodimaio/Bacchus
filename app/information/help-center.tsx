@@ -133,35 +133,35 @@ export default function HelpCenterScreen() {
             <View style={styles.featureItem}>
               <Ionicons name="calculator" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-                <Text style={{ fontWeight: '600' }}>{t('bacCalculation', { ns: 'common', defaultValue: 'Calcolo BAC' })}:</Text> {t('bacCalculationDesc', { ns: 'common', defaultValue: 'Stima del tasso alcolemico basata sulla formula di Widmark' })}
+                <Text style={{ fontWeight: '600' }}>{t('bacCalculation', { ns: 'common', defaultValue: 'BAC Calculation' })}:</Text> {t('bacCalculationDesc', { ns: 'common', defaultValue: 'BAC estimation based on Widmark formula' })}
               </Text>
             </View>
 
             <View style={styles.featureItem}>
               <Ionicons name="time" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-                <Text style={{ fontWeight: '600' }}>{t('metabolismTime', { ns: 'common', defaultValue: 'Tempo di Smaltimento' })}:</Text> {t('metabolismTimeDesc', { ns: 'common', defaultValue: 'Stima del tempo per tornare a 0.0 g/l e al limite legale' })}
+                <Text style={{ fontWeight: '600' }}>{t('metabolismTime', { ns: 'common', defaultValue: 'Metabolism Time' })}:</Text> {t('metabolismTimeDesc', { ns: 'common', defaultValue: 'Estimated time to return to 0.0 g/l and legal limit' })}
               </Text>
             </View>
 
             <View style={styles.featureItem}>
               <Ionicons name="bar-chart" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-                <Text style={{ fontWeight: '600' }}>{t('sessionHistory', { ns: 'common', defaultValue: 'Cronologia' })}:</Text> {t('sessionHistoryDesc', { ns: 'common', defaultValue: 'Salva e rivedi le tue sessioni passate' })}
+                <Text style={{ fontWeight: '600' }}>{t('sessionHistory', { ns: 'common', defaultValue: 'Session History' })}:</Text> {t('sessionHistoryDesc', { ns: 'common', defaultValue: 'Save and review your past sessions' })}
               </Text>
             </View>
 
             <View style={styles.featureItem}>
               <Ionicons name="restaurant" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-                <Text style={{ fontWeight: '600' }}>{t('foodTracking', { ns: 'common', defaultValue: 'Tracciamento Cibo' })}:</Text> {t('foodTrackingDesc', { ns: 'common', defaultValue: 'Registra il cibo per calcoli più accurati' })}
+                <Text style={{ fontWeight: '600' }}>{t('foodTracking', { ns: 'common', defaultValue: 'Food Tracking' })}:</Text> {t('foodTrackingDesc', { ns: 'common', defaultValue: 'Record food for more accurate calculations' })}
               </Text>
             </View>
 
             <View style={styles.featureItem}>
               <Ionicons name="cloud" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-                <Text style={{ fontWeight: '600' }}>{t('dataSync', { ns: 'common', defaultValue: 'Sincronizzazione' })}:</Text> {t('dataSyncDesc', { ns: 'common', defaultValue: 'I tuoi dati sono sincronizzati tra dispositivi' })}
+                <Text style={{ fontWeight: '600' }}>{t('dataSync', { ns: 'common', defaultValue: 'Data Sync' })}:</Text> {t('dataSyncDesc', { ns: 'common', defaultValue: 'Your data is synchronized across devices' })}
               </Text>
             </View>
           </View>
