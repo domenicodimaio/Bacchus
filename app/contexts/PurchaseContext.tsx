@@ -123,10 +123,14 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   // Inizializza il servizio acquisti
   const initializePurchases = async (force: boolean = false) => {
-    console.log('Initializing purchases...');
+    console.log('🚨 PURCHASE_CONTEXT: initializePurchases chiamato!');
+    console.log('🚨 PURCHASE_CONTEXT: isInitialized:', isInitialized, 'force:', force);
     
     try {
-      if (isInitialized && !force) return true;
+      if (isInitialized && !force) {
+        console.log('🚨 PURCHASE_CONTEXT: Già inizializzato, esco');
+        return true;
+      }
       
       // 🔥 FIX BUG 2: Controlla SEMPRE SIMULATE_PREMIUM prima di tutto
       const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
