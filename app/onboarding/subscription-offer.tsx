@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '../components/Toast';
 import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { clearAllNavigationBlocks } from '../contexts/AuthContext';
+import { usePurchase } from '../contexts/PurchaseContext';
 
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
@@ -45,6 +46,7 @@ export default function SubscriptionOfferScreen() {
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const { isPremium, checkAccess } = usePremiumFeatures();
+  const { purchaseSubscription } = usePurchase();
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [skipOffered, setSkipOffered] = useState(false);
@@ -136,23 +138,51 @@ export default function SubscriptionOfferScreen() {
   const yearlyFullPrice = '35.88';
   const yearlyDiscount = 25;
   
-  // Handler semplificati
-  const handleSubscribe = () => {
-    console.log('[SubscriptionOfferScreen] Attivazione abbonamento');
-    setIsClosing(true);
-    AsyncStorage.setItem('PREMIUM_STATUS', 'true').then(() => {
+  // 🔧 HANDLER REALE CON REVENUECAT/EXPO IN-APP PURCHASES
+  const handleSubscribe = async (planType: 'monthly' | 'annual' = 'monthly') => {
+    console.log('[SubscriptionOfferScreen] 🛒 ACQUISTO REALE:', planType);
+    
+    try {
+      setLoading(true);
+      
+      // 🔧 USA IL VERO SISTEMA DI ACQUISTI DAL HOOK
+      const result = await purchaseSubscription(planType);
+      
+      console.log('[SubscriptionOfferScreen] 🛒 Risultato acquisto:', result);
+      
+      if (result) {
+        console.log('[SubscriptionOfferScreen] ✅ Acquisto completato con successo!');
+        setIsClosing(true);
+        
+        Alert.alert(
+          t('purchaseSuccess', { defaultValue: 'Acquisto completato' }),
+          t('enjoyPremium', { defaultValue: 'Ora puoi godere di tutte le funzionalità premium!' }),
+          [{ text: 'OK', onPress: () => {
+            if (typeof global !== 'undefined') {
+              global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
+              global.__PREVENT_AUTO_NAVIGATION__ = false;
+            }
+            router.replace('/(tabs)/dashboard');
+          }}]
+        );
+      } else {
+        console.log('[SubscriptionOfferScreen] ❌ Acquisto fallito');
+        Alert.alert(
+          t('error', { defaultValue: 'Errore' }),
+          t('purchaseFailed', { defaultValue: 'Acquisto fallito. Riprova più tardi.' }),
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('[SubscriptionOfferScreen] ❌ Errore acquisto:', error);
       Alert.alert(
-        t('purchaseSuccess', { defaultValue: 'Acquisto completato' }),
-        t('enjoyPremium', { defaultValue: 'Ora puoi godere di tutte le funzionalità premium!' }),
-        [{ text: 'OK', onPress: () => {
-          if (typeof global !== 'undefined') {
-            global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
-            global.__PREVENT_AUTO_NAVIGATION__ = false;
-          }
-          router.replace('/(tabs)/dashboard');
-        }}]
+        t('error', { defaultValue: 'Errore' }),
+        t('purchaseError', { defaultValue: 'Si è verificato un errore durante l\'acquisto.' }),
+        [{ text: 'OK' }]
       );
-    });
+    } finally {
+      setLoading(false);
+    }
   };
   
   const handleClose = () => {
@@ -294,7 +324,7 @@ export default function SubscriptionOfferScreen() {
         {/* Bottone per abbonamento */}
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={handleSubscribe}
+          onPress={() => handleSubscribe(selectedPlan === 'yearly' ? 'annual' : 'monthly')}
         >
           <Text style={styles.primaryButtonText}>
             {t('subscribeNow', { ns: 'purchases', defaultValue: "Abbonati ora" })}
