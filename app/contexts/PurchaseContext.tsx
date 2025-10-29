@@ -7,6 +7,9 @@ import { useAuth } from './AuthContext';
 import * as purchaseService from '../lib/services/purchase.service';
 import { PremiumFeatures, PurchaseState, FREE_LIMITS } from '../types/purchases';
 
+// 🚨 DEBUG ESTREMO: Questo log DEVE apparire sempre
+console.log('🚨🚨🚨 PURCHASE_CONTEXT.TSX CARICATO! 🚨🚨🚨');
+
 // Chiavi specifiche dello storage
 const STORAGE_KEYS = {
   SIMULATE_PREMIUM: 'SIMULATE_PREMIUM',
