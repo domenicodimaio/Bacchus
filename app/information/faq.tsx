@@ -97,10 +97,10 @@ export default function FAQScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.headerText, { color: colors.text }]}>
-            Domande Frequenti
+            {t('faqTitle', { ns: 'common', defaultValue: 'Domande Frequenti' })}
           </Text>
           <Text style={[styles.subHeaderText, { color: colors.textSecondary }]}>
-            Trova risposte alle domande più comuni su Bacchus
+            {t('faqSubtitle', { ns: 'common', defaultValue: 'Trova risposte alle domande più comuni su Bacchus' })}
           </Text>
 
           {faqData.map((item, index) => (
@@ -131,10 +131,10 @@ export default function FAQScreen() {
 
           <View style={[styles.contactSection, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Text style={[styles.contactTitle, { color: colors.text }]}>
-              Non hai trovato quello che cercavi?
+              {t('faqContactTitle', { ns: 'common', defaultValue: 'Non hai trovato quello che cercavi?' })}
             </Text>
             <Text style={[styles.contactText, { color: colors.textSecondary }]}>
-              Contattaci per ricevere assistenza personalizzata
+              {t('faqContactText', { ns: 'common', defaultValue: 'Contattaci per ricevere assistenza personalizzata' })}
             </Text>
             <TouchableOpacity 
               style={[styles.contactButton, { backgroundColor: colors.primary }]}
@@ -142,7 +142,7 @@ export default function FAQScreen() {
             >
               <Ionicons name="mail-outline" size={20} color="white" />
               <Text style={styles.contactButtonText}>
-                Contatta il Supporto
+                {t('contactSupport', { ns: 'common', defaultValue: 'Contatta il Supporto' })}
               </Text>
             </TouchableOpacity>
           </View>

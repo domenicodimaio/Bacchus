@@ -165,13 +165,29 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       
       try {
         // Carica i prodotti (operazione che potrebbe fallire)
+        console.log('🎯 INIT: Caricamento prodotti e subscriptions...');
         const offerings = await purchaseService.getProducts();
+        console.log('🎯 INIT: Offerings ricevute:', offerings ? 'OK' : 'NULL');
+        
         if (offerings) {
           products = offerings.availablePackages || [];
-          subscriptions = offerings.availablePackages.filter((p: any) => p.packageType !== 'LIFETIME') || [];
+          subscriptions = (offerings.availablePackages || []).filter((p: any) => {
+            const pkgType = p.packageType?.toUpperCase();
+            return pkgType !== 'LIFETIME';
+          });
+          
+          console.log('🎯 INIT: Products trovati:', products.length);
+          console.log('🎯 INIT: Subscriptions trovati:', subscriptions.length);
+          console.log('🎯 INIT: Package types:', subscriptions.map((s: any) => ({
+            identifier: s.identifier,
+            packageType: s.packageType,
+            productId: s.product?.identifier
+          })));
+        } else {
+          console.warn('🎯 INIT: Offerings è NULL - nessun prodotto disponibile');
         }
       } catch (productsError) {
-        console.error('Failed to load products:', productsError);
+        console.error('🎯 INIT: Failed to load products:', productsError);
       }
       
       // Ottieni il conteggio sessioni rimaste
@@ -396,11 +412,23 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Imposta lo stato di caricamento
       safeSetState({ isLoading: true });
       
-      // Trova l'abbonamento corrispondente
-      const sub = state.subscriptions.find((p: any) => p.packageType === plan);
+      // 🔧 NORMALIZZAZIONE: Converte 'monthly'/'annual' in 'MONTHLY'/'ANNUAL' per matching
+      const normalizedPlan = plan.toUpperCase() === 'MONTHLY' ? 'MONTHLY' : 'ANNUAL';
+      
+      // Trova l'abbonamento corrispondente (case-insensitive)
+      const sub = state.subscriptions.find((p: any) => {
+        const pkgType = typeof p.packageType === 'string' ? p.packageType.toUpperCase() : p.packageType;
+        return pkgType === normalizedPlan || pkgType === plan.toUpperCase();
+      });
+      
       if (!sub) {
-        console.error('PURCHASE: Piano abbonamento non trovato:', plan);
-        console.log('PURCHASE: Abbonamenti disponibili:', state.subscriptions.map(s => s.packageType));
+        console.error('PURCHASE: Piano abbonamento non trovato:', plan, '(normalizzato:', normalizedPlan + ')');
+        console.log('PURCHASE: Abbonamenti disponibili:', state.subscriptions.map((s: any) => ({
+          identifier: s.identifier,
+          packageType: s.packageType,
+          productId: s.product?.identifier
+        })));
+        console.log('PURCHASE: Stato subscriptions completo:', JSON.stringify(state.subscriptions, null, 2));
         
         Alert.alert(
           t('error', { ns: 'common', defaultValue: 'Errore' }),

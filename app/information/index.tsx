@@ -99,7 +99,7 @@ export default function Information() {
               {t('importantDisclaimerText', { ns: 'common', defaultValue: 'Questa app è solo un supporto per avere un\'idea del tasso alcolemico e NON è uno strumento su cui affidarsi totalmente prima di mettersi alla guida. Il calcolo è indicativo e può variare in base a molti fattori individuali.' })}
             </Text>
             <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 12 }]}>
-              Versione: {appVersion} ({appBuild})
+              {t('version', { ns: 'common', defaultValue: 'Versione' })}: {appVersion} ({appBuild})
             </Text>
           </View>
           
