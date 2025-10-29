@@ -412,18 +412,58 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Imposta lo stato di caricamento
       safeSetState({ isLoading: true });
       
-      // 🔧 NORMALIZZAZIONE: Converte 'monthly'/'annual' in 'MONTHLY'/'ANNUAL' per matching
-      const normalizedPlan = plan.toUpperCase() === 'MONTHLY' ? 'MONTHLY' : 'ANNUAL';
+      // 🔧 NORMALIZZAZIONE: 'monthly'/'annual' → 'MONTHLY'/'ANNUAL' (RevenueCat usa ANNUAL)
+      const normalizedPlan = plan.toLowerCase() === 'monthly' ? 'MONTHLY' : 'ANNUAL';
       
-      // Trova l'abbonamento corrispondente (case-insensitive)
-      const sub = state.subscriptions.find((p: any) => {
-        const pkgType = typeof p.packageType === 'string' ? p.packageType.toUpperCase() : p.packageType;
-        return pkgType === normalizedPlan || pkgType === plan.toUpperCase();
+      // Trova l'abbonamento corrispondente (case-insensitive), con più strategie
+      let sub = state.subscriptions.find((p: any) => {
+        const pkgType = typeof p.packageType === 'string' ? p.packageType.toUpperCase() : String(p.packageType).toUpperCase();
+        return pkgType === normalizedPlan || pkgType === plan.toUpperCase() ||
+               (normalizedPlan === 'ANNUAL' && (pkgType === 'YEARLY' || pkgType.includes('ANNU')) ||
+                normalizedPlan === 'MONTHLY' && pkgType.includes('MONTH'));
       });
+      
+      // Fallback 1: match per identifier del package o del product
+      if (!sub) {
+        sub = state.subscriptions.find((p: any) => {
+          const id = (p.identifier || '').toLowerCase();
+          const pid = (p.product?.identifier || '').toLowerCase();
+          return normalizedPlan === 'MONTHLY'
+            ? id.includes('month') || pid.includes('month')
+            : id.includes('year') || id.includes('annual') || pid.includes('year') || pid.includes('annual');
+        });
+      }
+      
+      // Fallback 2: se non abbiamo nulla in memoria, prova a ricaricare le offerings live
+      if (!sub) {
+        try {
+          console.warn('PURCHASE: Nessun package trovato in cache. Riprovo a caricare offerings live...');
+          const liveOfferings = await purchaseService.getProducts();
+          const liveSubs = (liveOfferings?.availablePackages || []).filter((p: any) => {
+            const pkgType = (p.packageType || '').toString().toUpperCase();
+            return pkgType !== 'LIFETIME';
+          });
+          console.log('PURCHASE: Live subscriptions:', liveSubs.map((s: any) => ({
+            identifier: s.identifier,
+            packageType: s.packageType,
+            productId: s.product?.identifier
+          })));
+          sub = liveSubs.find((p: any) => {
+            const pkgType = (p.packageType || '').toString().toUpperCase();
+            const id = (p.identifier || '').toLowerCase();
+            const pid = (p.product?.identifier || '').toLowerCase();
+            if (pkgType === normalizedPlan) return true;
+            if (normalizedPlan === 'MONTHLY') return pkgType.includes('MONTH') || id.includes('month') || pid.includes('month');
+            return pkgType.includes('ANNU') || pkgType.includes('YEAR') || id.includes('annual') || id.includes('year') || pid.includes('annual') || pid.includes('year');
+          });
+        } catch (reloadErr) {
+          console.warn('PURCHASE: Errore durante reload offerings:', reloadErr);
+        }
+      }
       
       if (!sub) {
         console.error('PURCHASE: Piano abbonamento non trovato:', plan, '(normalizzato:', normalizedPlan + ')');
-        console.log('PURCHASE: Abbonamenti disponibili:', state.subscriptions.map((s: any) => ({
+        console.log('PURCHASE: Abbonamenti disponibili (cache):', state.subscriptions.map((s: any) => ({
           identifier: s.identifier,
           packageType: s.packageType,
           productId: s.product?.identifier
