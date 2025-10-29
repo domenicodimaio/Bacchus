@@ -275,7 +275,6 @@
   "helpCenterDisclaimer": "Remember: Bacchus is a support tool. The decision to drive is always and only your responsibility. Drink responsibly and never drive under the influence of alcohol.",
   "limitationsContent": "BAC calculation can vary significantly due to:\n\n• Individual metabolism\n• Health conditions\n• Medications taken\n• Hydration level\n• Stress and fatigue\n• Body composition\n• Consumption speed\n• Type of beverage\n\n",
   "limitationsWarning": "For this reason, always use common sense and never drive if you have been drinking, regardless of what the app shows.",
-  "logoutConfirm": "Are you sure you want to sign out?",
   "emailSubject": "Support Request - Bacchus App",
   "emailBody": "Hello Bacchus team,\n\nI need assistance with the app.\n\nApp version: __VERSION__ (__BUILD__)\nDevice: __PLATFORM__\n\nProblem description:\n[Describe your problem here]\n\nThank you!"
 }

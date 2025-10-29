@@ -430,7 +430,38 @@ export const getProducts = async () => {
  */
 export const purchasePackage = async (pkg: any) => {
   try {
-    // 🔧 SISTEMA INTELLIGENTE: Tenta acquisto reale, fallback a mock
+    console.log('🛒 PURCHASE_PACKAGE: Chiamato con pkg:', pkg);
+    console.log('🛒 PURCHASE_PACKAGE: isRevenueCatAvailable:', isRevenueCatAvailable);
+    console.log('🛒 PURCHASE_PACKAGE: isInAppPurchasesAvailable:', isInAppPurchasesAvailable);
+    console.log('🛒 PURCHASE_PACKAGE: isExpoGo:', isExpoGo);
+    
+    // 🔧 PRIORITÀ 1: REVENUECAT (PREFERITO)
+    if (isRevenueCatAvailable && !isExpoGo && Purchases) {
+      console.log('🛒 PURCHASE_PACKAGE: Tentativo acquisto RevenueCat per:', pkg.identifier || pkg.productId);
+      
+      try {
+        const result = await Purchases.purchasePackage(pkg);
+        console.log('✅ PURCHASE_PACKAGE: Acquisto RevenueCat completato!', result);
+        
+        return { 
+          success: true, 
+          customerInfo: result.customerInfo 
+        };
+        
+      } catch (revenueCatError: any) {
+        console.error('❌ PURCHASE_PACKAGE: Errore RevenueCat:', revenueCatError);
+        
+        // Se l'utente ha cancellato, non fare fallback
+        if (revenueCatError.userCancelled) {
+          return { success: false, error: revenueCatError };
+        }
+        
+        // Altrimenti, fallback a Expo In-App Purchases
+        console.log('🔄 PURCHASE_PACKAGE: Fallback a Expo In-App Purchases...');
+      }
+    }
+    
+    // 🔧 PRIORITÀ 2: EXPO IN-APP PURCHASES (FALLBACK)
     if (isInAppPurchasesAvailable && !isExpoGo) {
       console.log('🛒 PURCHASE: Tentativo acquisto reale per:', pkg.identifier || pkg.productId);
       

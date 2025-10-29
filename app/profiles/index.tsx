@@ -167,15 +167,15 @@ export default function ProfilesScreen() {
   
   const handleLogout = () => {
     Alert.alert(
-      t('logout', { ns: 'common', defaultValue: 'Esci' }),
-      t('logoutConfirm', { ns: 'common', defaultValue: 'Sei sicuro di voler uscire?' }),
+      t('logout', { ns: 'common', defaultValue: 'Sign Out' }),
+      t('logoutConfirm', { ns: 'common', defaultValue: 'Are you sure you want to sign out?' }),
       [
         {
-          text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }),
+          text: t('cancel', { ns: 'common', defaultValue: 'Cancel' }),
           style: 'cancel',
         },
         {
-          text: t('logout', { ns: 'common', defaultValue: 'Esci' }),
+          text: t('logout', { ns: 'common', defaultValue: 'Sign Out' }),
           style: 'destructive',
           onPress: async () => {
             setIsLoading(true);
@@ -548,7 +548,7 @@ export default function ProfilesScreen() {
               >
                 <Ionicons name="log-out-outline" size={24} color={colors.error} />
                 <Text style={[styles.optionText, { color: colors.error }]}>
-                  {t('logout', { ns: 'common', defaultValue: 'Esci' })}
+                  {t('logout', { ns: 'common', defaultValue: 'Sign Out' })}
                 </Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
