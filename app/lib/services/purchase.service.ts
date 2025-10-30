@@ -421,7 +421,11 @@ export const getProducts = async () => {
             PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
             PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
           ].filter(Boolean) as string[];
-          const products = await Purchases.getProducts(productIds);
+          // RevenueCat v7 richiede il type per gli abbonamenti
+          const products = await Purchases.getProducts(
+            productIds,
+            (Purchases as any)?.ProductType?.SUBS || 'subs'
+          );
           // Costruisci una struttura analoga a offerings.current
           const availablePackages = products.map((p: any) => ({
             identifier: p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year') ? 'premium_yearly' : 'premium_monthly',
@@ -442,7 +446,10 @@ export const getProducts = async () => {
             PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
             PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
           ].filter(Boolean) as string[];
-          const products = await Purchases.getProducts(productIds);
+          const products = await Purchases.getProducts(
+            productIds,
+            (Purchases as any)?.ProductType?.SUBS || 'subs'
+          );
           const availablePackages = products.map((p: any) => ({
             identifier: p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year') ? 'premium_yearly' : 'premium_monthly',
             packageType: (p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year')) ? 'ANNUAL' : 'MONTHLY',

@@ -3,7 +3,7 @@ export default {
     name: 'Bacchus',
     slug: 'Bacchus',
     owner: "domenicodimaio.95",
-    version: '1.2.2',
+    version: '1.2.3',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
