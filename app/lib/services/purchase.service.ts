@@ -412,7 +412,28 @@ export const getProducts = async () => {
     if (typeof Purchases !== 'undefined' && Purchases !== null) {
       try {
       const offerings = await Purchases.getOfferings();
-      return offerings.current;
+      const current = offerings?.current;
+      // Se le offerings sono vuote, fallback a getProducts con gli ID noti
+      if (!current || !current.availablePackages || current.availablePackages.length === 0) {
+        console.warn('PURCHASES: Offerings vuote - fallback a getProducts con PRODUCT_IDS');
+        try {
+          const productIds: string[] = [
+            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
+            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
+          ].filter(Boolean) as string[];
+          const products = await Purchases.getProducts(productIds);
+          // Costruisci una struttura analoga a offerings.current
+          const availablePackages = products.map((p: any) => ({
+            identifier: p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year') ? 'premium_yearly' : 'premium_monthly',
+            packageType: (p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year')) ? 'ANNUAL' : 'MONTHLY',
+            product: p,
+          }));
+          return { identifier: 'fallback', serverDescription: 'Fallback offerings', availablePackages } as any;
+        } catch (gpErr) {
+          console.warn('PURCHASES: Fallback getProducts fallito:', gpErr);
+        }
+      }
+      return current;
       } catch (offeringsError) {
         console.warn('Failed to get RevenueCat offerings:', offeringsError);
       }
@@ -437,10 +458,17 @@ export const purchasePackage = async (pkg: any) => {
     
     // 🔧 PRIORITÀ 1: REVENUECAT (PREFERITO)
     if (isRevenueCatAvailable && !isExpoGo && Purchases) {
-      console.log('🛒 PURCHASE_PACKAGE: Tentativo acquisto RevenueCat per:', pkg.identifier || pkg.productId);
+      console.log('🛒 PURCHASE_PACKAGE: Tentativo acquisto RevenueCat per:', pkg?.identifier || pkg?.productId || pkg?.product?.identifier);
       
       try {
-        const result = await Purchases.purchasePackage(pkg);
+        // Supporta sia package che productId (fallback quando costruito da getProducts)
+        let result: any;
+        if (pkg && pkg.product && typeof pkg.packageType !== 'undefined') {
+          result = await Purchases.purchasePackage(pkg);
+        } else {
+          const productId = pkg?.productId || pkg?.identifier || pkg?.product?.identifier;
+          result = await Purchases.purchaseProduct(productId);
+        }
         console.log('✅ PURCHASE_PACKAGE: Acquisto RevenueCat completato!', result);
         
         return { 
