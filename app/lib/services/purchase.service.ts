@@ -436,6 +436,22 @@ export const getProducts = async () => {
       return current;
       } catch (offeringsError) {
         console.warn('Failed to get RevenueCat offerings:', offeringsError);
+        // Fallback anche in caso di errore su getOfferings
+        try {
+          const productIds: string[] = [
+            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
+            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
+          ].filter(Boolean) as string[];
+          const products = await Purchases.getProducts(productIds);
+          const availablePackages = products.map((p: any) => ({
+            identifier: p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year') ? 'premium_yearly' : 'premium_monthly',
+            packageType: (p.identifier?.toLowerCase().includes('annual') || p.identifier?.toLowerCase().includes('year')) ? 'ANNUAL' : 'MONTHLY',
+            product: p,
+          }));
+          return { identifier: 'fallback', serverDescription: 'Fallback offerings', availablePackages } as any;
+        } catch (gpErr) {
+          console.warn('PURCHASES: Fallback getProducts (in catch) fallito:', gpErr);
+        }
       }
     }
     
