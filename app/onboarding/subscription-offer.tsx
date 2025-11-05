@@ -235,7 +235,7 @@ export default function SubscriptionOfferScreen() {
         <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
       
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -324,7 +324,7 @@ export default function SubscriptionOfferScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
+      </View>
       
       {/* Link legali richiesti da Apple */}
       <View style={styles.legalLinksContainer}>
@@ -386,10 +386,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  content: {
     flex: 1,
-  },
-  scrollContent: {
     paddingTop: 60,
     paddingBottom: 20,
   },

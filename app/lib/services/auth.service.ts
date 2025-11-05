@@ -933,6 +933,15 @@ export const signOut = async (): Promise<AuthResponse> => {
     const profileService = require('./profile.service');
     profileService.resetProfileService(); // Reset cache profili
     
+    // 🔥 FIX CRITICO: Reset RevenueCat per cambio utente
+    const purchaseService = require('./purchase.service');
+    await purchaseService.resetUserForPurchases();
+    
+    // 🔥 FIX CRITICO: Reset stato premium locale
+    await AsyncStorage.removeItem('bacchus_mock_premium');
+    await AsyncStorage.removeItem('bacchus_customer_info');
+    console.log('🔥 LOGOUT: RevenueCat user reset e stato premium pulito');
+    
     // 5. FORZA IMMEDIATAMENTE LA NAVIGAZIONE AL LOGIN
     const { router } = require('expo-router');
     

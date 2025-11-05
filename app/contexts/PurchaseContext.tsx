@@ -274,6 +274,15 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       };
       
       reloadSessionCounter();
+    } else if (isInitialized && !user) {
+      // 🔥 FIX: Reset stato quando utente fa logout
+      console.log('🎯 USER LOGOUT: Resetting purchase state');
+      safeSetState({
+        isPremium: false,
+        isAdFree: false,
+        customerInfo: null,
+        remainingFreeSessions: FREE_LIMITS.SESSIONS_PER_WEEK
+      });
     }
   }, [user?.id, isInitialized]);
   
