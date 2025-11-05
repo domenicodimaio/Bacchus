@@ -118,6 +118,15 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }));
   };
   
+  // 🔧 FIX MULTI-ACCOUNT: Helper per chiavi specifiche per utente
+  const getUserSpecificKey = (baseKey: string): string => {
+    if (!user?.id) {
+      console.warn(`⚠️ PurchaseContext: userId mancante per ${baseKey}, usando chiave globale`);
+      return baseKey;
+    }
+    return `${baseKey}_${user.id}`;
+  };
+  
   // 🔥 FIX PREMIUM: Inizializza automaticamente all'avvio
   useEffect(() => {
     console.log('🔥 PURCHASE_CONTEXT: Inizializzazione automatica all\'avvio...');
@@ -135,28 +144,28 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         return true;
       }
       
-      // 🔥 FIX BUG 2: Controlla SEMPRE SIMULATE_PREMIUM prima di tutto
-      const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
-      console.log('🎯 INIT: Controllo SIMULATE_PREMIUM:', simulatePremium);
+      // 🔥 FIX PERSISTENZA: SEMPRE inizializza e controlla RevenueCat per abbonamenti attivi
+      console.log('🎯 INIT: Inizializzazione servizio acquisti...');
+      const success = await purchaseService.initPurchases();
       
-      let isPremium = false;
-      let isAdFree = false;
+      // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per stato premium reale
+      let isPremium = await purchaseService.isPremium();
+      let isAdFree = await purchaseService.isAdFree();
       
-      if (simulatePremium === 'true') {
-        console.log('🎯 INIT: Modalità simulazione premium attiva');
-        isPremium = true;
-        isAdFree = true;
+      console.log('🎯 INIT: Stato da RevenueCat - isPremium:', isPremium, 'isAdFree:', isAdFree);
+      
+      // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
+      if (!isPremium) {
+        const simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM));
+        console.log('🎯 INIT: Controllo SIMULATE_PREMIUM:', simulatePremium);
+        
+        if (simulatePremium === 'true') {
+          console.log('🎯 INIT: Modalità simulazione premium attiva');
+          isPremium = true;
+          isAdFree = true;
+        }
       } else {
-        console.log('🎯 INIT: Modalità normale - controllo servizio acquisti');
-        
-        // Inizializza il servizio acquisti solo se non in modalità simulazione
-        const success = await purchaseService.initPurchases();
-        
-        // Ottieni stato premium e ad-free dal servizio
-        isPremium = await purchaseService.isPremium();
-        isAdFree = await purchaseService.isAdFree();
-        
-        console.log('🎯 INIT: Stato dal servizio - isPremium:', isPremium, 'isAdFree:', isAdFree);
+        console.log('🎯 INIT: Abbonamento attivo trovato su RevenueCat');
       }
       
       // Ottenere prodotti potrebbe fallire, iniziamo con lista vuota
@@ -247,15 +256,19 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔧 FIX: Ricarica anche il counter sessioni quando cambia utente
       const reloadSessionCounter = async () => {
         try {
-          // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM anche qui
-          const simulatePremium = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATE_PREMIUM);
+          // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi
+          console.log('🎯 USER CHANGED: Controllo stato premium da RevenueCat...');
+          let isPremium = await purchaseService.isPremium();
           
-          let isPremium = false;
-          if (simulatePremium === 'true') {
-            console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
-            isPremium = true;
+          // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
+          if (!isPremium) {
+            const simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM));
+            if (simulatePremium === 'true') {
+              console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
+              isPremium = true;
+            }
           } else {
-            isPremium = await purchaseService.isPremium();
+            console.log('🎯 USER CHANGED: Abbonamento attivo trovato su RevenueCat');
           }
           
           const remainingSessions = await purchaseService.getRemainingSessionsCount();
@@ -506,7 +519,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
         
         // Salva lo stato premium
-        await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, 'true');
+        await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS), 'true');
         
         // Mostra messaggio di successo
         Alert.alert(
@@ -529,7 +542,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         let errorMessage = t('purchaseError', { ns: 'purchases', defaultValue: 'Errore durante l\'acquisto. Riprova.' });
         
         if (result.error) {
-          if (result.error.includes('network') || result.error.includes('connection')) {
+          if (result.isAppleSandboxError) {
+            // Errore specifico Apple Sandbox - messaggio più chiaro
+            errorMessage = 'Apple Sandbox: Hai già un abbonamento attivo su questo Apple ID.\n\n💡 Per testare con un altro account:\n1. Vai in Impostazioni iPhone\n2. App Store > Account Sandbox\n3. Esci e accedi con un altro account di test';
+          } else if (result.error.includes('network') || result.error.includes('connection')) {
             errorMessage = t('networkError', { ns: 'common', defaultValue: 'Errore di connessione. Verifica la tua connessione internet.' });
           } else if (result.error.includes('payment')) {
             errorMessage = t('paymentError', { ns: 'purchases', defaultValue: 'Errore nel pagamento. Verifica il tuo metodo di pagamento.' });
@@ -616,7 +632,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           customerInfo: result.customerInfo,
         });
         
-        await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, isPremium ? 'true' : 'false');
+        await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS), isPremium ? 'true' : 'false');
         
         // Mostra messaggio di successo
         try {
@@ -685,11 +701,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Valore ricevuto:', value);
       
       // Salva il valore
-      await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, value ? 'true' : 'false');
+      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM), value ? 'true' : 'false');
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Salvato in AsyncStorage');
       
-      // Imposta anche lo stato di simulazione nel servizio
-      await purchaseService.setMockPremiumStatus(value);
+      // Imposta anche lo stato premium nel servizio
+      await purchaseService.setPremiumStatus(value);
       console.log('🎯 TOGGLE_SIMULATE_PREMIUM: Aggiornato purchase service');
       
       // 🔧 FIX CRITICO: Ricalcola sessioni rimanenti in base al nuovo stato premium
@@ -736,7 +752,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const enablePremiumTest = async () => {
     if (__DEV__) {
       console.log('[PURCHASE_TEST] Enabling premium simulation for testing...');
-      await AsyncStorage.setItem(STORAGE_KEYS.SIMULATE_PREMIUM, 'true');
+      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM), 'true');
       
       // Update state immediately
       safeSetState({
@@ -755,7 +771,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   const disablePremiumTest = async () => {
     if (__DEV__) {
       console.log('[PURCHASE_TEST] Disabling premium simulation...');
-      await AsyncStorage.removeItem(STORAGE_KEYS.SIMULATE_PREMIUM);
+      await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM));
       
       // Update state to free version
       safeSetState({

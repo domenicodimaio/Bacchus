@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES } from '../constants/theme';
@@ -209,8 +208,7 @@ export default function EditProfileScreen() {
   }
   
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         
         <AppHeader 
@@ -543,7 +541,6 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
       </Modal>
       </View>
-    </GestureHandlerRootView>
   );
 }
 

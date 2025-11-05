@@ -36,7 +36,7 @@ try {
   isRevenueCatAvailable = false;
 }
 
-// 🔧 SISTEMA ACQUISTI INTELLIGENTE: Prova reale, fallback a mock sicuro
+// 🔧 SISTEMA ACQUISTI PRODUZIONE: RevenueCat + Expo IAP fallback
 let ExpoInAppPurchases: any = null;
 let isInAppPurchasesAvailable = false;
 
@@ -47,11 +47,11 @@ try {
     isInAppPurchasesAvailable = true;
     console.log('✅ PURCHASES: Expo In-App Purchases caricato (tenteremo connessione sicura)');
   } else {
-    console.log('🛒 PURCHASES: Expo Go rilevato - modalità mock');
+    console.log('🛒 PURCHASES: Expo Go rilevato - solo sviluppo');
     isInAppPurchasesAvailable = false;
   }
 } catch (error) {
-  console.log('⚠️ PURCHASES: In-App Purchases non disponibile, modalità mock:', error);
+  console.log('⚠️ PURCHASES: In-App Purchases non disponibile:', error);
   isInAppPurchasesAvailable = false;
 }
 
@@ -110,7 +110,60 @@ const STORAGE_KEYS = {
   CUSTOMER_INFO: 'bacchus_customer_info',
   SESSION_COUNT: 'bacchus_session_count',
   WEEKLY_SESSION_RESET: 'bacchus_weekly_session_reset',
-  MOCK_PREMIUM: 'bacchus_mock_premium', // Per testare lo stato premium in Expo Go
+  PREMIUM_STATUS: 'bacchus_premium_status', // Stato premium locale
+};
+
+// 🔧 FIX MULTI-ACCOUNT: Chiavi specifiche per utente
+const getUserSpecificKey = (baseKey: string, userId?: string): string => {
+  if (!userId) {
+    console.warn(`⚠️ getUserSpecificKey: userId mancante per ${baseKey}, usando chiave globale`);
+    return baseKey;
+  }
+  return `${baseKey}_${userId}`;
+};
+
+// Variabile per tracciare l'utente corrente
+let currentUserId: string | null = null;
+
+/**
+ * 🔧 FIX MULTI-ACCOUNT: Imposta l'utente corrente per le chiavi specifiche
+ */
+export const setUserForPurchases = async (userId: string): Promise<boolean> => {
+  try {
+    console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
+    
+    // Se l'utente è cambiato, pulisci lo stato precedente
+    if (currentUserId && currentUserId !== userId) {
+      console.log(`🔄 PURCHASE_SERVICE: Utente cambiato da ${currentUserId} a ${userId}, pulizia stato`);
+      
+      // Pulisci RevenueCat se disponibile
+      if (isRevenueCatAvailable && Purchases) {
+        try {
+          await Purchases.logOut();
+          console.log('🔄 RevenueCat: Logout completato per cambio utente');
+        } catch (logoutError) {
+          console.warn('⚠️ RevenueCat: Errore logout:', logoutError);
+        }
+      }
+    }
+    
+    currentUserId = userId;
+    
+    // Configura RevenueCat per il nuovo utente
+    if (isRevenueCatAvailable && Purchases) {
+      try {
+        await Purchases.logIn(userId);
+        console.log(`✅ RevenueCat: Login completato per utente ${userId}`);
+      } catch (loginError) {
+        console.warn('⚠️ RevenueCat: Errore login:', loginError);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ PURCHASE_SERVICE: Errore impostazione utente:', error);
+    return false;
+  }
 };
 
 /**
@@ -137,7 +190,7 @@ export const initPurchases = async () => {
       
       // Verifica se abbiamo chiavi API valide
       if (apiKey === 'dummy_key' || apiKey.includes('YOUR_REVENUECAT')) {
-        console.log('🛒 PURCHASES: Chiavi API non configurate - usando modalità mock');
+        console.log('🛒 PURCHASES: Chiavi API non configurate - fallback locale');
         return await initMockMode();
       }
       
@@ -219,13 +272,13 @@ export const initPurchases = async () => {
         
       } catch (inAppError: any) {
         console.error('❌ INIT: Errore acquisti reali:', inAppError.message || inAppError);
-        console.log('🔄 INIT: Fallback a modalità mock sicura...');
+        console.log('🔄 INIT: Fallback a Expo IAP...');
         return await initMockMode();
       }
     }
     
-    // Fallback diretto a mock
-    console.log('🔄 INIT: Modalità mock (Expo Go o modulo non disponibile)');
+    // Fallback per sviluppo
+    console.log('🔄 INIT: Modalità sviluppo (Expo Go o modulo non disponibile)');
     return await initMockMode();
     
   } catch (error) {
@@ -234,16 +287,16 @@ export const initPurchases = async () => {
   }
 };
 
-// Funzione helper per modalità mock
+// Funzione helper per modalità sviluppo/fallback
 const initMockMode = async () => {
-  console.log('🔧 INIT: Modalità mock attiva');
+  console.log('🔧 INIT: Modalità sviluppo attiva');
   
-  const existingMockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
+  const existingMockPremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
   if (!existingMockPremium) {
-    console.log('🔧 MOCK: Impostando modalità gratuita per testare counter sessioni');
-    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
+    console.log('🔧 DEV: Impostando modalità gratuita per testare counter sessioni');
+    await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'false');
   } else {
-    console.log(`🔧 MOCK: Mantenendo stato premium esistente: ${existingMockPremium}`);
+    console.log(`🔧 DEV: Mantenendo stato premium esistente: ${existingMockPremium}`);
   }
   return true;
     
@@ -252,9 +305,9 @@ const initMockMode = async () => {
     
     // Verifica se abbiamo chiavi API valide
     if (apiKey === 'dummy_key' || apiKey.includes('YOUR_REVENUECAT')) {
-      console.log('🛒 PURCHASES: Chiavi API non configurate - usando modalità mock');
+        console.log('🛒 PURCHASES: Chiavi API non configurate - fallback locale');
       isRevenueCatAvailable = false;
-      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
+      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'false');
       return true;
     }
     
@@ -285,9 +338,9 @@ const initMockMode = async () => {
       
     } catch (revenueCatError) {
       console.warn('❌ PURCHASES: Fallimento inizializzazione RevenueCat:', revenueCatError);
-      // Se RevenueCat fallisce, passiamo alla modalità mock
+      // Se RevenueCat fallisce, passiamo al fallback locale
       isRevenueCatAvailable = false;
-      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'false');
+      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'false');
     }
     
     // Verifica e reset il contatore sessioni settimanali
@@ -321,17 +374,36 @@ export const setUserForPurchases = async (userId: string) => {
  */
 export const resetUserForPurchases = async () => {
   try {
-    if (!isRevenueCatAvailable) return true;
+    console.log(`🔄 RESET: Resettando stato acquisti per utente: ${currentUserId}`);
     
-    try {
-      await Purchases.logOut();
-      console.log('User logged out from RevenueCat');
-    } catch (logoutError) {
-      console.warn('Failed to log out from RevenueCat:', logoutError);
+    // Pulisci lo stato premium specifico per l'utente corrente
+    if (currentUserId) {
+      try {
+        await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
+        await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId));
+        console.log(`🔄 RESET: Pulito stato locale per utente ${currentUserId}`);
+      } catch (storageError) {
+        console.warn('⚠️ RESET: Errore pulizia AsyncStorage:', storageError);
+      }
     }
+    
+    // Logout da RevenueCat
+    if (isRevenueCatAvailable && Purchases) {
+      try {
+        await Purchases.logOut();
+        console.log('🔄 RESET: RevenueCat logout completato');
+      } catch (logoutError) {
+        console.warn('⚠️ RESET: Errore RevenueCat logout:', logoutError);
+      }
+    }
+    
+    // Reset utente corrente
+    currentUserId = null;
+    console.log('🔄 RESET: Reset completato');
+    
     return true;
   } catch (error) {
-    console.error('Failed to reset user for purchases:', error);
+    console.error('❌ RESET: Errore reset acquisti:', error);
     return false;
   }
 };
@@ -342,9 +414,9 @@ export const resetUserForPurchases = async () => {
 export const getCustomerInfo = async () => {
   try {
     if (isExpoGo) {
-      // In Expo Go, controlla se l'utente è stato impostato come "premium" nel mock
-      const mockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
-      return mockPremium === 'true' ? { entitlements: { active: { premium: true, ad_free: true } } } : { entitlements: { active: {} } };
+      // In Expo Go, controlla stato premium locale
+      const localPremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
+      return localPremium === 'true' ? { entitlements: { active: { premium: true, ad_free: true } } } : { entitlements: { active: {} } };
     }
     
     if (typeof Purchases !== 'undefined' && Purchases !== null) {
@@ -368,7 +440,7 @@ export const getCustomerInfo = async () => {
       console.error('Failed to get stored customer info:', storageError);
     }
     
-    // Se non ci sono dati, restituisci un mock vuoto
+    // Se non ci sono dati, restituisci stato vuoto
     return { entitlements: { active: {} } };
   } catch (error) {
     console.error('Failed to get customer info:', error);
@@ -382,12 +454,12 @@ export const getCustomerInfo = async () => {
 export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean> => {
   try {
     if (isExpoGo) {
-      // In Expo Go, controlla se l'utente è stato impostato come "premium" nel mock
-      const mockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
+      // In Expo Go, controlla stato premium locale
+      const localPremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
       if (entitlement === Entitlement.PREMIUM) {
-        return mockPremium === 'true';
+        return localPremium === 'true';
       } else if (entitlement === Entitlement.AD_FREE) {
-        return mockPremium === 'true';
+        return localPremium === 'true';
       }
       return false;
     }
@@ -408,10 +480,10 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
 export const getProducts = async () => {
   try {
     if (isExpoGo) {
-      // In Expo Go, restituisci prodotti mockati
+      // In Expo Go, restituisci prodotti di sviluppo
       return {
         identifier: 'default',
-        serverDescription: 'Mock offerings for testing',
+        serverDescription: 'Development offerings for testing',
         availablePackages: [
           {
             identifier: 'premium_monthly',
@@ -549,6 +621,20 @@ export const purchasePackage = async (pkg: any) => {
           return { success: false, cancelled: true, error: 'User cancelled purchase' };
         }
         
+        // 🍎 GESTIONE ERRORE APPLE SANDBOX: "Hai già un abbonamento"
+        if (revenueCatError.message?.includes('Hai già un abbonamento') || 
+            revenueCatError.message?.includes('already have a subscription') ||
+            revenueCatError.underlyingErrorMessage?.includes('3532')) {
+          console.log('🍎 APPLE SANDBOX: Abbonamento già esistente per questo Apple ID');
+          console.log('💡 SUGGERIMENTO: Vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account');
+          
+          return { 
+            success: false, 
+            error: 'Apple Sandbox: Hai già un abbonamento attivo su questo Apple ID. Per testare con un altro account, vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account di test.',
+            isAppleSandboxError: true
+          };
+        }
+        
         // RevenueCat fallito, proviamo con Expo In-App Purchases
         console.log('🔄 PURCHASE_PACKAGE: RevenueCat fallito, tentativo con Expo IAP...');
         
@@ -586,7 +672,7 @@ export const purchasePackage = async (pkg: any) => {
                 console.log('✅ RECEIPT: Validazione server completata con successo');
                 
                 // Salva lo stato premium
-                await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+                await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
                 
                 return { 
                   success: true, 
@@ -607,7 +693,7 @@ export const purchasePackage = async (pkg: any) => {
             } else {
               console.warn('⚠️ RECEIPT: Nessun receipt trovato nel risultato acquisto');
               // Fallback: considera l'acquisto valido anche senza receipt
-              await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+              await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
               
               return { 
                 success: true, 
@@ -626,7 +712,7 @@ export const purchasePackage = async (pkg: any) => {
             
             // In caso di errore server, considera comunque l'acquisto valido
             // (Apple ha confermato il pagamento)
-            await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+            await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
             
             return { 
               success: true, 
@@ -657,8 +743,8 @@ export const purchasePackage = async (pkg: any) => {
         // Expo IAP fallito, ritorna errore
         console.log('❌ PURCHASE: Tutti i metodi di acquisto falliti');
         
-        // Altrimenti, fallback a mock per testing
-        console.log('🔄 PURCHASE: Fallback a mock per testing...');
+        // Altrimenti, fallback per sviluppo
+        console.log('🔄 PURCHASE: Fallback sviluppo...');
       }
     }
     
@@ -666,7 +752,7 @@ export const purchasePackage = async (pkg: any) => {
     // Durante la review Apple, simula un acquisto riuscito senza errori
     if (isAppleReviewEnvironment()) {
       console.log('🍎 APPLE REVIEW: Simulando acquisto riuscito per review');
-      await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
       
       // Simula un piccolo delay per sembrare realistico
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -684,9 +770,9 @@ export const purchasePackage = async (pkg: any) => {
       };
     }
     
-    // Modalità mock normale (per testing o quando acquisti reali non disponibili)
-    console.log('🔧 PURCHASE: Mock purchase per:', pkg.identifier || pkg.productId);
-    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, 'true');
+    // Modalità sviluppo (per testing o quando acquisti reali non disponibili)
+    console.log('🔧 PURCHASE: Development purchase per:', pkg.identifier || pkg.productId);
+    await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, 'true');
     return { 
       success: true, 
       customerInfo: { 
@@ -713,13 +799,13 @@ export const purchasePackage = async (pkg: any) => {
 export const restorePurchases = async () => {
   try {
     if (isExpoGo) {
-      // In Expo Go, simula un ripristino riuscito
-      const mockPremium = await AsyncStorage.getItem(STORAGE_KEYS.MOCK_PREMIUM);
+      // In Expo Go, controlla stato premium locale
+      const localPremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
       return { 
         success: true, 
         customerInfo: { 
           entitlements: { 
-            active: mockPremium === 'true' ? { premium: true, ad_free: true } : {} 
+            active: localPremium === 'true' ? { premium: true, ad_free: true } : {} 
           } 
         } 
       };
@@ -945,11 +1031,9 @@ export const canCreateNewSession = async (): Promise<boolean> => {
 };
 
 /**
- * Solo per scopi di sviluppo: imposta lo stato premium per il mock
+ * Imposta lo stato premium locale (per sviluppo e fallback)
  */
-export const setMockPremiumStatus = async (isPremium: boolean): Promise<void> => {
-  if (isExpoGo) {
-    await AsyncStorage.setItem(STORAGE_KEYS.MOCK_PREMIUM, isPremium ? 'true' : 'false');
-    console.log(`Mock premium status set to ${isPremium}`);
-  }
+export const setPremiumStatus = async (isPremium: boolean): Promise<void> => {
+  await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), isPremium ? 'true' : 'false');
+  console.log(`Premium status set to ${isPremium} for user ${currentUserId}`);
 }; 

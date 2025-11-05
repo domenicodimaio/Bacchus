@@ -47,24 +47,39 @@ export const ALL_NAMESPACES = ['common', 'settings', 'session', 'auth', 'dashboa
 // Ottieni la lingua del dispositivo
 const getDeviceLanguage = () => {
   try {
-    // 🔧 LOCALIZATION DISABILITATA per build stabile
-    console.log('🌐 [i18n] Localization disabilitata - usando italiano come default');
-    return 'it';
+    // 🌍 RIATTIVATO: Rilevamento automatico lingua per Italia vs Mondo
+    console.log('🌐 [i18n] Rilevamento automatico lingua dispositivo...');
     
-    /* CODICE ORIGINALE COMMENTATO:
-    const locales = Localization.getLocales();
-    const primaryLocale = locales[0];
-    const locale = primaryLocale?.languageTag || 'en';
-    const languageCode = locale.split('-')[0].toLowerCase();
+    // Usa React Native per ottenere la locale del dispositivo
+    let deviceLocale = 'en';
     
-    if (SUPPORTED_LANGUAGES.includes(languageCode)) {
-      return languageCode;
+    if (Platform.OS === 'ios') {
+      // iOS: usa NativeModules per ottenere la locale
+      deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
+                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] || 'en';
+    } else {
+      // Android: usa NativeModules per ottenere la locale
+      deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en';
     }
     
-    return 'it';
-    */
+    console.log('🌐 [i18n] Device locale rilevata:', deviceLocale);
+    
+    // Estrai il codice lingua (es: "it-IT" -> "it", "en-US" -> "en")
+    const languageCode = deviceLocale.split('-')[0].toLowerCase();
+    
+    // 🇮🇹 LOGICA ITALIA: Se la lingua è italiana, usa italiano
+    if (languageCode === 'it') {
+      console.log('🇮🇹 [i18n] Dispositivo italiano rilevato - usando italiano');
+      return 'it';
+    }
+    
+    // 🌍 LOGICA MONDO: Tutti gli altri paesi usano inglese
+    console.log('🌍 [i18n] Dispositivo non italiano rilevato - usando inglese');
+    return 'en';
+    
   } catch (error) {
     console.error('🌐 [i18n] Errore nel determinare la lingua del dispositivo:', error);
+    // Fallback: italiano (lingua principale dell'app)
     return 'it';
   }
 };

@@ -14,32 +14,44 @@ import { LANGUAGE_STORAGE_KEY } from '../../i18n';
 const ITALIAN_COUNTRIES = ['IT', 'CH', 'SM', 'VA'];
 
 /**
- * Determina la lingua predefinita in base alla regione dell'utente
+ * Determina la lingua predefinita in base alla lingua del dispositivo
  */
 export const getDefaultLanguage = (): string => {
   try {
-    // 🔧 LOCALIZATION DISABILITATA per build stabile
-    // Usa italiano come default per ora
-    console.log('Localization disabilitata - usando italiano come default');
-    return 'it';
+    // 🌍 RIATTIVATO: Rilevamento automatico lingua per Italia vs Mondo
+    console.log('🌐 Rilevamento automatico lingua dispositivo...');
     
-    /* CODICE ORIGINALE COMMENTATO:
-    const locales = Localization.getLocales();
-    const primaryLocale = locales[0];
-    const region = primaryLocale?.regionCode;
-    const deviceLanguage = primaryLocale?.languageCode;
+    // Usa React Native per ottenere la locale del dispositivo
+    const { Platform, NativeModules } = require('react-native');
+    let deviceLocale = 'en';
     
-    console.log(`Device region: ${region}, language: ${deviceLanguage}`);
+    if (Platform.OS === 'ios') {
+      // iOS: usa NativeModules per ottenere la locale
+      deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
+                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] || 'en';
+    } else {
+      // Android: usa NativeModules per ottenere la locale
+      deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en';
+    }
     
-    if (region && ITALIAN_COUNTRIES.includes(region)) {
+    console.log('🌐 Device locale rilevata:', deviceLocale);
+    
+    // Estrai il codice lingua (es: "it-IT" -> "it", "en-US" -> "en")
+    const languageCode = deviceLocale.split('-')[0].toLowerCase();
+    
+    // 🇮🇹 LOGICA ITALIA: Se la lingua è italiana, usa italiano
+    if (languageCode === 'it') {
+      console.log('🇮🇹 Dispositivo italiano rilevato - usando italiano');
       return 'it';
     }
     
+    // 🌍 LOGICA MONDO: Tutti gli altri paesi usano inglese
+    console.log('🌍 Dispositivo non italiano rilevato - usando inglese');
     return 'en';
-    */
+    
   } catch (error) {
     console.error('Error getting device locale:', error);
-    return 'it'; // Default a italiano
+    return 'it'; // Default a italiano (lingua principale dell'app)
   }
 };
 
