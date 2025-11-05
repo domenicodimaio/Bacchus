@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { SIZES } from '../constants/theme';
@@ -208,13 +209,14 @@ export default function EditProfileScreen() {
   }
   
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-      
-      <AppHeader 
-        title={t('editProfile', { ns: 'profile' })}
-        isMainScreen={false}
-      />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        
+        <AppHeader 
+          title={t('editProfile', { ns: 'profile' })}
+          isMainScreen={false}
+        />
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -224,6 +226,7 @@ export default function EditProfileScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
@@ -418,31 +421,36 @@ export default function EditProfileScreen() {
           {/* Removed save button from ScrollView */}
           
         </ScrollView>
+        
+        {/* Save button inside KeyboardAvoidingView for keyboard visibility */}
+        <SafeAreaView style={[styles.saveButtonContainer, { 
+          backgroundColor: colors.background,
+          borderTopColor: colors.border 
+        }]}>
+          <View style={styles.saveButtonWrapper}>
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                { backgroundColor: colors.primary },
+                isSaving && { opacity: 0.7 }
+              ]}
+              onPress={handleSaveProfile}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={20} color="white" style={styles.saveIcon} />
+                  <Text style={styles.saveButtonText}>
+                    {t('save')}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </KeyboardAvoidingView>
-      
-      {/* Save button outside of ScrollView for permanent visibility */}
-      <SafeAreaView style={[styles.saveButtonContainer, { 
-        backgroundColor: colors.background,
-        borderTopColor: colors.border 
-      }]}>
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            { backgroundColor: colors.primary },
-            isSaving && { opacity: 0.7 }
-          ]}
-          onPress={handleSaveProfile}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : (
-            <Text style={styles.saveButtonText}>
-              {t('save')}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </SafeAreaView>
       
       {/* Emoji Picker Modal */}
       <Modal
@@ -534,7 +542,8 @@ export default function EditProfileScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -632,19 +641,38 @@ const styles = StyleSheet.create({
   },
   saveButtonContainer: {
     paddingHorizontal: SIZES.padding,
-    paddingVertical: 10,
+    paddingVertical: 16,
     borderTopWidth: 1,
   },
+  saveButtonWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   saveButton: {
-    height: 56,
-    borderRadius: SIZES.radiusSmall,
+    height: 52,
+    paddingHorizontal: 40,
+    borderRadius: 26,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  saveIcon: {
+    marginRight: 8,
   },
   saveButtonText: {
     color: 'white',
-    fontSize: SIZES.body,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   modalOverlay: {
     flex: 1,

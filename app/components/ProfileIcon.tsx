@@ -43,10 +43,10 @@ const ProfileIcon: React.FC<ProfileIconProps> = ({ size = 34, showModal = false,
     setIsModalVisible(false);
   };
   
-  // Vai alla pagina dei profili
+  // Vai al tab profilo (mantiene la tab navigation)
   const handleGoToProfiles = () => {
     handleCloseModal();
-    router.push('/profiles');
+    router.push('/(tabs)/profile');
   };
   
   // Vai alla modifica profilo
