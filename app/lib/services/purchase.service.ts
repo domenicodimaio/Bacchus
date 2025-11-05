@@ -349,25 +349,6 @@ const initMockMode = async () => {
     return true;
 };
 
-/**
- * Imposta l'ID utente per RevenueCat
- */
-export const setUserForPurchases = async (userId: string) => {
-  try {
-    if (!isRevenueCatAvailable) return true;
-    
-    try {
-      await Purchases.logIn(userId);
-      console.log(`User ${userId} logged into RevenueCat`);
-    } catch (loginError) {
-      console.warn('Failed to log in to RevenueCat:', loginError);
-    }
-    return true;
-  } catch (error) {
-    console.error('Failed to set user for purchases:', error);
-    return false;
-  }
-};
 
 /**
  * Resetta l'utente per RevenueCat (al logout)
