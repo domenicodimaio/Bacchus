@@ -58,7 +58,7 @@ export default function Information() {
   };
 
   const handleOpenPrivacyPolicy = () => {
-    Linking.openURL('https://github.com/domenicodimaio/bacchus-urls/wiki/Privacy-Policy');
+    router.push('/information/privacy-policy');
   };
 
   const handleOpenTermsOfService = () => {
@@ -66,7 +66,7 @@ export default function Information() {
   };
 
   const handleOpenHelpCenter = () => {
-    Linking.openURL('https://github.com/domenicodimaio/bacchus-urls/wiki/Support-Center');
+    router.push('/information/help-center');
   };
 
   return (

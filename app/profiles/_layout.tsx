@@ -12,7 +12,7 @@ export default function ProfilesLayout() {
       <Stack.Screen 
         name="edit" 
         options={{
-          gestureEnabled: false,
+          gestureEnabled: true,
           gestureDirection: 'horizontal',
           animation: 'slide_from_right'
         }}

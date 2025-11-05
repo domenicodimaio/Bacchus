@@ -1,0 +1,14 @@
+{
+  "name": "bacchus-receipt-validation",
+  "version": "1.0.0",
+  "description": "Apple Receipt Validation Server for Bacchus App",
+  "main": "receipt-validation.js",
+  "scripts": {
+    "start": "node receipt-validation.js",
+    "dev": "node receipt-validation.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

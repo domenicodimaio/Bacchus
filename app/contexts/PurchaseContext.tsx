@@ -509,13 +509,18 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       } else {
         console.error('PURCHASE: Acquisto fallito:', result.error);
         
-        // Gestisci errori specifici
+        // Se l'utente ha cancellato, non mostrare errore
+        if (result.cancelled || (result.error && (result.error.includes('cancelled') || result.error.includes('canceled')))) {
+          console.log('🚫 PURCHASE: Acquisto cancellato dall\'utente, nessun errore mostrato');
+          safeSetState({ isLoading: false });
+          return false;
+        }
+        
+        // Gestisci altri errori
         let errorMessage = t('purchaseError', { ns: 'purchases', defaultValue: 'Errore durante l\'acquisto. Riprova.' });
         
         if (result.error) {
-          if (result.error.includes('cancelled') || result.error.includes('canceled')) {
-            errorMessage = t('purchaseCancelled', { ns: 'purchases', defaultValue: 'Acquisto annullato.' });
-          } else if (result.error.includes('network') || result.error.includes('connection')) {
+          if (result.error.includes('network') || result.error.includes('connection')) {
             errorMessage = t('networkError', { ns: 'common', defaultValue: 'Errore di connessione. Verifica la tua connessione internet.' });
           } else if (result.error.includes('payment')) {
             errorMessage = t('paymentError', { ns: 'purchases', defaultValue: 'Errore nel pagamento. Verifica il tuo metodo di pagamento.' });

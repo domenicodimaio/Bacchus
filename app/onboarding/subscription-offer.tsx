@@ -41,7 +41,7 @@ export default function SubscriptionOfferScreen() {
   console.log(`[SubscriptionOfferScreen] Parametri: source=${source}, fromWizard=${fromWizard}, permanent=${permanent}`);
   
   // Hooks base
-  const { t } = useTranslation(['purchases', 'common']);
+  const { t, i18n } = useTranslation(['purchases', 'common']);
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
   const insets = useSafeAreaInsets();
@@ -338,7 +338,7 @@ export default function SubscriptionOfferScreen() {
             onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
-              {t('termsOfService', { ns: 'common', defaultValue: 'Termini di Servizio' })}
+              {i18n.language === 'it' ? 'Termini di Servizio (EULA)' : 'Terms of Use (EULA)'}
             </Text>
           </TouchableOpacity>
           
@@ -346,7 +346,7 @@ export default function SubscriptionOfferScreen() {
           
           <TouchableOpacity 
             style={styles.legalLink}
-            onPress={() => Linking.openURL('https://github.com/domenicodimaio/bacchus-urls/wiki/Privacy-Policy')}
+            onPress={() => router.push('/information/privacy-policy')}
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
               {t('privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}
