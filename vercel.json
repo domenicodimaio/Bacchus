@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "server/receipt-validation.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/validate-receipt",
+      "destination": "/server/receipt-validation.js"
+    }
+  ]
+}

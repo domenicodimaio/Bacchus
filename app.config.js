@@ -16,7 +16,7 @@ export default {
       '**/*'
     ],
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: 'com.bacchusapp.app',
       buildNumber: '2621',
       infoPlist: {

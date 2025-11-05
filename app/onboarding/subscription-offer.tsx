@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   BackHandler,
+  Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -264,6 +265,9 @@ export default function SubscriptionOfferScreen() {
             <Text style={[styles.planPrice, { color: colors.primary }]}>
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
+            <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
+              {t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })}
+            </Text>
             
             {selectedPlan === 'monthly' && (
               <Ionicons name="checkmark-circle" size={22} color={colors.primary} style={styles.checkmark} />
@@ -295,6 +299,9 @@ export default function SubscriptionOfferScreen() {
                 </Text>
               </View>
             </View>
+            <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
+              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (yearlyPrice/12).toFixed(2) + '/mese • Rinnovo automatico' })}
+            </Text>
             
             {selectedPlan === 'yearly' && (
               <Ionicons name="checkmark-circle" size={22} color={colors.primary} style={styles.checkmark} />
@@ -319,6 +326,35 @@ export default function SubscriptionOfferScreen() {
         </View>
       </ScrollView>
       
+      {/* Link legali richiesti da Apple */}
+      <View style={styles.legalLinksContainer}>
+        <Text style={[styles.legalDisclaimer, { color: colors.textSecondary }]}>
+          {t('subscriptionAutoRenews', { ns: 'purchases', defaultValue: 'L\'abbonamento si rinnova automaticamente. Puoi annullare in qualsiasi momento.' })}
+        </Text>
+        
+        <View style={styles.legalLinks}>
+          <TouchableOpacity 
+            style={styles.legalLink}
+            onPress={() => Linking.openURL('https://bacchus.app/terms')}
+          >
+            <Text style={[styles.legalLinkText, { color: colors.primary }]}>
+              {t('termsOfService', { ns: 'common', defaultValue: 'Termini di Servizio' })}
+            </Text>
+          </TouchableOpacity>
+          
+          <Text style={[styles.legalSeparator, { color: colors.textSecondary }]}> • </Text>
+          
+          <TouchableOpacity 
+            style={styles.legalLink}
+            onPress={() => Linking.openURL('https://bacchus.app/privacy')}
+          >
+            <Text style={[styles.legalLinkText, { color: colors.primary }]}>
+              {t('privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Bottoni in basso */}
       <View style={[styles.bottomButtons, { backgroundColor: colors.background }]}>
         {/* Bottone per abbonamento */}
@@ -422,6 +458,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  planDetails: {
+    fontSize: 11,
+    marginTop: 4,
+    textAlign: 'center',
+  },
   discountBadge: {
     marginLeft: 8,
     paddingHorizontal: 6,
@@ -456,6 +497,34 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 16,
+  },
+  legalLinksContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  legalDisclaimer: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  legalLink: {
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  legalLinkText: {
+    fontSize: 12,
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    fontSize: 12,
+    marginHorizontal: 4,
   },
   bottomButtons: {
     padding: 16,
