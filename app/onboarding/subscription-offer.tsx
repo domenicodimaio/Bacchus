@@ -335,7 +335,7 @@ export default function SubscriptionOfferScreen() {
         <View style={styles.legalLinks}>
           <TouchableOpacity 
             style={styles.legalLink}
-            onPress={() => Linking.openURL('https://bacchus.app/terms')}
+            onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
               {t('termsOfService', { ns: 'common', defaultValue: 'Termini di Servizio' })}
@@ -346,7 +346,7 @@ export default function SubscriptionOfferScreen() {
           
           <TouchableOpacity 
             style={styles.legalLink}
-            onPress={() => Linking.openURL('https://bacchus.app/privacy')}
+            onPress={() => Linking.openURL('https://github.com/domenicodimaio/bacchus-urls/wiki/Privacy-Policy')}
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
               {t('privacyPolicy', { ns: 'common', defaultValue: 'Privacy Policy' })}

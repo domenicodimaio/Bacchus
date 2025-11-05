@@ -557,8 +557,8 @@ export default function SettingsScreen() {
   };
 
   const handleOpenPrivacyPolicy = () => {
-    // Naviga alla schermata Privacy Policy interna
-    router.push('/information/privacy-policy');
+    // Apre la Privacy Policy su GitHub
+    Linking.openURL('https://github.com/domenicodimaio/bacchus-urls/wiki/Privacy-Policy');
   };
 
   const handleOpenTerms = () => {

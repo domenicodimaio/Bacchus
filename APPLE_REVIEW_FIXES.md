@@ -73,11 +73,11 @@ Dopo il deploy, aggiorna l'URL del server nell'app:
 const RECEIPT_VALIDATION_URL = 'https://tuo-dominio.vercel.app/api/validate-receipt';
 ```
 
-### **E. Verifica Link Web**
+### **E. Aggiorna Metadata App Store Connect**
 
-Assicurati che questi URL siano attivi:
-- ✅ `https://bacchus.app/terms`
-- ✅ `https://bacchus.app/privacy`
+1. **Privacy Policy URL**: `https://github.com/domenicodimaio/bacchus-urls/wiki/Privacy-Policy`
+2. **App Description**: Aggiungi "Termini di Servizio: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+3. **Oppure**: Seleziona "Standard Apple EULA" nel campo EULA
 
 ### **F. Nuovi Screenshot iPhone**
 
