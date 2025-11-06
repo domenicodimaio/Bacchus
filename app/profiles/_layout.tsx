@@ -12,6 +12,7 @@ export default function ProfilesLayout() {
       <Stack.Screen 
         name="edit" 
         options={{
+          presentation: 'card',
           gestureEnabled: true,
           gestureDirection: 'horizontal',
           animation: 'slide_from_right'

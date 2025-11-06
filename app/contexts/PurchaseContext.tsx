@@ -155,8 +155,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.log('🎯 INIT: Stato da RevenueCat - isPremium:', isPremium, 'isAdFree:', isAdFree);
       
       // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
+      let simulatePremium = 'false';
       if (!isPremium) {
-        const simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM));
+        simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
         console.log('🎯 INIT: Controllo SIMULATE_PREMIUM:', simulatePremium);
         
         if (simulatePremium === 'true') {
@@ -261,8 +262,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           let isPremium = await purchaseService.isPremium();
           
           // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
+          let simulatePremium = 'false';
           if (!isPremium) {
-            const simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM));
+            simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
             if (simulatePremium === 'true') {
               console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
               isPremium = true;
