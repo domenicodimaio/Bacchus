@@ -250,13 +250,14 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (isInitialized && user?.id) {
       console.log(`🎯 USER CHANGED: Updating purchases for user ${user.id}`);
       
-      purchaseService.setUserForPurchases(user.id).catch(error => {
-        console.error('Error setting user for purchases:', error);
-      });
-      
       // 🔧 FIX: Ricarica anche il counter sessioni quando cambia utente
       const reloadSessionCounter = async () => {
         try {
+          // 🔥 FIX CRITICO: ASPETTA che setUserForPurchases finisca PRIMA di controllare premium
+          console.log('🎯 USER CHANGED: Impostando utente per RevenueCat...');
+          await purchaseService.setUserForPurchases(user.id);
+          console.log('🎯 USER CHANGED: RevenueCat sincronizzato, ora controllo premium...');
+          
           // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi
           console.log('🎯 USER CHANGED: Controllo stato premium da RevenueCat...');
           let isPremium = await purchaseService.isPremium();

@@ -170,7 +170,7 @@ export default function RootLayout() {
                       screenOptions={({ route }) => {
                         // 🔥 FIX BUG 3: Abilita swipe back SOLO per schermate specifiche
                         const routeName = route.name || '';
-                        const gestureRoutes = ['session-details', 'add-drink', 'add-food', 'settings'];
+                        const gestureRoutes = ['session-details', 'add-drink', 'add-food', 'settings', 'profiles/edit'];
                         const shouldEnable = gestureRoutes.some(r => routeName.includes(r));
                         
                         return {
