@@ -154,6 +154,22 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
       try {
         await Purchases.logIn(userId);
         console.log(`✅ RevenueCat: Login completato per utente ${userId}`);
+        
+        // 🔥 FIX CRITICO: Aspetta che RevenueCat sia sincronizzato
+        console.log('🔄 RevenueCat: Aspettando sincronizzazione...');
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Aspetta 1.5 secondi
+        
+        // Verifica che la sincronizzazione sia avvenuta
+        try {
+          const customerInfo = await Purchases.getCustomerInfo();
+          console.log(`✅ RevenueCat: Sincronizzazione completata per ${userId}`, {
+            hasEntitlements: !!customerInfo?.entitlements?.active,
+            activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {})
+          });
+        } catch (syncError) {
+          console.warn('⚠️ RevenueCat: Errore verifica sincronizzazione:', syncError);
+        }
+        
       } catch (loginError) {
         console.warn('⚠️ RevenueCat: Errore login:', loginError);
       }

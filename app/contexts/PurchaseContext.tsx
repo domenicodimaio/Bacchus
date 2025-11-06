@@ -523,11 +523,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         // Salva lo stato premium
         await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS), 'true');
         
-        // Mostra messaggio di successo
-        Alert.alert(
-          t('success', { ns: 'common', defaultValue: 'Successo' }),
-          t('purchaseSuccess', { ns: 'purchases', defaultValue: 'Abbonamento attivato con successo!' })
-        );
+        // 🔧 FIX: Rimosso alert doppio - il successo viene mostrato dalla schermata di acquisto
         
         return true;
       } else {
