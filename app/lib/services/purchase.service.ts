@@ -625,18 +625,31 @@ export const purchasePackage = async (pkg: any) => {
           console.log('🍎 APPLE SANDBOX: Abbonamento già esistente per questo Apple ID');
           console.log('💡 SUGGERIMENTO: Vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account');
           
-          return { 
-            success: false, 
-            error: 'Apple Sandbox: Hai già un abbonamento attivo su questo Apple ID. Per testare con un altro account, vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account di test.',
-            isAppleSandboxError: true
-          };
+          // 🔧 FIX: In sandbox, "già abbonato" significa SUCCESS per RevenueCat!
+          // Recupera le info customer aggiornate
+          try {
+            const customerInfo = await Purchases.getCustomerInfo();
+            console.log('✅ SANDBOX FIX: Abbonamento già attivo, recupero info customer');
+            
+            return { 
+              success: true, 
+              customerInfo: customerInfo,
+              isAppleSandboxRestore: true
+            };
+          } catch (getInfoError) {
+            console.warn('⚠️ SANDBOX: Errore recupero customer info:', getInfoError);
+            
+            return { 
+              success: false, 
+              error: 'Apple Sandbox: Hai già un abbonamento attivo su questo Apple ID. Per testare con un altro account, vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account di test.',
+              isAppleSandboxError: true
+            };
+          }
         }
         
-        // RevenueCat fallito, proviamo con Expo In-App Purchases
-        console.log('🔄 PURCHASE_PACKAGE: RevenueCat fallito, tentativo con Expo IAP...');
-        
-        // Altrimenti, fallback a Expo In-App Purchases
-        console.log('🔄 PURCHASE_PACKAGE: Fallback a Expo In-App Purchases...');
+        // RevenueCat fallito per altri motivi, proviamo con Expo In-App Purchases
+        console.log('🔄 PURCHASE_PACKAGE: RevenueCat fallito per altro motivo, tentativo con Expo IAP...');
+        console.log('🔄 PURCHASE_PACKAGE: Errore RevenueCat:', revenueCatError.message);
       }
     }
     

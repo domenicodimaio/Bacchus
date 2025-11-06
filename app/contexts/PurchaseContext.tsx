@@ -524,7 +524,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         // Salva lo stato premium
         await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS), 'true');
         
-        // 🔧 FIX: Rimosso alert doppio - il successo viene mostrato dalla schermata di acquisto
+        // 🔧 FIX: Messaggio specifico per sandbox restore
+        if (result.isAppleSandboxRestore) {
+          console.log('🍎 SANDBOX: Abbonamento già attivo riconosciuto');
+        }
         
         return true;
       } else {
