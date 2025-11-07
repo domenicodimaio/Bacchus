@@ -110,6 +110,28 @@ const PROFILE_COLORS = [
 export default function ProfileWizardScreen() {
   // Stato del wizard
   const [currentStep, setCurrentStep] = useState(0);
+  
+  // 🔧 FIX APPLE GUIDELINE: Carica dati da Apple Sign In se disponibili
+  useEffect(() => {
+    const loadAppleData = async () => {
+      try {
+        const appleData = await AsyncStorage.getItem('APPLE_USER_DATA');
+        if (appleData) {
+          const { name, email } = JSON.parse(appleData);
+          if (name) {
+            setName(name);
+            console.log('🍎 WIZARD: Nome caricato da Apple:', name);
+          }
+          // Rimuovi i dati dopo l'uso
+          await AsyncStorage.removeItem('APPLE_USER_DATA');
+        }
+      } catch (error) {
+        console.warn('Errore caricamento dati Apple:', error);
+      }
+    };
+    
+    loadAppleData();
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [animationsStarted, setAnimationsStarted] = useState(false);
   

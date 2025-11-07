@@ -31,6 +31,7 @@ import { navigateToSession } from '../session/index';
 import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePurchase } from '../contexts/PurchaseContext';
+import SafetyDisclaimer from '../components/SafetyDisclaimer';
 
 // Mock active profile
 const activeProfile = {
@@ -676,6 +677,9 @@ function DashboardScreen() {
           </View>
         </View>
       )}
+      
+      {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
+      <SafetyDisclaimer variant="banner" />
       
       {/* Disclaimer spostato più in basso e meno evidente */}
       <View style={styles.disclaimerContainer}>

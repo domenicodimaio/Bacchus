@@ -463,6 +463,17 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           fullName: credential.fullName
         });
         
+        // 🔧 FIX APPLE GUIDELINE: Salva nome e email da Apple per evitare richieste duplicate
+        if (credential.fullName?.givenName || credential.email) {
+          const appleUserData = {
+            name: credential.fullName?.givenName || '',
+            email: credential.email || '',
+            fromApple: true
+          };
+          await AsyncStorage.setItem('APPLE_USER_DATA', JSON.stringify(appleUserData));
+          console.log('🍎 APPLE: Dati utente salvati per wizard:', appleUserData);
+        }
+        
         
         if (credential.identityToken) {
           console.log('APPLE_FLOW: Inviando token a Supabase per autenticazione...');

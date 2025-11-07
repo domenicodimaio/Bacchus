@@ -56,6 +56,7 @@ import Toast from '../components/Toast';
 import AppHeader from '../components/AppHeader';
 import { Card as PaperCard } from 'react-native-paper';
 import { usePurchase } from '../contexts/PurchaseContext';
+import SafetyDisclaimer from '../components/SafetyDisclaimer';
 // Importazioni rimosse perché non utilizzate
 // import LottieView from 'lottie-react-native';
 // import { BlurView } from 'expo-blur';
@@ -1802,6 +1803,9 @@ const styles = StyleSheet.create({
       >
         {/* Contenuto principale */}
         <View style={styles.mainContent}>
+          {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
+          <SafetyDisclaimer variant="compact" />
+          
           {/* Indicatore circolare del progresso */}
           <View style={styles.circleContainer}>
             <BACDisplay 
