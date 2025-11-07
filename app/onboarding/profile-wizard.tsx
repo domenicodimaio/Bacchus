@@ -117,10 +117,12 @@ export default function ProfileWizardScreen() {
       try {
         const appleData = await AsyncStorage.getItem('APPLE_USER_DATA');
         if (appleData) {
-          const { name, email } = JSON.parse(appleData);
-          if (name) {
+          const { name, email, fromApple } = JSON.parse(appleData);
+          if (name && name.trim()) {
             setName(name);
             console.log('🍎 WIZARD: Nome caricato da Apple:', name);
+          } else if (fromApple) {
+            console.log('🍎 WIZARD: Login Apple rilevato ma nome non disponibile (normale dopo la prima volta)');
           }
           // Rimuovi i dati dopo l'uso
           await AsyncStorage.removeItem('APPLE_USER_DATA');

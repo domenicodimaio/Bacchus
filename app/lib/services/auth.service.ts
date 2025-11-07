@@ -464,15 +464,22 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
         });
         
         // 🔧 FIX APPLE GUIDELINE: Salva nome e email da Apple per evitare richieste duplicate
-        if (credential.fullName?.givenName || credential.email) {
-          const appleUserData = {
-            name: credential.fullName?.givenName || '',
-            email: credential.email || '',
-            fromApple: true
-          };
-          await AsyncStorage.setItem('APPLE_USER_DATA', JSON.stringify(appleUserData));
-          console.log('🍎 APPLE: Dati utente salvati per wizard:', appleUserData);
+        // NOTA: Apple fornisce il nome SOLO la prima volta per privacy
+        const appleUserData = {
+          name: credential.fullName?.givenName || '',
+          email: credential.email || '',
+          fromApple: true,
+          appleId: credential.user // Salva l'Apple ID per riferimento
+        };
+        
+        if (credential.fullName?.givenName) {
+          console.log('🍎 APPLE: Nome fornito da Apple:', credential.fullName.givenName);
+        } else {
+          console.log('🍎 APPLE: Nome NON fornito (normale dopo la prima volta)');
         }
+        
+        await AsyncStorage.setItem('APPLE_USER_DATA', JSON.stringify(appleUserData));
+        console.log('🍎 APPLE: Dati utente salvati per wizard:', appleUserData);
         
         
         if (credential.identityToken) {

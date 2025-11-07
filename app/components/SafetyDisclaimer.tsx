@@ -82,7 +82,11 @@ export default function SafetyDisclaimer({
         <Text style={[styles.bannerText, { color: colors.warning }]}>
           {disclaimerText.banner}
         </Text>
-        <TouchableOpacity onPress={() => setShowFullDisclaimer(true)}>
+        <TouchableOpacity 
+          onPress={() => setShowFullDisclaimer(true)}
+          style={styles.infoButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="information-circle" size={20} color={colors.warning} />
         </TouchableOpacity>
       </View>
@@ -195,6 +199,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 12,
     lineHeight: 18,
+  },
+  infoButton: {
+    padding: 4,
+    borderRadius: 12,
   },
   
   fullContainer: {
