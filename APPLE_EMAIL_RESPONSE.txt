@@ -1,0 +1,53 @@
+Subject: Response to App Review - Bacchus (Version 1.2.3) - Submission ID: 46105041-640b-4289-b8f5-796aefce785d
+
+Dear Apple Review Team,
+
+Thank you for your feedback on our app submission. We have addressed all the issues raised and would like to provide clarification on each point.
+
+GUIDELINE 4.0 - DESIGN (iPad Compatibility)
+
+Our app is explicitly configured with "supportsTablet: false" in the iOS configuration and is designed exclusively for iPhone usage. The app should not be available on iPad devices.
+
+We believe there may be a configuration issue in the review process. Could you please verify why the app is being tested on iPad despite the "supportsTablet: false" configuration and conduct the review on iPhone devices only, as intended.
+
+The app's UI is specifically designed for iPhone screen sizes and user interactions. We can provide build logs showing the supportsTablet: false configuration if needed.
+
+GUIDELINE 1.4 - PHYSICAL HARM (BAC Calculator)
+
+We understand Apple's concern for user safety and have implemented comprehensive safety measures to address this important matter.
+
+Our app is designed as an educational tool, not a medical device. We have added enhanced safety disclaimers throughout the app including:
+
+- Multiple prominent disclaimers on every screen with BAC calculations
+- Clear warnings that calculations are for educational purposes only
+- Explicit statements that the app does not replace professional medical devices
+- Strong advisories against making driving decisions based on app calculations
+- Warnings about legal limitations and individual variations
+- Modal disclaimers that users must acknowledge
+
+The app helps users understand alcohol metabolism concepts and promotes awareness of alcohol's effects on the body through education. It provides general information, not medical advice, similar to many educational apps currently available in the App Store.
+
+We believe our enhanced disclaimers and educational focus address the safety concerns while providing valuable alcohol awareness education to users. We respectfully request reconsideration of this guideline application to our educational tool.
+
+GUIDELINE 4.0 - DESIGN (Sign in with Apple)
+
+We have identified and resolved the issue where our app was requesting name/email information after Apple Sign In.
+
+We have modified the authentication flow to automatically use the name and email provided by Apple Sign In. Users who sign in with Apple now see their name pre-filled in the profile setup, eliminating duplicate requests for information already provided by Apple's Authentication Services framework.
+
+The app now follows Apple's Sign in with Apple design guidelines completely and provides the consistent experience users expect.
+
+SUMMARY
+
+We have made significant improvements to address all raised concerns:
+1. Enhanced safety disclaimers throughout the app emphasizing educational purpose
+2. Fixed Apple Sign In to pre-populate user data from Apple credentials
+3. Confirmed supportsTablet: false setting for iPhone-only usage
+
+We believe these changes fully address all raised concerns and demonstrate our commitment to user safety and Apple's guidelines. We would appreciate your reconsideration of our app for approval.
+
+Thank you for your time and consideration.
+
+Best regards,
+Domenico Di Maio
+Developer - Bacchus App
