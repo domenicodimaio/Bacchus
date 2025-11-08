@@ -2,7 +2,7 @@ export default {
   expo: {
     name: 'Bacchus',
     slug: 'Bacchus',
-    owner: "dimaio.domenico95",
+    owner: "dimadome95",
     version: '1.2.3',
     orientation: 'portrait',
     icon: './assets/icon.png',
