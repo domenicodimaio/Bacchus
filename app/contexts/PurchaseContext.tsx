@@ -148,6 +148,14 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.log('🎯 INIT: Inizializzazione servizio acquisti...');
       const success = await purchaseService.initPurchases();
       
+      // 🔥 FIX RACE CONDITION: Se c'è un utente, imposta prima l'utente per RevenueCat
+      if (user?.id) {
+        console.log('🎯 INIT: Impostando utente per RevenueCat...');
+        await purchaseService.setUserForPurchases(user.id);
+        console.log('🎯 INIT: Aspettando sincronizzazione RevenueCat...');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Aspetta 2 secondi
+      }
+      
       // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per stato premium reale
       let isPremium = await purchaseService.isPremium();
       let isAdFree = await purchaseService.isAdFree();
@@ -257,6 +265,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           console.log('🎯 USER CHANGED: Impostando utente per RevenueCat...');
           await purchaseService.setUserForPurchases(user.id);
           console.log('🎯 USER CHANGED: RevenueCat sincronizzato, ora controllo premium...');
+          
+          // 🔥 FIX RACE CONDITION: Aspetta un po' di più per essere sicuri che RevenueCat sia sincronizzato
+          console.log('🎯 USER CHANGED: Aspettando sincronizzazione completa RevenueCat...');
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Aspetta 2 secondi aggiuntivi
           
           // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi
           console.log('🎯 USER CHANGED: Controllo stato premium da RevenueCat...');

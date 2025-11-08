@@ -419,17 +419,17 @@ export const getCustomerInfo = async () => {
     if (typeof Purchases !== 'undefined' && Purchases !== null) {
       try {
       const customerInfo = await Purchases.getCustomerInfo();
-      // Salva le informazioni in AsyncStorage per l'accesso offline (USER-SPECIFIC)
-      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId), JSON.stringify(customerInfo));
+      // Salva le informazioni in AsyncStorage per l'accesso offline
+      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOMER_INFO, JSON.stringify(customerInfo));
       return customerInfo;
       } catch (infoError) {
         console.warn('Failed to get RevenueCat customer info:', infoError);
       }
     }
     
-    // Se RevenueCat non è disponibile, prova a recuperare i dati da AsyncStorage (USER-SPECIFIC)
+    // Se RevenueCat non è disponibile, prova a recuperare i dati da AsyncStorage
     try {
-      const storedInfo = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId));
+      const storedInfo = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOMER_INFO);
       if (storedInfo) {
         return JSON.parse(storedInfo);
       }

@@ -464,6 +464,9 @@ function DashboardScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer - DENTRO ScrollView */}
+          <SafetyDisclaimer variant="banner" />
+          
           <Animated.View style={[styles.mainCard, cardAnimatedStyle, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.sectionHeaderContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -487,7 +490,6 @@ function DashboardScreen() {
               timeToSober={bacData.timeToSober}
               timeToLegal={bacData.timeToLegal}
               timeToZero={bacData.timeToSober}
-              compact={true}
             />
             
             <View style={styles.sessionInfo}>
@@ -679,11 +681,6 @@ function DashboardScreen() {
         </View>
       )}
       
-      {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-      <View style={{ paddingHorizontal: SIZES.padding }}>
-        <SafetyDisclaimer variant="banner" />
-      </View>
-      
       {/* Disclaimer spostato più in basso e meno evidente */}
       <View style={styles.disclaimerContainer}>
         <Text style={[styles.disclaimer, { color: colors.textTertiary }]}>
@@ -765,8 +762,8 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     borderRadius: SIZES.radius,
-    padding: 8, // Ancora più piccolo (era SIZES.paddingSmall = 10)
-    marginBottom: 8, // Ancora più piccolo (era SIZES.margin)
+    padding: SIZES.paddingSmall, // Ripristinato a paddingSmall (10px)
+    marginBottom: SIZES.marginSmall, // Compromesso tra margin e marginLarge
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
@@ -782,17 +779,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: SIZES.subtitle,
     fontWeight: 'bold',
-    marginBottom: 4, // Ridotto da SIZES.marginSmall
+    marginBottom: SIZES.marginSmall, // Ripristinato
     textAlign: 'center',
   },
   sessionInfo: {
-    marginTop: 4, // Ancora più piccolo (era SIZES.marginSmall)
+    marginTop: SIZES.marginSmall, // Ripristinato
   },
   sessionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4, // Ridotto da 8 a 4
+    marginBottom: 6, // Compromesso tra 4 e 8
   },
   sessionLabel: {
     fontSize: SIZES.body,

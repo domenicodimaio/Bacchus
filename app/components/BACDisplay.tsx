@@ -25,14 +25,11 @@ const LEGAL_LIMITS = {
 
 // Constants for the circular display
 const { width } = Dimensions.get('window');
-const CIRCLE_SIZE = width * 0.65;
-const COMPACT_CIRCLE_SIZE = width * 0.45; // Più piccolo per dashboard 
+const CIRCLE_SIZE = width * 0.65; 
 const STROKE_WIDTH = 16; // Spessore della traccia di base
 const FILL_STROKE_WIDTH = 12; // Più sottile rispetto alla traccia principale
-const circleRadius = (CIRCLE_SIZE - STROKE_WIDTH) / 1.75; 
-const COMPACT_circleRadius = (COMPACT_CIRCLE_SIZE - STROKE_WIDTH) / 1.75;
-const circleCircumference = 2 * Math.PI * circleRadius;
-const COMPACT_circleCircumference = 2 * Math.PI * COMPACT_circleRadius;
+const CIRCLE_RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 1.75; 
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
 
 // Costanti per i valori specifici di BAC
 const BAC_MAX = 1.5;  // valore massimo di BAC da visualizzare (corrisponde a 360 gradi)
@@ -95,11 +92,6 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
 }) => {
   // Traduzioni
   const { t } = useTranslation(['session', 'common']);
-  
-  // Dimensioni dinamiche basate su compact
-  const circleSize = compact ? COMPACT_CIRCLE_SIZE : CIRCLE_SIZE;
-  const circleRadius = compact ? COMPACT_circleRadius : circleRadius;
-  const circleCircumference = compact ? COMPACT_circleCircumference : circleCircumference;
   
   // Stato per modal informativo
   const [infoModalVisible, setInfoModalVisible] = useState(false);
@@ -241,7 +233,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
         ratio: validBac / BAC_MAX,
         normalizedBac,
         gradi: normalizedBac * 360,
-        percentoCirconferenza: normalizedBac * circleCircumference,
+        percentoCirconferenza: normalizedBac * CIRCLE_CIRCUMFERENCE,
         marker_05: (0.5/BAC_MAX) * 360,  // Deve essere 120 gradi
         marker_08: (0.8/BAC_MAX) * 360,  // Deve essere 192 gradi
         marker_15: (1.5/BAC_MAX) * 360   // Deve essere 360 gradi
@@ -376,7 +368,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
     <Card style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <View style={styles.circleContainer}>
-          <Svg width={circleSize + MARKER_PADDING * 2} height={circleSize + MARKER_PADDING * 2} style={styles.svgContainer}>
+          <Svg width={CIRCLE_SIZE + MARKER_PADDING * 2} height={CIRCLE_SIZE + MARKER_PADDING * 2} style={styles.svgContainer}>
             {/* Defs for gradients and filters */}
             <Defs>
               <LinearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -400,9 +392,9 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
             
             {/* Circle background track */}
             <Circle
-              cx={(circleSize + MARKER_PADDING * 2) / 2}
-              cy={(circleSize + MARKER_PADDING * 2) / 2}
-              r={circleRadius}
+              cx={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              cy={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              r={CIRCLE_RADIUS}
               stroke={theme.backgroundTrack}
               strokeWidth={STROKE_WIDTH}
               fill="transparent"
@@ -414,12 +406,12 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               const angleInRadians = (angle - 90) * (Math.PI / 180);
               
               // Calcola le coordinate x,y delle stanghette - circonferenza esterna
-              const outerX = (circleSize + MARKER_PADDING * 2) / 2 + (circleRadius + STROKE_WIDTH/2 + 3) * Math.cos(angleInRadians);
-              const outerY = (circleSize + MARKER_PADDING * 2) / 2 + (circleRadius + STROKE_WIDTH/2 + 3) * Math.sin(angleInRadians);
+              const outerX = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + STROKE_WIDTH/2 + 3) * Math.cos(angleInRadians);
+              const outerY = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + STROKE_WIDTH/2 + 3) * Math.sin(angleInRadians);
               
               // Calcola le coordinate x,y delle stanghette - circonferenza interna
-              const innerX = (circleSize + MARKER_PADDING * 2) / 2 + (circleRadius - STROKE_WIDTH/2 - 3) * Math.cos(angleInRadians);
-              const innerY = (circleSize + MARKER_PADDING * 2) / 2 + (circleRadius - STROKE_WIDTH/2 - 3) * Math.sin(angleInRadians);
+              const innerX = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS - STROKE_WIDTH/2 - 3) * Math.cos(angleInRadians);
+              const innerY = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS - STROKE_WIDTH/2 - 3) * Math.sin(angleInRadians);
               
               // Posizione del testo - più distante dal cerchio per evitare taglio
               let textRadiusOffset = STROKE_WIDTH * 1.8;
@@ -432,11 +424,11 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
                 textRadiusOffset = STROKE_WIDTH * 1.8;
               }
               
-              const textX = (circleSize + MARKER_PADDING * 2) / 2 + (circleRadius + textRadiusOffset) * Math.cos(angleInRadians);
-              const textY = (circleSize + MARKER_PADDING * 2) / 2 + (circleRadius + textRadiusOffset) * Math.sin(angleInRadians);
+              const textX = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + textRadiusOffset) * Math.cos(angleInRadians);
+              const textY = (CIRCLE_SIZE + MARKER_PADDING * 2) / 2 + (CIRCLE_RADIUS + textRadiusOffset) * Math.sin(angleInRadians);
               
               // Calcoliamo la dimensione del testo in base alle dimensioni del cerchio
-              const fontSize = Math.max(11, circleSize / 30);
+              const fontSize = Math.max(11, CIRCLE_SIZE / 30);
               
               let labelValue = '';
               
@@ -481,30 +473,30 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
             
             {/* Indicatore BAC - versione statica senza animazione, sopra i marker e con glow */}
             <Circle
-              cx={(circleSize + MARKER_PADDING * 2) / 2}
-              cy={(circleSize + MARKER_PADDING * 2) / 2}
-              r={circleRadius}
+              cx={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              cy={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              r={CIRCLE_RADIUS}
               stroke={activeColor}
               strokeWidth={FILL_STROKE_WIDTH}
               fill="transparent"
               strokeLinecap="round"
-              strokeDasharray={`${normalizedBac * circleCircumference} ${circleCircumference}`}
-              transform={`rotate(-90, ${(circleSize + MARKER_PADDING * 2)/2}, ${(circleSize + MARKER_PADDING * 2)/2})`}
+              strokeDasharray={`${normalizedBac * CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`}
+              transform={`rotate(-90, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2}, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2})`}
               filter="url(#glow)"
               strokeOpacity={1}
             />
             
             {/* Layer aggiuntivo per migliorare la visibilità */}
             <Circle
-              cx={(circleSize + MARKER_PADDING * 2) / 2}
-              cy={(circleSize + MARKER_PADDING * 2) / 2}
-              r={circleRadius}
+              cx={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              cy={(CIRCLE_SIZE + MARKER_PADDING * 2) / 2}
+              r={CIRCLE_RADIUS}
               stroke={activeColor}
               strokeWidth={FILL_STROKE_WIDTH - 4}
               fill="transparent"
               strokeLinecap="round"
-              strokeDasharray={`${normalizedBac * circleCircumference} ${circleCircumference}`}
-              transform={`rotate(-90, ${(circleSize + MARKER_PADDING * 2)/2}, ${(circleSize + MARKER_PADDING * 2)/2})`}
+              strokeDasharray={`${normalizedBac * CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`}
+              transform={`rotate(-90, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2}, ${(CIRCLE_SIZE + MARKER_PADDING * 2)/2})`}
               strokeOpacity={0.7}
             />
           </Svg>

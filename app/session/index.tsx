@@ -1801,13 +1801,11 @@ const styles = StyleSheet.create({
         showsVerticalScrollIndicator={false}
         ref={scrollViewRef}
       >
+        {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
+        <SafetyDisclaimer variant="compact" />
+        
         {/* Contenuto principale */}
         <View style={styles.mainContent}>
-          {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-          <View style={{ paddingHorizontal: SIZES.padding }}>
-            <SafetyDisclaimer variant="compact" />
-          </View>
-          
           {/* Indicatore circolare del progresso */}
           <View style={styles.circleContainer}>
             <BACDisplay 
