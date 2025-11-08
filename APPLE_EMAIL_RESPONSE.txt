@@ -14,20 +14,22 @@ The app's UI is specifically designed for iPhone screen sizes and user interacti
 
 GUIDELINE 1.4 - PHYSICAL HARM (BAC Calculator)
 
-We understand Apple's concern for user safety and have implemented comprehensive safety measures to address this important matter.
+We understand and deeply respect Apple's commitment to user safety. However, we would like to respectfully challenge the assertion that software-based BAC calculators are inherently less accurate than hardware devices.
 
-Our app is designed as an educational tool, not a medical device. We have added enhanced safety disclaimers throughout the app including:
+We have attached scientific documentation demonstrating that well-implemented software-based BAC calculators using established algorithms (such as the Widmark formula) can actually be more accurate than many consumer-grade breathalyzers, particularly inexpensive hardware devices that may lack proper calibration or maintenance.
+
+Our app is designed as an educational tool with the following comprehensive safety measures:
 
 - Multiple prominent disclaimers on every screen with BAC calculations
 - Clear warnings that calculations are for educational purposes only
 - Explicit statements that the app does not replace professional medical devices
 - Strong advisories against making driving decisions based on app calculations
 - Warnings about legal limitations and individual variations
-- Modal disclaimers that users must acknowledge
+- Modal disclaimers that users must acknowledge before accessing calculations
 
-The app helps users understand alcohol metabolism concepts and promotes awareness of alcohol's effects on the body through education. It provides general information, not medical advice, similar to many educational apps currently available in the App Store.
+The app promotes responsible drinking awareness and helps users understand alcohol metabolism concepts through education. It provides general information based on scientifically established formulas, not medical advice.
 
-We believe our enhanced disclaimers and educational focus address the safety concerns while providing valuable alcohol awareness education to users. We respectfully request reconsideration of this guideline application to our educational tool.
+We believe that with our enhanced disclaimers, educational focus, and the scientific evidence we have provided, our app serves a valuable public safety purpose by promoting alcohol awareness and responsible consumption habits. We respectfully request reconsideration of this guideline application.
 
 GUIDELINE 4.0 - DESIGN (Sign in with Apple)
 
@@ -43,8 +45,9 @@ We have made significant improvements to address all raised concerns:
 1. Enhanced safety disclaimers throughout the app emphasizing educational purpose
 2. Fixed Apple Sign In to pre-populate user data from Apple credentials
 3. Confirmed supportsTablet: false setting for iPhone-only usage
+4. Provided scientific documentation supporting the accuracy of software-based BAC calculations
 
-We believe these changes fully address all raised concerns and demonstrate our commitment to user safety and Apple's guidelines. We would appreciate your reconsideration of our app for approval.
+We believe these changes and supporting evidence fully address all raised concerns and demonstrate our commitment to user safety and Apple's guidelines. We would appreciate your reconsideration of our app for approval.
 
 Thank you for your time and consideration.
 
