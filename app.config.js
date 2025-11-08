@@ -18,7 +18,7 @@ export default {
     ios: {
       supportsTablet: false,
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2708',
+      buildNumber: '2709',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
@@ -42,7 +42,7 @@ export default {
     },
     android: {
       package: 'com.bacchusapp.app',
-      versionCode: 2708,
+      versionCode: 2709,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
