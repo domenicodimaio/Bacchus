@@ -482,12 +482,15 @@ function DashboardScreen() {
               </Text>
             </View>
             
-            <BACDisplay 
-              bac={bacData.currentBac} 
-              timeToSober={bacData.timeToSober}
-              timeToLegal={bacData.timeToLegal}
-              timeToZero={bacData.timeToSober}
-            />
+            <View style={styles.compactBACContainer}>
+              <BACDisplay 
+                bac={bacData.currentBac} 
+                timeToSober={bacData.timeToSober}
+                timeToLegal={bacData.timeToLegal}
+                timeToZero={bacData.timeToSober}
+                compact={true}
+              />
+            </View>
             
             <View style={styles.sessionInfo}>
               <View style={styles.sessionItem}>
@@ -679,9 +682,7 @@ function DashboardScreen() {
       )}
       
       {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-      <View style={{ paddingHorizontal: SIZES.padding }}>
-        <SafetyDisclaimer variant="banner" />
-      </View>
+      <SafetyDisclaimer variant="banner" />
       
       {/* Disclaimer spostato più in basso e meno evidente */}
       <View style={styles.disclaimerContainer}>
@@ -764,8 +765,8 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     borderRadius: SIZES.radius,
-    padding: SIZES.padding,
-    marginBottom: SIZES.marginLarge,
+    padding: SIZES.paddingSmall, // Ridotto da SIZES.padding
+    marginBottom: SIZES.margin, // Ridotto da SIZES.marginLarge
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
@@ -777,6 +778,11 @@ const styles = StyleSheet.create({
         elevation: 4,
       },
     }),
+  },
+  compactBACContainer: {
+    transform: [{ scale: 0.75 }], // Riduce le dimensioni del 25%
+    alignSelf: 'center',
+    marginVertical: -20, // Compensa lo spazio extra del scale
   },
   cardTitle: {
     fontSize: SIZES.subtitle,

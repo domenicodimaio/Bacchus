@@ -76,6 +76,7 @@ export interface BACDisplayProps {
   timeToZero?: Date | null | string;
   enableWidgets?: boolean; // Abilita l'integrazione con i widget
   enableLiveActivity?: boolean; // Abilita l'integrazione con le Live Activities
+  compact?: boolean; // Versione compatta per dashboard
 }
 
 export const BACDisplay: React.FC<BACDisplayProps> = ({
@@ -87,6 +88,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
   timeToZero,
   enableWidgets = true,
   enableLiveActivity = true,
+  compact = false,
 }) => {
   // Traduzioni
   const { t } = useTranslation(['session', 'common']);

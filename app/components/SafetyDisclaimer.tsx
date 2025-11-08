@@ -62,8 +62,12 @@ export default function SafetyDisclaimer({
   const renderCompact = () => (
     <TouchableOpacity 
       style={[styles.compactContainer, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
-      onPress={() => setShowFullDisclaimer(true)}
+      onPress={() => {
+        console.log('🔧 COMPACT DISCLAIMER: Clicked!');
+        setShowFullDisclaimer(true);
+      }}
       activeOpacity={0.8}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <Text style={[styles.compactText, { color: colors.warning }]}>
         {disclaimerText.compact}
@@ -185,6 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginVertical: 8,
+    marginHorizontal: 16,
     overflow: 'hidden',
   },
   bannerContent: {
