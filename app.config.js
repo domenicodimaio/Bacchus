@@ -91,7 +91,7 @@ export default {
       supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZHBqcWRzdWdiY29yb2NsZ3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NTg0MTUsImV4cCI6MjA1ODAzNDQxNX0.VNZ0L4a7yixOk3oATyAz-bCDsohhuNE5ohQdV363xWM',
       bundleIdentifier: 'com.bacchusapp.app',
       eas: {
-        projectId: "8d416256-6bd8-419f-8c2b-32822c2f29fa"
+        projectId: "60f5cc7e-ee7d-4838-91b7-8a4fe1a4f67d"
       }
     }
   }
