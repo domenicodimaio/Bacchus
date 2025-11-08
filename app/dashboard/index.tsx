@@ -762,8 +762,8 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     borderRadius: SIZES.radius,
-    padding: SIZES.paddingSmall, // Ridotto da SIZES.padding
-    marginBottom: SIZES.margin, // Ridotto da SIZES.marginLarge
+    padding: 8, // Ancora più piccolo (era SIZES.paddingSmall = 10)
+    marginBottom: 8, // Ancora più piccolo (era SIZES.margin)
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
@@ -779,17 +779,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: SIZES.subtitle,
     fontWeight: 'bold',
-    marginBottom: SIZES.marginSmall,
+    marginBottom: 4, // Ridotto da SIZES.marginSmall
     textAlign: 'center',
   },
   sessionInfo: {
-    marginTop: SIZES.marginSmall, // Ridotto da SIZES.margin
+    marginTop: 4, // Ancora più piccolo (era SIZES.marginSmall)
   },
   sessionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4, // Ridotto da 8 a 4
   },
   sessionLabel: {
     fontSize: SIZES.body,

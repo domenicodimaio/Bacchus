@@ -66,8 +66,7 @@ export default function SafetyDisclaimer({
         console.log('🔧 COMPACT DISCLAIMER: Clicked! Opening modal...');
         setShowFullDisclaimer(true);
       }}
-      activeOpacity={0.6}
-      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+      activeOpacity={0.7}
     >
       <Text style={[styles.compactText, { color: colors.warning }]}>
         {disclaimerText.compact}
@@ -196,7 +195,7 @@ const styles = StyleSheet.create({
   bannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12, // Ridotto da 16 a 12
     paddingVertical: 12,
   },
   bannerText: {
