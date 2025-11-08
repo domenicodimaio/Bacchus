@@ -158,12 +158,12 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       let simulatePremium = 'false';
       if (!isPremium) {
         simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
-        console.log('🎯 INIT: Controllo SIMULATE_PREMIUM:', simulatePremium);
-        
-        if (simulatePremium === 'true') {
-          console.log('🎯 INIT: Modalità simulazione premium attiva');
-          isPremium = true;
-          isAdFree = true;
+      console.log('🎯 INIT: Controllo SIMULATE_PREMIUM:', simulatePremium);
+      
+      if (simulatePremium === 'true') {
+        console.log('🎯 INIT: Modalità simulazione premium attiva');
+        isPremium = true;
+        isAdFree = true;
         }
       } else {
         console.log('🎯 INIT: Abbonamento attivo trovato su RevenueCat');
@@ -266,9 +266,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           let simulatePremium = 'false';
           if (!isPremium) {
             simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
-            if (simulatePremium === 'true') {
-              console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
-              isPremium = true;
+          if (simulatePremium === 'true') {
+            console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
+            isPremium = true;
             }
           } else {
             console.log('🎯 USER CHANGED: Abbonamento attivo trovato su RevenueCat');

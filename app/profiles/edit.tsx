@@ -209,12 +209,12 @@ export default function EditProfileScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-        
-        <AppHeader 
-          title={t('editProfile', { ns: 'profile' })}
-          isMainScreen={false}
-        />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      
+      <AppHeader 
+        title={t('editProfile', { ns: 'profile' })}
+        isMainScreen={false}
+      />
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -419,35 +419,35 @@ export default function EditProfileScreen() {
           {/* Removed save button from ScrollView */}
           
         </ScrollView>
-        
+      
         {/* Save button inside KeyboardAvoidingView for keyboard visibility */}
-        <SafeAreaView style={[styles.saveButtonContainer, { 
-          backgroundColor: colors.background,
-          borderTopColor: colors.border 
-        }]}>
+      <SafeAreaView style={[styles.saveButtonContainer, { 
+        backgroundColor: colors.background,
+        borderTopColor: colors.border 
+      }]}>
           <View style={styles.saveButtonWrapper}>
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                { backgroundColor: colors.primary },
-                isSaving && { opacity: 0.7 }
-              ]}
-              onPress={handleSaveProfile}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            { backgroundColor: colors.primary },
+            isSaving && { opacity: 0.7 }
+          ]}
+          onPress={handleSaveProfile}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
                 <>
                   <Ionicons name="checkmark" size={20} color="white" style={styles.saveIcon} />
-                  <Text style={styles.saveButtonText}>
-                    {t('save')}
-                  </Text>
+            <Text style={styles.saveButtonText}>
+              {t('save')}
+            </Text>
                 </>
-              )}
-            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
           </View>
-        </SafeAreaView>
+      </SafeAreaView>
       </KeyboardAvoidingView>
       
       {/* Emoji Picker Modal */}
@@ -540,7 +540,7 @@ export default function EditProfileScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-      </View>
+    </View>
   );
 }
 

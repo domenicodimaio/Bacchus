@@ -487,6 +487,7 @@ function DashboardScreen() {
               timeToSober={bacData.timeToSober}
               timeToLegal={bacData.timeToLegal}
               timeToZero={bacData.timeToSober}
+              compact={true}
             />
             
             <View style={styles.sessionInfo}>
@@ -679,7 +680,9 @@ function DashboardScreen() {
       )}
       
       {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-      <SafetyDisclaimer variant="banner" />
+      <View style={{ paddingHorizontal: SIZES.padding }}>
+        <SafetyDisclaimer variant="banner" />
+      </View>
       
       {/* Disclaimer spostato più in basso e meno evidente */}
       <View style={styles.disclaimerContainer}>

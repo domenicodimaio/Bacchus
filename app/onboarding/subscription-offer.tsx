@@ -354,7 +354,7 @@ export default function SubscriptionOfferScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
+      
       {/* Bottoni in basso */}
       <View style={[styles.bottomButtons, { backgroundColor: colors.background }]}>
         {/* Bottone per abbonamento */}

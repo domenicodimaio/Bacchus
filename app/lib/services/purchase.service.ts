@@ -381,17 +381,17 @@ export const resetUserForPurchases = async () => {
         console.log(`🔄 RESET: Pulito stato locale per utente ${currentUserId}`);
       } catch (storageError) {
         console.warn('⚠️ RESET: Errore pulizia AsyncStorage:', storageError);
-      }
+  }
     }
-    
+
     // Logout da RevenueCat
     if (isRevenueCatAvailable && Purchases) {
-      try {
-        await Purchases.logOut();
+    try {
+      await Purchases.logOut();
         console.log('🔄 RESET: RevenueCat logout completato');
-      } catch (logoutError) {
+    } catch (logoutError) {
         console.warn('⚠️ RESET: Errore RevenueCat logout:', logoutError);
-      }
+    }
     }
     
     // Reset utente corrente
@@ -419,17 +419,17 @@ export const getCustomerInfo = async () => {
     if (typeof Purchases !== 'undefined' && Purchases !== null) {
       try {
       const customerInfo = await Purchases.getCustomerInfo();
-      // Salva le informazioni in AsyncStorage per l'accesso offline
-      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOMER_INFO, JSON.stringify(customerInfo));
+      // Salva le informazioni in AsyncStorage per l'accesso offline (USER-SPECIFIC)
+      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId), JSON.stringify(customerInfo));
       return customerInfo;
       } catch (infoError) {
         console.warn('Failed to get RevenueCat customer info:', infoError);
       }
     }
     
-    // Se RevenueCat non è disponibile, prova a recuperare i dati da AsyncStorage
+    // Se RevenueCat non è disponibile, prova a recuperare i dati da AsyncStorage (USER-SPECIFIC)
     try {
-      const storedInfo = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOMER_INFO);
+      const storedInfo = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId));
       if (storedInfo) {
         return JSON.parse(storedInfo);
       }
@@ -680,8 +680,8 @@ export const purchasePackage = async (pkg: any) => {
               
               if (validationResult.success) {
                 console.log('✅ RECEIPT: Validazione server completata con successo');
-                
-                // Salva lo stato premium
+          
+          // Salva lo stato premium
                 await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
                 
                 return { 
@@ -704,18 +704,18 @@ export const purchasePackage = async (pkg: any) => {
               console.warn('⚠️ RECEIPT: Nessun receipt trovato nel risultato acquisto');
               // Fallback: considera l'acquisto valido anche senza receipt
               await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
-              
-              return { 
-                success: true, 
-                customerInfo: { 
-                  entitlements: { 
-                    active: { 
-                      premium: true,
-                      ad_free: true 
-                    } 
-                  } 
+          
+          return { 
+            success: true, 
+            customerInfo: { 
+              entitlements: { 
+                active: { 
+                  premium: true,
+                  ad_free: true 
                 } 
-              };
+              } 
+            } 
+          };
             }
           } catch (validationError) {
             console.error('❌ RECEIPT: Errore validazione server:', validationError);

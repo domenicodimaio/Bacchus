@@ -70,7 +70,7 @@ const getDeviceLanguage = () => {
     // 🇮🇹 LOGICA ITALIA: Se la lingua è italiana, usa italiano
     if (languageCode === 'it') {
       console.log('🇮🇹 [i18n] Dispositivo italiano rilevato - usando italiano');
-      return 'it';
+    return 'it';
     }
     
     // 🌍 LOGICA MONDO: Tutti gli altri paesi usano inglese

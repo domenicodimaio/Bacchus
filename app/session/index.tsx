@@ -1804,7 +1804,9 @@ const styles = StyleSheet.create({
         {/* Contenuto principale */}
         <View style={styles.mainContent}>
           {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-          <SafetyDisclaimer variant="compact" />
+          <View style={{ paddingHorizontal: SIZES.padding }}>
+            <SafetyDisclaimer variant="compact" />
+          </View>
           
           {/* Indicatore circolare del progresso */}
           <View style={styles.circleContainer}>
