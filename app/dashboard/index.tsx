@@ -482,15 +482,12 @@ function DashboardScreen() {
               </Text>
             </View>
             
-            <View style={styles.compactBACContainer}>
-              <BACDisplay 
-                bac={bacData.currentBac} 
-                timeToSober={bacData.timeToSober}
-                timeToLegal={bacData.timeToLegal}
-                timeToZero={bacData.timeToSober}
-                compact={true}
-              />
-            </View>
+            <BACDisplay 
+              bac={bacData.currentBac} 
+              timeToSober={bacData.timeToSober}
+              timeToLegal={bacData.timeToLegal}
+              timeToZero={bacData.timeToSober}
+            />
             
             <View style={styles.sessionInfo}>
               <View style={styles.sessionItem}>
@@ -779,11 +776,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  compactBACContainer: {
-    transform: [{ scale: 0.75 }], // Riduce le dimensioni del 25%
-    alignSelf: 'center',
-    marginVertical: -20, // Compensa lo spazio extra del scale
-  },
   cardTitle: {
     fontSize: SIZES.subtitle,
     fontWeight: 'bold',
@@ -791,7 +783,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sessionInfo: {
-    marginTop: SIZES.margin,
+    marginTop: SIZES.marginSmall, // Ridotto da SIZES.margin
   },
   sessionItem: {
     flexDirection: 'row',

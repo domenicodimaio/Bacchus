@@ -63,16 +63,16 @@ export default function SafetyDisclaimer({
     <TouchableOpacity 
       style={[styles.compactContainer, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
       onPress={() => {
-        console.log('🔧 COMPACT DISCLAIMER: Clicked!');
+        console.log('🔧 COMPACT DISCLAIMER: Clicked! Opening modal...');
         setShowFullDisclaimer(true);
       }}
-      activeOpacity={0.8}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      activeOpacity={0.6}
+      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
     >
       <Text style={[styles.compactText, { color: colors.warning }]}>
         {disclaimerText.compact}
       </Text>
-      <Ionicons name="information-circle-outline" size={16} color={colors.warning} />
+      <Ionicons name="information-circle-outline" size={18} color={colors.warning} />
     </TouchableOpacity>
   );
 
@@ -172,11 +172,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 16, // Aumentato da 12
+    paddingVertical: 12, // Aumentato da 8
     borderRadius: 8,
     borderWidth: 1,
-    marginVertical: 4,
+    marginVertical: 8, // Aumentato da 4
+    minHeight: 44, // Minima altezza per touch
   },
   compactText: {
     fontSize: 12,
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginVertical: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 0, // Nessun margin, il padding del parent è sufficiente
     overflow: 'hidden',
   },
   bannerContent: {
