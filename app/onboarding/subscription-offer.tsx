@@ -53,7 +53,7 @@ export default function SubscriptionOfferScreen() {
   const [skipOffered, setSkipOffered] = useState(false);
   
   // Stato base
-  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   
   // Add a ref to track if this component is mounted
@@ -142,6 +142,16 @@ export default function SubscriptionOfferScreen() {
   // 🔧 HANDLER REALE CON REVENUECAT/EXPO IN-APP PURCHASES
   const handleSubscribe = async (planType: 'monthly' | 'annual' = 'monthly') => {
     console.log('[SubscriptionOfferScreen] 🛒 ACQUISTO REALE:', planType);
+    
+    // ⚠️ Verifica che un piano sia selezionato
+    if (!selectedPlan) {
+      Alert.alert(
+        t('selectPlan', { ns: 'purchases', defaultValue: 'Seleziona un piano' }),
+        t('selectPlanMessage', { ns: 'purchases', defaultValue: 'Per favore, seleziona un piano di abbonamento prima di procedere.' }),
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     
     try {
       setLoading(true);

@@ -619,32 +619,21 @@ export const purchasePackage = async (pkg: any) => {
         }
         
         // 🍎 GESTIONE ERRORE APPLE SANDBOX: "Hai già un abbonamento"
+        // ⚠️ IMPORTANTE: Non trattiamo più questo come successo!
+        // L'errore 3532 significa che l'Apple ID sandbox ha già un abbonamento
+        // ma NON significa che QUESTO account app abbia il premium
         if (revenueCatError.message?.includes('Hai già un abbonamento') || 
             revenueCatError.message?.includes('already have a subscription') ||
             revenueCatError.underlyingErrorMessage?.includes('3532')) {
-          console.log('🍎 APPLE SANDBOX: Abbonamento già esistente per questo Apple ID');
+          console.log('🍎 APPLE SANDBOX: Abbonamento già esistente per questo Apple ID (errore 3532)');
           console.log('💡 SUGGERIMENTO: Vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account');
           
-          // 🔧 FIX: In sandbox, "già abbonato" significa SUCCESS per RevenueCat!
-          // Recupera le info customer aggiornate
-          try {
-            const customerInfo = await Purchases.getCustomerInfo();
-            console.log('✅ SANDBOX FIX: Abbonamento già attivo, recupero info customer');
-            
-            return { 
-              success: true, 
-              customerInfo: customerInfo,
-              isAppleSandboxRestore: true
-            };
-          } catch (getInfoError) {
-            console.warn('⚠️ SANDBOX: Errore recupero customer info:', getInfoError);
-            
-            return { 
-              success: false, 
-              error: 'Apple Sandbox: Hai già un abbonamento attivo su questo Apple ID. Per testare con un altro account, vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account di test.',
-              isAppleSandboxError: true
-            };
-          }
+          // Restituisci errore chiaro all'utente
+          return { 
+            success: false, 
+            error: 'Apple Sandbox: Questo Apple ID ha già un abbonamento di test attivo. Per testare nuovi acquisti, vai in Impostazioni iPhone > App Store > Account Sandbox e seleziona un altro account di test.',
+            isAppleSandboxError: true
+          };
         }
         
         // RevenueCat fallito per altri motivi, proviamo con Expo In-App Purchases
