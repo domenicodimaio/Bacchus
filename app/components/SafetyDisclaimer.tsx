@@ -60,24 +60,19 @@ export default function SafetyDisclaimer({
   };
 
   const renderCompact = () => (
-    <View 
+    <TouchableOpacity 
       style={[styles.compactContainer, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
+      onPress={() => {
+        console.log('🔧 COMPACT DISCLAIMER: Banner clicked! Opening modal...');
+        setShowFullDisclaimer(true);
+      }}
+      activeOpacity={0.7}
     >
       <Text style={[styles.compactText, { color: colors.warning }]}>
         {disclaimerText.compact}
       </Text>
-      <TouchableOpacity
-        onPress={() => {
-          console.log('🔧 COMPACT DISCLAIMER: Info icon clicked! Opening modal...');
-          setShowFullDisclaimer(true);
-        }}
-        activeOpacity={0.6}
-        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        style={styles.infoIconButton}
-      >
-        <Ionicons name="information-circle" size={22} color={colors.warning} />
-      </TouchableOpacity>
-    </View>
+      <Ionicons name="information-circle" size={20} color={colors.warning} />
+    </TouchableOpacity>
   );
 
   const renderBanner = () => (
@@ -86,7 +81,7 @@ export default function SafetyDisclaimer({
       style={[styles.bannerContainer, { borderColor: colors.warning + '40' }]}
     >
       <View style={styles.bannerContent}>
-        {showIcon && <Ionicons name="shield-checkmark" size={20} color={colors.warning} />}
+        {showIcon && <Ionicons name="shield-checkmark" size={18} color={colors.warning} />}
         <Text style={[styles.bannerText, { color: colors.warning }]}>
           {disclaimerText.banner}
         </Text>
@@ -96,7 +91,7 @@ export default function SafetyDisclaimer({
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           activeOpacity={0.6}
         >
-          <Ionicons name="information-circle" size={22} color={colors.warning} />
+          <Ionicons name="information-circle" size={20} color={colors.warning} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -177,46 +172,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
     borderWidth: 1,
     marginVertical: 6,
   },
   compactText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     flex: 1,
-    marginRight: 8,
-  },
-  infoIconButton: {
-    padding: 6,
-    marginRight: -4,
+    marginRight: 6,
+    lineHeight: 14,
   },
   
   bannerContainer: {
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    marginVertical: 8,
+    marginVertical: 6,
     marginHorizontal: 0,
     overflow: 'hidden',
   },
   bannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   bannerText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     flex: 1,
-    marginHorizontal: 10,
-    lineHeight: 16,
+    marginHorizontal: 8,
+    lineHeight: 14,
   },
   infoButton: {
-    padding: 6,
-    borderRadius: 12,
+    padding: 4,
+    borderRadius: 10,
   },
   
   fullContainer: {

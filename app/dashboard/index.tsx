@@ -427,37 +427,6 @@ function DashboardScreen() {
       {/* Offline Indicator */}
       <OfflineIndicator />
       
-      {/* Premium Promotion Banner (solo per utenti non premium) */}
-      {!features.canCreateUnlimitedSessions && (
-        <Animated.View style={[styles.premiumBannerContainer, premiumBannerStyle]}>
-          <LinearGradient
-            colors={[colors.primary, '#0088a3']}
-            start={[0, 0]}
-            end={[1, 0]}
-            style={styles.premiumBanner}
-          >
-            <View style={styles.premiumBannerContent}>
-              <View style={styles.premiumBannerTextContainer}>
-                <Text style={styles.premiumBannerTitle}>
-                  {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Passa a Premium' })}
-                </Text>
-                <Text style={styles.premiumBannerSubtitle}>
-                  {t('unlimitedSessions', { ns: 'purchases', defaultValue: 'Sessioni illimitate' })}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.premiumBannerButton}
-                onPress={handleGoToPremium}
-              >
-                <Text style={styles.premiumBannerButtonText}>
-                  {t('upgrade', { ns: 'purchases', defaultValue: 'Passa a Premium' })}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-      )}
-      
       {/* Main content remains the same */}
       {isSessionActive ? (
         <ScrollView 
@@ -705,7 +674,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: SIZES.padding,
+    paddingHorizontal: SIZES.padding,
+    paddingTop: 8,
+    paddingBottom: SIZES.padding,
   },
   header: {
     flexDirection: 'row',
@@ -767,8 +738,8 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     borderRadius: SIZES.radius,
-    padding: SIZES.paddingSmall, // Ripristinato a paddingSmall (10px)
-    marginBottom: SIZES.marginSmall, // Compromesso tra margin e marginLarge
+    padding: 12,
+    marginBottom: 8,
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
@@ -788,13 +759,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sessionInfo: {
-    marginTop: SIZES.marginSmall, // Ripristinato
+    marginTop: 8,
   },
   sessionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6, // Compromesso tra 4 e 8
+    marginBottom: 4,
   },
   sessionLabel: {
     fontSize: SIZES.body,
@@ -963,7 +934,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SIZES.marginSmall,
+    marginBottom: 6,
   },
   sectionTitle: {
     fontSize: SIZES.subtitle,

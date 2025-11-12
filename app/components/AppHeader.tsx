@@ -130,8 +130,8 @@ export default function AppHeader({
         
         {showProfileIcon && !rightComponent && (
           <View style={styles.rightContainer}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {features?.canCreateUnlimitedSessions && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {features?.canCreateUnlimitedSessions ? (
                 <TouchableOpacity 
                   style={premiumIndicatorStyle}
                   onPress={showPremiumBenefits}
@@ -139,6 +139,23 @@ export default function AppHeader({
                   <Ionicons name="star" size={12} color="#ffffff" style={{ marginRight: 2 }} />
                   <Text style={styles.premiumIndicatorText}>
                     {t('premium', { ns: 'purchases' })}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: colors.primary,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                  }}
+                  onPress={() => router.push('/onboarding/subscription-offer')}
+                >
+                  <Ionicons name="star-outline" size={14} color="#ffffff" style={{ marginRight: 4 }} />
+                  <Text style={[styles.premiumIndicatorText, { fontSize: SIZES.small - 1 }]}>
+                    Premium
                   </Text>
                 </TouchableOpacity>
               )}
