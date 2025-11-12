@@ -595,6 +595,11 @@ function DashboardScreen() {
         </ScrollView>
       ) : (
         <View style={styles.noSessionContainer}>
+          {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer anche senza sessione */}
+          <View style={styles.noSessionBannerWrapper}>
+            <SafetyDisclaimer variant="banner" />
+          </View>
+          
           <Animated.View style={[styles.noSessionContent, cardAnimatedStyle]}>
             <FontAwesome5 
               name="glass-cheers" 
@@ -1039,5 +1044,9 @@ const styles = StyleSheet.create({
   sessionStartTime: {
     fontSize: SIZES.small,
     marginTop: 4,
+  },
+  noSessionBannerWrapper: {
+    paddingHorizontal: SIZES.padding,
+    paddingTop: SIZES.paddingSmall,
   },
 }); 

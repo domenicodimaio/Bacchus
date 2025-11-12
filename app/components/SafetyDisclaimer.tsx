@@ -60,19 +60,24 @@ export default function SafetyDisclaimer({
   };
 
   const renderCompact = () => (
-    <TouchableOpacity 
+    <View 
       style={[styles.compactContainer, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
-      onPress={() => {
-        console.log('🔧 COMPACT DISCLAIMER: Clicked! Opening modal...');
-        setShowFullDisclaimer(true);
-      }}
-      activeOpacity={0.7}
     >
       <Text style={[styles.compactText, { color: colors.warning }]}>
         {disclaimerText.compact}
       </Text>
-      <Ionicons name="information-circle-outline" size={18} color={colors.warning} />
-    </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => {
+          console.log('🔧 COMPACT DISCLAIMER: Info icon clicked! Opening modal...');
+          setShowFullDisclaimer(true);
+        }}
+        activeOpacity={0.6}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        style={styles.infoIconButton}
+      >
+        <Ionicons name="information-circle" size={22} color={colors.warning} />
+      </TouchableOpacity>
+    </View>
   );
 
   const renderBanner = () => (
@@ -81,16 +86,17 @@ export default function SafetyDisclaimer({
       style={[styles.bannerContainer, { borderColor: colors.warning + '40' }]}
     >
       <View style={styles.bannerContent}>
-        {showIcon && <Ionicons name="shield-checkmark" size={24} color={colors.warning} />}
+        {showIcon && <Ionicons name="shield-checkmark" size={20} color={colors.warning} />}
         <Text style={[styles.bannerText, { color: colors.warning }]}>
           {disclaimerText.banner}
         </Text>
         <TouchableOpacity 
           onPress={() => setShowFullDisclaimer(true)}
           style={styles.infoButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          activeOpacity={0.6}
         >
-          <Ionicons name="information-circle" size={20} color={colors.warning} />
+          <Ionicons name="information-circle" size={22} color={colors.warning} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -171,12 +177,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16, // Aumentato da 12
-    paddingVertical: 12, // Aumentato da 8
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    marginVertical: 8, // Aumentato da 4
-    minHeight: 44, // Minima altezza per touch
+    marginVertical: 6,
   },
   compactText: {
     fontSize: 12,
@@ -184,29 +189,33 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  infoIconButton: {
+    padding: 6,
+    marginRight: -4,
+  },
   
   bannerContainer: {
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     marginVertical: 8,
-    marginHorizontal: 0, // Nessun margin, il padding del parent è sufficiente
+    marginHorizontal: 0,
     overflow: 'hidden',
   },
   bannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12, // Ridotto da 16 a 12
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   bannerText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     flex: 1,
-    marginHorizontal: 12,
-    lineHeight: 18,
+    marginHorizontal: 10,
+    lineHeight: 16,
   },
   infoButton: {
-    padding: 4,
+    padding: 6,
     borderRadius: 12,
   },
   
