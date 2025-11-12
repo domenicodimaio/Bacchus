@@ -563,12 +563,14 @@ function DashboardScreen() {
           </View>
         </ScrollView>
       ) : (
-        <View style={styles.noSessionContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer anche senza sessione */}
-          <View style={styles.noSessionBannerWrapper}>
-            <SafetyDisclaimer variant="banner" />
-          </View>
+          <SafetyDisclaimer variant="banner" />
           
+          <View style={styles.noSessionContainer}>
           <Animated.View style={[styles.noSessionContent, cardAnimatedStyle]}>
             <FontAwesome5 
               name="glass-cheers" 
@@ -652,15 +654,9 @@ function DashboardScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
+        </ScrollView>
       )}
-      
-      {/* Disclaimer spostato più in basso e meno evidente */}
-      <View style={styles.disclaimerContainer}>
-        <Text style={[styles.disclaimer, { color: colors.textTertiary }]}>
-          {t('disclaimer', { ns: 'common' })}
-        </Text>
-      </View>
       
     </View>
   );

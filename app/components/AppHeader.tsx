@@ -153,9 +153,9 @@ export default function AppHeader({
                   }}
                   onPress={() => router.push('/onboarding/subscription-offer')}
                 >
-                  <Ionicons name="star-outline" size={14} color="#ffffff" style={{ marginRight: 4 }} />
-                  <Text style={[styles.premiumIndicatorText, { fontSize: SIZES.small - 1 }]}>
-                    Premium
+                  <Ionicons name="star-outline" size={12} color="#ffffff" style={{ marginRight: 3 }} />
+                  <Text style={[styles.premiumIndicatorText, { fontSize: SIZES.small - 2 }]}>
+                    {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Passa a Premium' })}
                   </Text>
                 </TouchableOpacity>
               )}
