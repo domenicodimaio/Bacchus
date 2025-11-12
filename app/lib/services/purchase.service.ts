@@ -152,8 +152,9 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
     // Configura RevenueCat per il nuovo utente
     if (isRevenueCatAvailable && Purchases) {
       try {
-        await Purchases.logIn(userId);
+        const loginResult = await Purchases.logIn(userId);
         console.log(`✅ RevenueCat: Login completato per utente ${userId}`);
+        console.log(`🔍 RevenueCat: Created=${loginResult.created}, OriginalAppUserId=${loginResult.customerInfo?.originalAppUserId}`);
         
         // 🔥 FIX CRITICO: Aspetta che RevenueCat sia sincronizzato
         console.log('🔄 RevenueCat: Aspettando sincronizzazione...');
@@ -162,10 +163,21 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         // Verifica che la sincronizzazione sia avvenuta
         try {
           const customerInfo = await Purchases.getCustomerInfo();
+          const activeEntitlements = Object.keys(customerInfo?.entitlements?.active || {});
           console.log(`✅ RevenueCat: Sincronizzazione completata per ${userId}`, {
+            originalAppUserId: customerInfo?.originalAppUserId,
             hasEntitlements: !!customerInfo?.entitlements?.active,
-            activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {})
+            activeEntitlements: activeEntitlements
           });
+          
+          // ⚠️ SANDBOX WARNING: Se l'app user ID non corrisponde, è un problema sandbox
+          if (customerInfo?.originalAppUserId !== userId && activeEntitlements.length > 0) {
+            console.warn(`⚠️ SANDBOX ISSUE: RevenueCat ritorna entitlements di un altro user!`);
+            console.warn(`   App User ID richiesto: ${userId}`);
+            console.warn(`   RevenueCat User ID: ${customerInfo?.originalAppUserId}`);
+            console.warn(`   Questo è normale in sandbox quando più account app condividono lo stesso Apple ID`);
+            console.warn(`   In PRODUZIONE questo non accadrà perché ogni utente ha il proprio Apple ID`);
+          }
         } catch (syncError) {
           console.warn('⚠️ RevenueCat: Errore verifica sincronizzazione:', syncError);
         }
@@ -463,6 +475,17 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
     
     const customerInfo = await getCustomerInfo();
     if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) return false;
+    
+    // ⚠️ SANDBOX FIX: Verifica che le entitlements appartengano all'utente corrente
+    // In sandbox, RevenueCat può ritornare entitlements di un altro utente se condividono lo stesso Apple ID
+    if (customerInfo.originalAppUserId && customerInfo.originalAppUserId !== currentUserId) {
+      console.warn(`⚠️ hasEntitlement: RevenueCat user ID (${customerInfo.originalAppUserId}) non corrisponde a currentUserId (${currentUserId})`);
+      console.warn(`   Questo è un problema noto del sandbox Apple quando più account app usano lo stesso Apple ID test`);
+      console.warn(`   Ritorno false per evitare che l'utente attuale erediti entitlements di un altro`);
+      
+      // Non dare entitlements di un altro utente!
+      return false;
+    }
     
     return !!customerInfo.entitlements.active[entitlement];
   } catch (error) {
@@ -771,14 +794,14 @@ export const purchasePackage = async (pkg: any) => {
     
     // Modalità sviluppo (per testing o quando acquisti reali non disponibili)
     console.log('🔧 PURCHASE: Development purchase per:', pkg.identifier || pkg.productId);
-    await AsyncStorage.setItem(STORAGE_KEYS.PREMIUM_STATUS, 'true');
+    await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
     return { 
       success: true, 
       customerInfo: { 
         entitlements: { 
           active: { 
             premium: true,
-            ad_free: true 
+            ad_free: true
           } 
         } 
       } 
