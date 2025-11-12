@@ -1388,10 +1388,6 @@ const styles = StyleSheet.create({
     settingsButton: {
       padding: 8,
     },
-    disclaimerWrapper: {
-      paddingHorizontal: 16,
-      paddingTop: 8,
-    },
     mainContent: {
       flex: 1,
       alignItems: 'center',
@@ -1806,9 +1802,7 @@ const styles = StyleSheet.create({
         ref={scrollViewRef}
       >
         {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-        <View style={styles.disclaimerWrapper}>
-          <SafetyDisclaimer variant="banner" />
-        </View>
+        <SafetyDisclaimer variant="banner" addHorizontalMargin={true} />
         
         {/* Contenuto principale */}
         <View style={styles.mainContent}>

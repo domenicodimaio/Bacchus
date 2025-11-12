@@ -8,11 +8,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface SafetyDisclaimerProps {
   variant?: 'compact' | 'full' | 'banner';
   showIcon?: boolean;
+  addHorizontalMargin?: boolean;
 }
 
 export default function SafetyDisclaimer({ 
   variant = 'compact', 
-  showIcon = true 
+  showIcon = true,
+  addHorizontalMargin = false
 }: SafetyDisclaimerProps) {
   const { currentTheme } = useTheme();
   const { t, i18n } = useTranslation(['common', 'safety']);
@@ -78,7 +80,11 @@ export default function SafetyDisclaimer({
   const renderBanner = () => (
     <LinearGradient
       colors={[colors.warning + '15', colors.warning + '25']}
-      style={[styles.bannerContainer, { borderColor: colors.warning + '40' }]}
+      style={[
+        styles.bannerContainer, 
+        { borderColor: colors.warning + '40' },
+        addHorizontalMargin && { marginHorizontal: 16 }
+      ]}
     >
       <View style={styles.bannerContent}>
         {showIcon && <Ionicons name="shield-checkmark" size={18} color={colors.warning} />}
