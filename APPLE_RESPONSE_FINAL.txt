@@ -1,0 +1,97 @@
+Dear Apple Review Team,
+
+RE: Submission ID 46105041-640b-4289-b8f5-796aefce785d - CRITICAL RESPONSE REQUIRED
+
+We have thoroughly reviewed your rejection and we respectfully but firmly request escalation of this review to a senior reviewer, as the current feedback indicates our previous detailed scientific response (with 39 peer-reviewed references) was not properly evaluated.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ CRITICAL ISSUE #1: iPad Testing Despite Explicit iPhone-Only Configuration
+
+PROBLEM: Your team continues to test on "iPad Air (5th generation)" despite our app being EXPLICITLY configured as iPhone-only with "supportsTablet: false" in our iOS configuration.
+
+FACTS:
+• Our app.json explicitly sets: "supportsTablet": false
+• Our Info.plist contains: UIDeviceFamily = [1] (iPhone only)
+• The app should NOT be installable on iPad devices
+• We have never targeted iPad in any capacity
+
+QUESTION FOR APPLE:
+How is your review team able to install and test an iPhone-only app on iPad? This suggests either:
+1. A configuration error in your review environment, OR
+2. A miscommunication about which app/build is being reviewed
+
+ACTION REQUIRED:
+Please verify you are testing the CORRECT build (Version 1.2.3, Build 2760) and conduct the review exclusively on iPhone devices as the app is configured and intended.
+
+We cannot address iPad UI issues for an app that should not run on iPad. This rejection reason is technically impossible to resolve unless we completely reconfigure the app for iPad support (which contradicts your requirement that we focus on iPhone).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ CRITICAL ISSUE #2: Guideline 1.4 - Physical Harm (BAC Calculator)
+
+We provided a comprehensive 54-page scientific document with 39 peer-reviewed citations demonstrating that software-based BAC calculators using validated algorithms (Widmark formula) can be MORE ACCURATE than consumer breathalyzers.
+
+KEY SCIENTIFIC EVIDENCE (attached in previous submission):
+• Consumer breathalyzers have 50-74% FALSE NEGATIVE rates (BMJ Open, 2014; Alcohol Clin Exp Res, 2021)
+• Software-based Widmark calculations are the STANDARD used by forensic scientists and medical professionals worldwide
+• Our app uses CONSERVATIVE estimates (overestimates rather than underestimates BAC for safety)
+• We have implemented EXTENSIVE safety disclaimers on every screen
+
+SPECIFIC QUESTION FOR APPLE:
+Has the scientific documentation we provided been reviewed by a qualified reviewer with expertise in pharmacokinetics or forensic toxicology? The response we received appears to be a template that does not address ANY of the 39 scientific references we provided.
+
+COMPARABLE APPS ON APP STORE:
+We note that numerous BAC calculator apps currently exist on the App Store that use similar or identical Widmark-based algorithms:
+• "AlcoDroid Alcohol Tracker"
+• "Promille - Alcohol Calculator"
+• "DrinkCoach - Alcohol Tracker"
+• "Alcogram"
+• "Blood Alcohol Calculator - BAC"
+
+These apps have been approved and are currently available. We respectfully request clarification on why our scientifically-validated, safety-focused implementation is being rejected while these similar apps are approved.
+
+OUR ENHANCED SAFETY MEASURES (Version 1.2.3):
+✅ Modal disclaimer on first launch requiring user acknowledgment
+✅ Persistent banner disclaimers on EVERY screen with BAC calculations
+✅ NO "safe to drive" messaging - app explicitly warns against ANY driving after drinking
+✅ Educational content emphasizing 0.00% is the only safe BAC for driving
+✅ Conservative algorithm that OVERESTIMATES rather than underestimates BAC
+✅ Warnings when high BAC levels are detected
+✅ Clear statements that app is for educational purposes only
+✅ Explicit text: "This is NOT a replacement for professional medical devices"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 SUMMARY OF OUR POSITION
+
+1. IPAD ISSUE: Cannot be resolved - app is iPhone-only. Please test on iPhone.
+
+2. GUIDELINE 1.4: We have provided extensive scientific evidence that was apparently not reviewed. We request:
+   a) Review by a qualified scientific/medical reviewer
+   b) Explanation of why similar BAC calculator apps are approved while ours is rejected
+   c) Specific technical requirements we must meet for approval (beyond the extensive safety measures already implemented)
+
+3. SIGN IN WITH APPLE: ✅ Already fixed in version 1.2.3 (pre-fills data from Apple credentials)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 REQUESTED ACTIONS
+
+1. IMMEDIATE: Please confirm you are testing the correct iPhone-only build
+2. ESCALATION: Forward this case to a senior reviewer or specialist who can evaluate the scientific evidence
+3. CLARIFICATION: Provide specific technical requirements for approval under Guideline 1.4
+4. CONSISTENCY: Explain approval criteria difference between our app and existing BAC calculator apps
+
+We are committed to user safety and Apple's guidelines. We have invested significant resources in scientific validation and safety features. However, we cannot proceed if our detailed evidence-based responses are not being properly evaluated.
+
+We respectfully request a substantive review of our scientific documentation and a clear path to approval or, at minimum, specific technical requirements beyond what we have already implemented.
+
+We appreciate your time and look forward to a detailed response addressing the points raised above.
+
+Best regards,
+Domenico Di Maio
+Developer - Bacchus App
+
+P.S. We are available for a phone call or video meeting with the review team if that would help clarify any technical or scientific aspects of our implementation.
+
