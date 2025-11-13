@@ -1388,12 +1388,12 @@ const styles = StyleSheet.create({
     settingsButton: {
       padding: 8,
     },
-    mainContent: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 16,
-    },
+  mainContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // paddingHorizontal rimosso - ora è gestito dal ScrollView
+  },
     circleContainer: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -1797,14 +1797,12 @@ const styles = StyleSheet.create({
 
       <ScrollView 
         style={styles.scrollContainer}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}
         ref={scrollViewRef}
       >
-        {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer - IDENTICO ALLA DASHBOARD */}
-        <View style={{ marginHorizontal: 16 }}>
-          <SafetyDisclaimer variant="banner" />
-        </View>
+        {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer - COPIATO IDENTICO DALLA DASHBOARD */}
+        <SafetyDisclaimer variant="banner" />
         
         {/* Contenuto principale */}
         <View style={styles.mainContent}>
