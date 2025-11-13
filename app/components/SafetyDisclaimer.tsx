@@ -92,7 +92,13 @@ export default function SafetyDisclaimer({
           {disclaimerText.banner}
         </Text>
         <TouchableOpacity 
-          onPress={() => setShowFullDisclaimer(true)}
+          onPress={() => {
+            console.log('🔥 BANNER INFO BUTTON: Clicked! Opening modal...');
+            console.log('🔥 Current variant:', variant);
+            console.log('🔥 showFullDisclaimer before:', showFullDisclaimer);
+            setShowFullDisclaimer(true);
+            console.log('🔥 setShowFullDisclaimer(true) called');
+          }}
           style={styles.infoButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           activeOpacity={0.6}
@@ -119,7 +125,9 @@ export default function SafetyDisclaimer({
     </View>
   );
 
-  const renderModal = () => (
+  const renderModal = () => {
+    console.log('🔥 MODAL RENDER: showFullDisclaimer =', showFullDisclaimer);
+    return (
     <Modal
       visible={showFullDisclaimer}
       animationType="slide"
@@ -161,7 +169,8 @@ export default function SafetyDisclaimer({
         </ScrollView>
       </View>
     </Modal>
-  );
+    );
+  };
 
   return (
     <>
