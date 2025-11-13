@@ -1801,8 +1801,10 @@ const styles = StyleSheet.create({
         showsVerticalScrollIndicator={false}
         ref={scrollViewRef}
       >
-        {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer */}
-        <SafetyDisclaimer variant="banner" addHorizontalMargin={true} />
+        {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer - IDENTICO ALLA DASHBOARD */}
+        <View style={{ marginHorizontal: 16 }}>
+          <SafetyDisclaimer variant="banner" />
+        </View>
         
         {/* Contenuto principale */}
         <View style={styles.mainContent}>

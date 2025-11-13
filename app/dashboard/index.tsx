@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: SIZES.padding,
     paddingTop: 8,
-    paddingBottom: SIZES.padding,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Aumentato per mostrare tutti i consigli
   },
   header: {
     flexDirection: 'row',
