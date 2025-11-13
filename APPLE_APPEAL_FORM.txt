@@ -1,0 +1,27 @@
+We respectfully appeal rejection under Guidelines 1.4 and 4.0:
+
+GUIDELINE 4.0 - iPad Issue:
+Our app is iPhone-only (supportsTablet: false, UIDeviceFamily: [1], UIRequiresFullScreen: true). We cannot understand how the review team is testing our iPhone-only app on iPad. We request verification of correct build and review on iPhone only.
+
+GUIDELINE 1.4 - BAC Calculator:
+We submitted 17-page scientific document with 39 peer-reviewed citations demonstrating our Widmark-based BAC calculator (forensic science standard) can be MORE ACCURATE than consumer breathalyzers with documented 50-74% false negative rates (BMJ Open 2014, Alcohol Clin Exp Res 2021).
+
+Safety measures:
+- Mandatory disclaimers on every screen
+- NO "safe to drive" messaging
+- Conservative algorithm that OVERESTIMATES BAC
+- Educational purpose statements
+- NOT a medical device warnings
+- 0.00% is only safe BAC emphasis
+
+CRITICAL INCONSISTENCY:
+Multiple BAC calculator apps using identical methodology are approved (AlcoDroid, Promille, DrinkCoach, Alcogram, Blood Alcohol Calculator). Why is ours rejected?
+
+EVIDENCE NOT REVIEWED:
+Rejection appears to be template ignoring all 39 scientific references. We request review by qualified specialist in pharmacokinetics or forensic toxicology.
+
+We have implemented comprehensive safety measures exceeding similar approved apps. We request substantive review of scientific documentation and explanation of specific approval requirements.
+
+Available for discussion to clarify technical/scientific aspects.
+
+Thank you.

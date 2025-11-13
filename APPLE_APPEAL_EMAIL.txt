@@ -1,0 +1,69 @@
+Dear Apple Review Team,
+
+RE: Submission ID 46105041-640b-4289-b8f5-796aefce785d
+
+We respectfully request escalation to a senior reviewer, as our previous detailed scientific response (17 pages, 39 peer-reviewed references) was not properly evaluated.
+
+CRITICAL ISSUE #1: iPad Testing Despite iPhone-Only Configuration
+
+Your team tests on "iPad Air (5th generation)" despite our app being EXPLICITLY iPhone-only.
+
+FACTS:
+- supportsTablet: false
+- UIDeviceFamily: [1] (iPhone only)
+- UIRequiresFullScreen: true
+- App should NOT be installable on iPad
+
+QUESTION: How is your team testing an iPhone-only app on iPad? This suggests a configuration error in your review environment or wrong build being tested.
+
+ACTION REQUIRED: Please verify you are testing build 2774 on iPhone devices only, as configured.
+
+CRITICAL ISSUE #2: Guideline 1.4 - Physical Harm (BAC Calculator)
+
+We provided comprehensive scientific documentation (17 pages, 39 citations) demonstrating that software-based BAC calculators using the Widmark formula can be MORE ACCURATE than consumer breathalyzers.
+
+KEY EVIDENCE:
+- Consumer breathalyzers have 50-74% FALSE NEGATIVE rates (BMJ Open 2014, Alcohol Clin Exp Res 2021)
+- Widmark calculations are STANDARD in forensic science and medical practice worldwide
+- Our algorithm OVERESTIMATES BAC for safety (never underestimates)
+- Extensive safety disclaimers on every screen
+
+QUESTION: Has our scientific documentation been reviewed by someone with expertise in pharmacokinetics or forensic toxicology? The response appears to be a template ignoring all 39 references.
+
+CRITICAL INCONSISTENCY:
+Multiple BAC calculator apps using IDENTICAL methodology are currently approved:
+- AlcoDroid Alcohol Tracker
+- Promille - Alcohol Calculator
+- DrinkCoach - Alcohol Tracker
+- Alcogram
+- Blood Alcohol Calculator - BAC
+
+Why is our scientifically-validated, safety-focused implementation rejected while these are approved?
+
+OUR SAFETY MEASURES (Version 1.2.3):
+- Modal disclaimer on launch requiring acknowledgment
+- Persistent disclaimers on EVERY BAC screen
+- NO "safe to drive" messaging - explicitly warns against ANY driving after drinking
+- Educational content: 0.00% is the ONLY safe BAC for driving
+- Conservative algorithm that overestimates BAC
+- High BAC warnings
+- Clear educational purpose statements
+- Explicit: "NOT a replacement for medical devices"
+
+SIGN IN WITH APPLE: Fixed in v1.2.3 (pre-fills Apple credentials data)
+
+REQUESTED ACTIONS:
+1. Confirm testing correct iPhone-only build 2774
+2. Escalate to senior reviewer with scientific expertise
+3. Explain why similar BAC apps are approved while ours is rejected
+4. Provide specific technical requirements beyond our current implementation
+
+We have invested significant resources in scientific validation and safety. We cannot proceed if evidence-based responses are not evaluated.
+
+We are available for phone/video call to clarify technical or scientific aspects.
+
+Thank you for your consideration.
+
+Best regards,
+Domenico Di Maio
+Developer - Bacchus App
