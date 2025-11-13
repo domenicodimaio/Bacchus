@@ -100,6 +100,7 @@ export default function SafetyDisclaimer({
             console.log('🔥 setShowFullDisclaimer(true) called');
           }}
           style={styles.infoButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           activeOpacity={0.6}
         >
           <Ionicons name="information-circle" size={20} color={colors.warning} />
@@ -127,47 +128,47 @@ export default function SafetyDisclaimer({
   const renderModal = () => {
     console.log('🔥 MODAL RENDER: showFullDisclaimer =', showFullDisclaimer);
     return (
-    <Modal
-      visible={showFullDisclaimer}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => setShowFullDisclaimer(false)}
-    >
-      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            {disclaimerText.full.title}
-          </Text>
-          <TouchableOpacity 
-            onPress={() => setShowFullDisclaimer(false)}
-            style={[styles.closeButton, { backgroundColor: colors.card }]}
-          >
-            <Ionicons name="close" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-        
-        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          <LinearGradient
-            colors={[colors.warning + '10', colors.warning + '20']}
-            style={[styles.modalDisclaimer, { borderColor: colors.warning + '30' }]}
-          >
-            {disclaimerText.full.points.map((point, index) => (
-              <View key={index} style={styles.pointContainer}>
-                <Text style={[styles.modalPoint, { color: colors.text }]}>
-                  {point}
+      <Modal
+        visible={showFullDisclaimer}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFullDisclaimer(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {disclaimerText.full.title}
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setShowFullDisclaimer(false)}
+              style={[styles.closeButton, { backgroundColor: colors.card }]}
+            >
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <LinearGradient
+              colors={[colors.warning + '10', colors.warning + '20']}
+              style={[styles.modalDisclaimer, { borderColor: colors.warning + '30' }]}
+            >
+              {disclaimerText.full.points.map((point, index) => (
+                <View key={index} style={styles.pointContainer}>
+                  <Text style={[styles.modalPoint, { color: colors.text }]}>
+                    {point}
+                  </Text>
+                </View>
+              ))}
+              
+              <View style={[styles.footerContainer, { borderTopColor: colors.border }]}>
+                <Text style={[styles.modalFooter, { color: colors.textSecondary }]}>
+                  {disclaimerText.full.footer}
                 </Text>
               </View>
-            ))}
-            
-            <View style={[styles.footerContainer, { borderTopColor: colors.border }]}>
-              <Text style={[styles.modalFooter, { color: colors.textSecondary }]}>
-                {disclaimerText.full.footer}
-              </Text>
-            </View>
-          </LinearGradient>
-        </ScrollView>
-      </View>
-    </Modal>
+            </LinearGradient>
+          </ScrollView>
+        </View>
+      </Modal>
     );
   };
 
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 12, // Area touchable MOLTO più grande
+    padding: 12, // AREA TOUCHABLE MOLTO PIÙ GRANDE
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
