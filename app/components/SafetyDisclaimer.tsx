@@ -100,7 +100,6 @@ export default function SafetyDisclaimer({
             console.log('🔥 setShowFullDisclaimer(true) called');
           }}
           style={styles.infoButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           activeOpacity={0.6}
         >
           <Ionicons name="information-circle" size={20} color={colors.warning} />
@@ -210,9 +209,11 @@ const styles = StyleSheet.create({
   },
   bannerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center', // Manteniamo center ma forziamo allineamento
     paddingHorizontal: 10,
     paddingVertical: 8,
+    // Fix: assicuriamo che non ci siano offset
+    position: 'relative',
   },
   bannerText: {
     fontSize: 11,
@@ -222,13 +223,16 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 12, // AREA TOUCHABLE MOLTO PIÙ GRANDE
+    padding: 12,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)', // Debug: area visibile temporaneamente
-    minWidth: 44, // iOS Human Interface Guidelines minimum touch target
+    minWidth: 44,
     minHeight: 44,
+    // Fix posizionamento: forza la posizione relativa
+    position: 'relative',
+    top: 0,
+    left: 0,
   },
   
   fullContainer: {
