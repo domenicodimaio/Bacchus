@@ -100,7 +100,6 @@ export default function SafetyDisclaimer({
             console.log('🔥 setShowFullDisclaimer(true) called');
           }}
           style={styles.infoButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           activeOpacity={0.6}
         >
           <Ionicons name="information-circle" size={20} color={colors.warning} />
@@ -222,10 +221,13 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 8, // Aumentato da 4 a 8 per area touchable più precisa
-    borderRadius: 12,
+    padding: 12, // Area touchable MOLTO più grande
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)', // Debug: area visibile temporaneamente
+    minWidth: 44, // iOS Human Interface Guidelines minimum touch target
+    minHeight: 44,
   },
   
   fullContainer: {
