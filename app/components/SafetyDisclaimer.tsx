@@ -100,7 +100,7 @@ export default function SafetyDisclaimer({
             console.log('🔥 setShowFullDisclaimer(true) called');
           }}
           style={styles.infoButton}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           activeOpacity={0.6}
         >
           <Ionicons name="information-circle" size={20} color={colors.warning} />
@@ -222,8 +222,10 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 4,
-    borderRadius: 10,
+    padding: 8, // Aumentato da 4 a 8 per area touchable più precisa
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   
   fullContainer: {
