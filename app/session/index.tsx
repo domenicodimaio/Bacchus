@@ -1355,9 +1355,14 @@ const styles = StyleSheet.create({
     flex: 1,
       // backgroundColor rimosso - usato dinamicamente
     },
-    scrollContainer: {
-      flex: 1,
-    },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
@@ -1797,7 +1802,7 @@ const styles = StyleSheet.create({
 
       <ScrollView 
         style={styles.scrollContainer}
-        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         ref={scrollViewRef}
       >

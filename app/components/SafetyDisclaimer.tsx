@@ -209,11 +209,9 @@ const styles = StyleSheet.create({
   },
   bannerContent: {
     flexDirection: 'row',
-    alignItems: 'center', // Manteniamo center ma forziamo allineamento
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    // Fix: assicuriamo che non ci siano offset
-    position: 'relative',
+    paddingVertical: 6, // Ridotto da 8 a 6 per banner più stretto
   },
   bannerText: {
     fontSize: 11,
@@ -223,16 +221,12 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 12,
-    borderRadius: 16,
+    padding: 8, // Ridotto per essere più preciso
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 44,
-    minHeight: 44,
-    // Fix posizionamento: forza la posizione relativa
-    position: 'relative',
-    top: 0,
-    left: 0,
+    minWidth: 36, // Ridotto per banner più stretto
+    minHeight: 36,
   },
   
   fullContainer: {
