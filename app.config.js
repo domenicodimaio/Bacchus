@@ -18,7 +18,7 @@ export default {
     ios: {
       supportsTablet: false,
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2779',
+      buildNumber: '2780',
       infoPlist: {
         UIDeviceFamily: [1], // 1 = iPhone only (not 2 = iPad)
         UIRequiresFullScreen: true, // Richiede schermo intero (iPhone only)
@@ -44,7 +44,7 @@ export default {
     },
     android: {
       package: 'com.bacchusapp.app',
-      versionCode: 2779,
+      versionCode: 2780,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
