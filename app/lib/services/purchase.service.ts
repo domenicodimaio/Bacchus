@@ -174,7 +174,6 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
           if (customerInfo?.originalAppUserId !== userId && activeEntitlements.length > 0) {
             // Verifica se l'utente usa Apple Sign In
             const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-            const STORAGE_KEYS = require('../../constants/storage').STORAGE_KEYS;
             
             try {
         // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
@@ -514,7 +513,6 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       
       // 🔍 Controlla se l'utente corrente ha usato Apple Sign In
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const STORAGE_KEYS = require('../../constants/storage').STORAGE_KEYS;
       
       try {
         // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
