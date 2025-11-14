@@ -170,13 +170,29 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
             activeEntitlements: activeEntitlements
           });
           
-          // ⚠️ SANDBOX WARNING: Se l'app user ID non corrisponde, è un problema sandbox
+          // 🔍 Controlla se c'è mismatch tra user ID
           if (customerInfo?.originalAppUserId !== userId && activeEntitlements.length > 0) {
-            console.warn(`⚠️ SANDBOX ISSUE: RevenueCat ritorna entitlements di un altro user!`);
-            console.warn(`   App User ID richiesto: ${userId}`);
-            console.warn(`   RevenueCat User ID: ${customerInfo?.originalAppUserId}`);
-            console.warn(`   Questo è normale in sandbox quando più account app condividono lo stesso Apple ID`);
-            console.warn(`   In PRODUZIONE questo non accadrà perché ogni utente ha il proprio Apple ID`);
+            // Verifica se l'utente usa Apple Sign In
+            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+            const STORAGE_KEYS = require('../constants/storage').STORAGE_KEYS;
+            
+            try {
+              const appleUserData = await AsyncStorage.getItem(STORAGE_KEYS.APPLE_USER_DATA);
+              if (appleUserData) {
+                console.log(`✅ APPLE SIGN IN: Mismatch user ID normale per Apple Sign In`);
+                console.log(`   App User ID: ${userId}`);
+                console.log(`   RevenueCat User ID: ${customerInfo?.originalAppUserId}`);
+                console.log(`   ✅ Abbonamento segue Apple ID - tutto normale`);
+              } else {
+                console.warn(`⚠️ SANDBOX ISSUE: RevenueCat ritorna entitlements di un altro user!`);
+                console.warn(`   App User ID richiesto: ${userId}`);
+                console.warn(`   RevenueCat User ID: ${customerInfo?.originalAppUserId}`);
+                console.warn(`   Questo è normale in sandbox quando più account app condividono lo stesso Apple ID`);
+                console.warn(`   In PRODUZIONE questo non accadrà perché ogni utente ha il proprio Apple ID`);
+              }
+            } catch (storageError) {
+              console.warn('⚠️ Errore controllo Apple Sign In:', storageError);
+            }
           }
         } catch (syncError) {
           console.warn('⚠️ RevenueCat: Errore verifica sincronizzazione:', syncError);
@@ -476,15 +492,37 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
     const customerInfo = await getCustomerInfo();
     if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) return false;
     
-    // ⚠️ SANDBOX FIX: Verifica che le entitlements appartengano all'utente corrente
-    // In sandbox, RevenueCat può ritornare entitlements di un altro utente se condividono lo stesso Apple ID
+    // ⚠️ APPLE SIGN IN FIX: Per Apple Sign In, l'abbonamento segue l'Apple ID, non l'account app
     if (customerInfo.originalAppUserId && customerInfo.originalAppUserId !== currentUserId) {
-      console.warn(`⚠️ hasEntitlement: RevenueCat user ID (${customerInfo.originalAppUserId}) non corrisponde a currentUserId (${currentUserId})`);
-      console.warn(`   Questo è un problema noto del sandbox Apple quando più account app usano lo stesso Apple ID test`);
-      console.warn(`   Ritorno false per evitare che l'utente attuale erediti entitlements di un altro`);
+      console.warn(`⚠️ hasEntitlement: RevenueCat user ID (${customerInfo.originalAppUserId}) ≠ currentUserId (${currentUserId})`);
       
-      // Non dare entitlements di un altro utente!
-      return false;
+      // 🔍 Controlla se l'utente corrente ha usato Apple Sign In
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const STORAGE_KEYS = require('../constants/storage').STORAGE_KEYS;
+      
+      try {
+        const appleUserData = await AsyncStorage.getItem(STORAGE_KEYS.APPLE_USER_DATA);
+        if (appleUserData) {
+          console.log(`✅ hasEntitlement: Utente usa Apple Sign In - abbonamento valido per Apple ID`);
+          console.log(`   RevenueCat originalAppUserId: ${customerInfo.originalAppUserId}`);
+          console.log(`   App currentUserId: ${currentUserId}`);
+          console.log(`   ✅ APPLE SIGN IN: Abbonamento segue Apple ID, non account app - ENTITLEMENT VALIDO`);
+          
+          // Per Apple Sign In, l'abbonamento è valido anche se gli ID non corrispondono
+          return !!customerInfo.entitlements.active[entitlement];
+        } else {
+          console.warn(`⚠️ hasEntitlement: Utente NON usa Apple Sign In - possibile problema sandbox`);
+          console.warn(`   Questo può accadere in sandbox quando più account app condividono lo stesso Apple ID test`);
+          console.warn(`   Ritorno false per evitare che l'utente attuale erediti entitlements di un altro`);
+          
+          // Non dare entitlements di un altro utente se non usa Apple Sign In!
+          return false;
+        }
+      } catch (storageError) {
+        console.warn(`⚠️ hasEntitlement: Errore controllo Apple Sign In:`, storageError);
+        // In caso di errore, per sicurezza ritorna false
+        return false;
+      }
     }
     
     return !!customerInfo.entitlements.active[entitlement];
