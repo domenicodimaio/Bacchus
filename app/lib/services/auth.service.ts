@@ -666,7 +666,11 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             if (appleUserData) {
               const userSpecificAppleKey = `APPLE_USER_DATA_${data.user.id}`;
               await AsyncStorage.setItem(userSpecificAppleKey, JSON.stringify(appleUserData));
-              console.log('🍎 APPLE: Dati utente salvati con chiave specifica:', userSpecificAppleKey);
+              console.log('🍎 APPLE: ===== SALVATAGGIO DATI APPLE =====');
+              console.log('🍎 APPLE: User ID:', data.user.id);
+              console.log('🍎 APPLE: Chiave specifica:', userSpecificAppleKey);
+              console.log('🍎 APPLE: Dati salvati:', appleUserData);
+              console.log('🍎 APPLE: ===== FINE SALVATAGGIO =====');
             }
             
             // 🎯 Se l'utente ha bisogno del wizard (nuovo o senza profili)

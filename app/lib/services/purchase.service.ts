@@ -479,9 +479,12 @@ export const getCustomerInfo = async () => {
  */
 export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean> => {
   try {
+    console.log(`🔍 PREMIUM_CHECK: Controllo entitlement ${entitlement} per utente ${currentUserId}`);
+    
     if (isExpoGo) {
       // In Expo Go, controlla stato premium locale
       const localPremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
+      console.log(`🔍 PREMIUM_CHECK: Expo Go - stato locale: ${localPremium}`);
       if (entitlement === Entitlement.PREMIUM) {
         return localPremium === 'true';
       } else if (entitlement === Entitlement.AD_FREE) {
@@ -490,8 +493,20 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       return false;
     }
     
+    console.log(`🔍 PREMIUM_CHECK: Ottenendo customerInfo da RevenueCat...`);
     const customerInfo = await getCustomerInfo();
-    if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) return false;
+    
+    if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) {
+      console.log(`🔍 PREMIUM_CHECK: Nessuna entitlement attiva trovata`);
+      return false;
+    }
+    
+    console.log(`🔍 PREMIUM_CHECK: CustomerInfo ricevuto:`, {
+      originalAppUserId: customerInfo.originalAppUserId,
+      currentUserId: currentUserId,
+      activeEntitlements: Object.keys(customerInfo.entitlements.active || {}),
+      targetEntitlement: entitlement
+    });
     
     // ⚠️ APPLE SIGN IN FIX: Per Apple Sign In, l'abbonamento segue l'Apple ID, non l'account app
     if (customerInfo.originalAppUserId && customerInfo.originalAppUserId !== currentUserId) {
@@ -503,19 +518,26 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       
       try {
         // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
+        console.log(`🔍 PREMIUM_CHECK: Controllo se utente ${currentUserId} usa Apple Sign In...`);
         const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${currentUserId}`);
+        console.log(`🔍 PREMIUM_CHECK: APPLE_USER_DATA_${currentUserId} = ${appleUserData ? 'TROVATO' : 'NON TROVATO'}`);
+        
         if (appleUserData) {
-          console.log(`✅ hasEntitlement: Utente usa Apple Sign In - abbonamento valido per Apple ID`);
+          console.log(`✅ PREMIUM_CHECK: UTENTE USA APPLE SIGN IN!`);
           console.log(`   RevenueCat originalAppUserId: ${customerInfo.originalAppUserId}`);
           console.log(`   App currentUserId: ${currentUserId}`);
-          console.log(`   ✅ APPLE SIGN IN: Abbonamento segue Apple ID, non account app - ENTITLEMENT VALIDO`);
+          console.log(`   ✅ APPLE SIGN IN: Abbonamento segue Apple ID, non account app`);
+          console.log(`   ✅ ENTITLEMENT ${entitlement}: ${!!customerInfo.entitlements.active[entitlement] ? 'VALIDO' : 'NON TROVATO'}`);
           
           // Per Apple Sign In, l'abbonamento è valido anche se gli ID non corrispondono
-          return !!customerInfo.entitlements.active[entitlement];
+          const hasEntitlementResult = !!customerInfo.entitlements.active[entitlement];
+          console.log(`🎯 PREMIUM_CHECK: RISULTATO FINALE per Apple Sign In: ${hasEntitlementResult}`);
+          return hasEntitlementResult;
         } else {
-          console.warn(`⚠️ hasEntitlement: Utente NON usa Apple Sign In - possibile problema sandbox`);
-          console.warn(`   Questo può accadere in sandbox quando più account app condividono lo stesso Apple ID test`);
+          console.warn(`⚠️ PREMIUM_CHECK: UTENTE NON USA APPLE SIGN IN`);
+          console.warn(`   Possibile problema sandbox: più account app condividono stesso Apple ID test`);
           console.warn(`   Ritorno false per evitare che l'utente attuale erediti entitlements di un altro`);
+          console.log(`🎯 PREMIUM_CHECK: RISULTATO FINALE per non-Apple: false`);
           
           // Non dare entitlements di un altro utente se non usa Apple Sign In!
           return false;
@@ -527,9 +549,13 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       }
     }
     
-    return !!customerInfo.entitlements.active[entitlement];
+    // Caso normale: user ID corrispondono
+    const hasEntitlementResult = !!customerInfo.entitlements.active[entitlement];
+    console.log(`✅ PREMIUM_CHECK: User ID corrispondono - controllo diretto`);
+    console.log(`🎯 PREMIUM_CHECK: RISULTATO FINALE: ${hasEntitlementResult}`);
+    return hasEntitlementResult;
   } catch (error) {
-    console.error(`Failed to check entitlement ${entitlement}:`, error);
+    console.error(`❌ PREMIUM_CHECK: Errore controllo entitlement ${entitlement}:`, error);
     return false;
   }
 };

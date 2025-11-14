@@ -272,7 +272,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           
           // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi
           console.log('🎯 USER CHANGED: Controllo stato premium da RevenueCat...');
+          console.log('🎯 USER CHANGED: ===== INIZIO CONTROLLO PREMIUM =====');
           let isPremium = await purchaseService.isPremium();
+          console.log('🎯 USER CHANGED: ===== FINE CONTROLLO PREMIUM =====');
+          console.log(`🎯 USER CHANGED: Risultato isPremium: ${isPremium}`);
           
           // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
           let simulatePremium = 'false';
