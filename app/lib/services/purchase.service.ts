@@ -177,7 +177,8 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
             const STORAGE_KEYS = require('../constants/storage').STORAGE_KEYS;
             
             try {
-              const appleUserData = await AsyncStorage.getItem(STORAGE_KEYS.APPLE_USER_DATA);
+        // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
+        const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${userId}`);
               if (appleUserData) {
                 console.log(`✅ APPLE SIGN IN: Mismatch user ID normale per Apple Sign In`);
                 console.log(`   App User ID: ${userId}`);
@@ -501,7 +502,8 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       const STORAGE_KEYS = require('../constants/storage').STORAGE_KEYS;
       
       try {
-        const appleUserData = await AsyncStorage.getItem(STORAGE_KEYS.APPLE_USER_DATA);
+        // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
+        const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${currentUserId}`);
         if (appleUserData) {
           console.log(`✅ hasEntitlement: Utente usa Apple Sign In - abbonamento valido per Apple ID`);
           console.log(`   RevenueCat originalAppUserId: ${customerInfo.originalAppUserId}`);

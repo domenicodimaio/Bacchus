@@ -115,7 +115,9 @@ export default function ProfileWizardScreen() {
   useEffect(() => {
     const loadAppleData = async () => {
       try {
-        const appleData = await AsyncStorage.getItem('APPLE_USER_DATA');
+        // 🔥 FIX: Usa chiave specifica per utente per APPLE_USER_DATA
+        const userSpecificAppleKey = user?.id ? `APPLE_USER_DATA_${user.id}` : 'APPLE_USER_DATA';
+        const appleData = await AsyncStorage.getItem(userSpecificAppleKey);
         if (appleData) {
           const { name, email, fromApple } = JSON.parse(appleData);
           if (name && name.trim()) {
@@ -124,8 +126,9 @@ export default function ProfileWizardScreen() {
           } else if (fromApple) {
             console.log('🍎 WIZARD: Login Apple rilevato ma nome non disponibile (normale dopo la prima volta)');
           }
-          // Rimuovi i dati dopo l'uso
-          await AsyncStorage.removeItem('APPLE_USER_DATA');
+          // 🔥 FIX: NON rimuovere APPLE_USER_DATA - serve per controlli premium!
+          // I dati Apple devono rimanere per tutta la durata dell'account
+          console.log('🍎 WIZARD: Mantengo APPLE_USER_DATA per controlli premium futuri');
         }
       } catch (error) {
         console.warn('Errore caricamento dati Apple:', error);
@@ -138,7 +141,7 @@ export default function ProfileWizardScreen() {
   const [animationsStarted, setAnimationsStarted] = useState(false);
   
   // AuthContext per refresh dopo wizard
-  const { refreshProfiles, setCompletedProfileWizard } = useAuth();
+  const { user, refreshProfiles, setCompletedProfileWizard } = useAuth();
   
   // Verifica se stiamo arrivando dalla registrazione
   useEffect(() => {

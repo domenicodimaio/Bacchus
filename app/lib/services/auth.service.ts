@@ -478,8 +478,8 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
           console.log('🍎 APPLE: Nome NON fornito (normale dopo la prima volta)');
         }
         
-        await AsyncStorage.setItem('APPLE_USER_DATA', JSON.stringify(appleUserData));
-        console.log('🍎 APPLE: Dati utente salvati per wizard:', appleUserData);
+        // 🔥 FIX: Salveremo APPLE_USER_DATA dopo il login con user ID specifico
+        console.log('🍎 APPLE: Dati utente preparati per salvataggio post-login:', appleUserData);
         
         
         if (credential.identityToken) {
@@ -661,6 +661,13 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             await AsyncStorage.setItem(tokenKey, JSON.stringify(data.session));
             
             console.log('🍎 AUTH: Sessione salvata correttamente');
+            
+            // 🔥 FIX: Salva APPLE_USER_DATA con chiave specifica per utente
+            if (appleUserData) {
+              const userSpecificAppleKey = `APPLE_USER_DATA_${data.user.id}`;
+              await AsyncStorage.setItem(userSpecificAppleKey, JSON.stringify(appleUserData));
+              console.log('🍎 APPLE: Dati utente salvati con chiave specifica:', userSpecificAppleKey);
+            }
             
             // 🎯 Se l'utente ha bisogno del wizard (nuovo o senza profili)
             console.log('APPLE_WIZARD_DEBUG: Decisione wizard -', {
