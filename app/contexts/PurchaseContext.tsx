@@ -41,6 +41,7 @@ interface PurchaseContextType {
   hideSubscriptionScreen: () => void;
   updateCurrentPath: (path: string) => void;
   toggleSimulatePremium: (value: boolean) => Promise<boolean>;
+  getSubscriptionDetails: () => Promise<any>;
   
   // Testing functions (only available in development)
   enablePremiumTest?: () => Promise<boolean>;
@@ -81,6 +82,7 @@ const defaultContext: PurchaseContextType = {
   hideSubscriptionScreen: () => {},
   updateCurrentPath: () => {},
   toggleSimulatePremium: async () => false,
+  getSubscriptionDetails: async () => null,
 };
 
 // Creazione del contesto
@@ -270,12 +272,45 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           console.log('🎯 USER CHANGED: Aspettando sincronizzazione completa RevenueCat...');
           await new Promise(resolve => setTimeout(resolve, 2000)); // Aspetta 2 secondi aggiuntivi
           
-          // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi
+          // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi con retry
           console.log('🎯 USER CHANGED: Controllo stato premium da RevenueCat...');
           console.log('🎯 USER CHANGED: ===== INIZIO CONTROLLO PREMIUM =====');
-          let isPremium = await purchaseService.isPremium();
+          
+          let isPremium = false;
+          let premiumCheckAttempts = 0;
+          const maxPremiumCheckAttempts = 3;
+          
+          // Prova fino a 3 volte a controllare lo stato premium
+          while (premiumCheckAttempts < maxPremiumCheckAttempts) {
+            premiumCheckAttempts++;
+            try {
+              isPremium = await purchaseService.isPremium();
+              console.log(`🎯 USER CHANGED: Tentativo ${premiumCheckAttempts}/${maxPremiumCheckAttempts} - Risultato isPremium: ${isPremium}`);
+              
+              // Se abbiamo ottenuto premium=true, esci subito
+              if (isPremium) {
+                console.log(`✅ USER CHANGED: Premium trovato al tentativo ${premiumCheckAttempts}!`);
+                break;
+              }
+              
+              // Se non è premium e non è l'ultimo tentativo, aspetta e riprova
+              if (!isPremium && premiumCheckAttempts < maxPremiumCheckAttempts) {
+                console.log(`🔄 USER CHANGED: Premium non trovato, retry tra 1 secondo...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            } catch (premiumError) {
+              console.warn(`⚠️ USER CHANGED: Errore controllo premium (tentativo ${premiumCheckAttempts}/${maxPremiumCheckAttempts}):`, premiumError);
+              
+              // Se non è l'ultimo tentativo, aspetta e riprova anche in caso di errore
+              if (premiumCheckAttempts < maxPremiumCheckAttempts) {
+                console.log(`🔄 USER CHANGED: Errore, retry tra 1 secondo...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+          }
+          
           console.log('🎯 USER CHANGED: ===== FINE CONTROLLO PREMIUM =====');
-          console.log(`🎯 USER CHANGED: Risultato isPremium: ${isPremium}`);
+          console.log(`🎯 USER CHANGED: Risultato FINALE isPremium dopo ${premiumCheckAttempts} tentativi: ${isPremium}`);
           
           // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
           let simulatePremium = 'false';
@@ -442,11 +477,34 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Acquista un abbonamento
   const purchaseSubscription = async (plan: 'monthly' | 'annual'): Promise<boolean> => {
     try {
-      console.log('PURCHASE: Inizio acquisto abbonamento:', plan);
+      console.log('🛒 PURCHASE: ===== INIZIO ACQUISTO ABBONAMENTO =====');
+      console.log('🛒 PURCHASE: Piano richiesto:', plan);
       
       if (state.isLoading) {
-        console.log('PURCHASE: Acquisto già in corso, ignoro richiesta');
+        console.log('🛒 PURCHASE: Acquisto già in corso, ignoro richiesta');
         return false;
+      }
+      
+      // 🔥 FIX CRITICO: Controlla PRIMA se l'utente è già premium
+      console.log('🔍 PURCHASE: Controllo se utente è già premium PRIMA dell\'acquisto...');
+      const isAlreadyPremium = await purchaseService.isPremium();
+      console.log('🔍 PURCHASE: Risultato controllo premium:', isAlreadyPremium);
+      
+      if (isAlreadyPremium) {
+        console.log('✅ PURCHASE: Utente è già premium!');
+        console.log('ℹ️ PURCHASE: Mensile e annuale sono abbonamenti separati con cadenze diverse');
+        console.log('ℹ️ PURCHASE: Se l\'utente ha il mensile e acquista l\'annuale, avrà entrambi (o uno sostituirà l\'altro in base alla configurazione RevenueCat)');
+        
+        // Aggiorna lo stato locale per sicurezza
+        safeSetState({
+          isPremium: true,
+          isAdFree: true
+        });
+        
+        // Procediamo con l'acquisto - RevenueCat gestirà correttamente due abbonamenti separati
+        // Se l'utente ha già lo stesso piano, RevenueCat mostrerà un messaggio appropriato
+      } else {
+        console.log('🛒 PURCHASE: Utente non è premium, procedo con l\'acquisto...');
       }
       
       // Imposta lo stato di caricamento
@@ -802,6 +860,16 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
     return false;
   };
+  
+  // Ottiene i dettagli dell'abbonamento attivo
+  const getSubscriptionDetails = async () => {
+    try {
+      return await purchaseService.getSubscriptionDetails();
+    } catch (error) {
+      console.error('Error getting subscription details:', error);
+      return null;
+    }
+  };
 
   return (
     <PurchaseContext.Provider
@@ -827,6 +895,7 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         hideSubscriptionScreen,
         updateCurrentPath,
         toggleSimulatePremium,
+        getSubscriptionDetails,
         
         // Testing functions (only available in development)
         enablePremiumTest,

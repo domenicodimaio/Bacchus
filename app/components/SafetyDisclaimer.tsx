@@ -101,8 +101,13 @@ export default function SafetyDisclaimer({
           }}
           style={styles.infoButton}
           activeOpacity={0.6}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // Espande area cliccabile
         >
-          <Ionicons name="information-circle" size={20} color={colors.warning} />
+          <Ionicons 
+            name="information-circle" 
+            size={20} 
+            color={colors.warning}
+          />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -210,6 +215,7 @@ const styles = StyleSheet.create({
   bannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', // Assicura distribuzione corretta
     paddingHorizontal: 10,
     paddingVertical: 6, // Ridotto da 8 a 6 per banner più stretto
   },
@@ -221,12 +227,16 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 8, // Ridotto per essere più preciso
-    borderRadius: 12,
+    padding: 0, // Rimuoviamo padding per controllo preciso
+    borderRadius: 22, // Metà di minHeight per cerchio perfetto
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 36, // Ridotto per banner più stretto
-    minHeight: 36,
+    minWidth: 44, // iOS Human Interface Guidelines: minimo 44x44
+    minHeight: 44,
+    width: 44, // Forza dimensione fissa per centratura perfetta
+    height: 44,
+    // Assicuriamo che l'icona sia centrata
+    position: 'relative',
   },
   
   fullContainer: {
