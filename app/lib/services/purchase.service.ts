@@ -226,8 +226,6 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
               console.warn('⚠️ Errore controllo Apple Sign In:', storageError);
             }
           }
-        } catch (syncError) {
-          console.warn('⚠️ RevenueCat: Errore verifica sincronizzazione finale:', syncError);
         }
         
       } catch (loginError) {
