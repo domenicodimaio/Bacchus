@@ -158,7 +158,7 @@ export default function SettingsScreen() {
   const signOut = auth?.logout || (async () => ({ success: false }));
   
   // Purchase context for debug tools
-  const { remainingFreeSessions, initializePurchases, toggleSimulatePremium } = usePurchase();
+  const { remainingFreeSessions, initializePurchases, toggleSimulatePremium, isPremium, manageSubscriptions } = usePurchase();
   
   // Get app version from Constants
   const appVersion = Constants?.expoConfig?.version || '1.0.0';
@@ -612,7 +612,7 @@ export default function SettingsScreen() {
         >
           <Animated.View style={contentAnimatedStyle}>
             
-            {/* Premium Features Section - Migliorata con lista dettagliata funzionalità */}
+            {/* Premium Section - Diversa per utenti premium e non premium */}
             <View style={[styles.section, { 
               backgroundColor: colors.cardElevated,
               borderRadius: 16,
@@ -620,70 +620,149 @@ export default function SettingsScreen() {
               marginBottom: 20
             }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Ionicons name="star-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                <Ionicons 
+                  name={isPremium ? "star" : "star-outline"} 
+                  size={20} 
+                  color={isPremium ? "#FFD700" : colors.primary} 
+                  style={{ marginRight: 8 }} 
+                />
                 <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 16 }}>
-                  {t('premiumFeatures', { ns: 'purchases', defaultValue: 'Premium Features' })}
+                  {isPremium 
+                    ? t('premiumAccount', { ns: 'purchases', defaultValue: 'Account Premium' })
+                    : t('premiumFeatures', { ns: 'purchases', defaultValue: 'Premium Features' })
+                  }
                 </Text>
               </View>
               
-              <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 14 }}>
-                {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Upgrade to Premium to unlock:' })}
-              </Text>
-              
-              {/* Lista dettagliata delle funzionalità Premium */}
-              <View style={{ marginLeft: 8 }}>
-                {[
-                  { key: 'unlimitedSessions', icon: 'infinite-outline', text: t('unlimitedSessions', { ns: 'purchases', defaultValue: 'Sessioni illimitate' }) },
-                  { key: 'advancedStatistics', icon: 'stats-chart-outline', text: t('advancedStatistics', { ns: 'purchases', defaultValue: 'Statistiche dettagliate e grafici' }) },
-                  { key: 'dataExport', icon: 'download-outline', text: t('dataExport', { ns: 'purchases', defaultValue: 'Esportazione dati in CSV/PDF' }) },
-                  { key: 'personalizedCalculations', icon: 'calculator-outline', text: t('personalizedCalculations', { ns: 'purchases', defaultValue: 'Calcoli personalizzati avanzati' }) },
-                  { key: 'iosWidgets', icon: 'phone-portrait-outline', text: t('iosWidgets', { ns: 'purchases', defaultValue: 'Widget iOS per la schermata home' }) },
-                  { key: 'noAds', icon: 'eye-off-outline', text: t('noAds', { ns: 'purchases', defaultValue: 'Nessuna pubblicità' }) },
-                  { key: 'prioritySupport', icon: 'headset-outline', text: t('prioritySupport', { ns: 'purchases', defaultValue: 'Supporto prioritario' }) }
-                ].map((feature, index) => (
-                  <View key={index} style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    marginBottom: 8,
-                    paddingLeft: 4
-                  }}>
-                    <Ionicons 
-                      name={feature.icon as any} 
-                      size={16} 
-                      color={colors.primary} 
-                      style={{ marginRight: 12, width: 20 }} 
-                    />
-                    <Text style={{ 
-                      color: colors.text, 
-                      fontSize: 14,
-                      flex: 1
-                    }}>
-                      {feature.text}
-                    </Text>
+              {isPremium ? (
+                // Sezione per utenti Premium
+                <>
+                  <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 14 }}>
+                    {t('premiumActive', { ns: 'purchases', defaultValue: 'Hai accesso a tutte le funzionalità premium!' })}
+                  </Text>
+                  
+                  {/* Lista delle funzionalità attive */}
+                  <View style={{ marginLeft: 8, marginBottom: 16 }}>
+                    {[
+                      { key: 'unlimitedSessions', icon: 'infinite', text: t('unlimitedSessions', { ns: 'purchases', defaultValue: 'Sessioni illimitate' }) },
+                      { key: 'advancedStatistics', icon: 'stats-chart', text: t('advancedStatistics', { ns: 'purchases', defaultValue: 'Statistiche dettagliate e grafici' }) },
+                      { key: 'dataExport', icon: 'download', text: t('dataExport', { ns: 'purchases', defaultValue: 'Esportazione dati in CSV/PDF' }) },
+                      { key: 'personalizedCalculations', icon: 'calculator', text: t('personalizedCalculations', { ns: 'purchases', defaultValue: 'Calcoli personalizzati avanzati' }) },
+                      { key: 'iosWidgets', icon: 'phone-portrait', text: t('iosWidgets', { ns: 'purchases', defaultValue: 'Widget iOS per la schermata home' }) },
+                      { key: 'noAds', icon: 'eye-off', text: t('noAds', { ns: 'purchases', defaultValue: 'Nessuna pubblicità' }) }
+                    ].map((feature, index) => (
+                      <View key={index} style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        marginBottom: 8,
+                        paddingLeft: 4
+                      }}>
+                        <Ionicons 
+                          name={feature.icon as any} 
+                          size={16} 
+                          color="#4CAF50" 
+                          style={{ marginRight: 12, width: 20 }} 
+                        />
+                        <Text style={{ 
+                          color: colors.text, 
+                          fontSize: 14,
+                          flex: 1
+                        }}>
+                          {feature.text}
+                        </Text>
+                        <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
-              
-              {/* Bottone di upgrade */}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  marginTop: 16,
-                  alignItems: 'center'
-                }}
-                onPress={() => router.push('/onboarding/subscription-offer')}
-              >
-                <Text style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: '600'
-                }}>
-                  {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Passa a Premium' })}
-                </Text>
-              </TouchableOpacity>
+                  
+                  {/* Bottone per gestire abbonamenti */}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: 'transparent',
+                      borderWidth: 1,
+                      borderColor: colors.primary,
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center'
+                    }}
+                    onPress={manageSubscriptions}
+                  >
+                    <Ionicons name="settings-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+                    <Text style={{
+                      color: colors.primary,
+                      fontSize: 16,
+                      fontWeight: '600'
+                    }}>
+                      {t('manageSubscription', { ns: 'purchases', defaultValue: 'Gestisci Abbonamento' })}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                // Sezione per utenti non Premium
+                <>
+                  <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 14 }}>
+                    {t('upgradeToUnlock', { ns: 'purchases', defaultValue: 'Upgrade to Premium to unlock:' })}
+                  </Text>
+                  
+                  {/* Lista dettagliata delle funzionalità Premium */}
+                  <View style={{ marginLeft: 8 }}>
+                    {[
+                      { key: 'unlimitedSessions', icon: 'infinite-outline', text: t('unlimitedSessions', { ns: 'purchases', defaultValue: 'Sessioni illimitate' }) },
+                      { key: 'advancedStatistics', icon: 'stats-chart-outline', text: t('advancedStatistics', { ns: 'purchases', defaultValue: 'Statistiche dettagliate e grafici' }) },
+                      { key: 'dataExport', icon: 'download-outline', text: t('dataExport', { ns: 'purchases', defaultValue: 'Esportazione dati in CSV/PDF' }) },
+                      { key: 'personalizedCalculations', icon: 'calculator-outline', text: t('personalizedCalculations', { ns: 'purchases', defaultValue: 'Calcoli personalizzati avanzati' }) },
+                      { key: 'iosWidgets', icon: 'phone-portrait-outline', text: t('iosWidgets', { ns: 'purchases', defaultValue: 'Widget iOS per la schermata home' }) },
+                      { key: 'noAds', icon: 'eye-off-outline', text: t('noAds', { ns: 'purchases', defaultValue: 'Nessuna pubblicità' }) },
+                      { key: 'prioritySupport', icon: 'headset-outline', text: t('prioritySupport', { ns: 'purchases', defaultValue: 'Supporto prioritario' }) }
+                    ].map((feature, index) => (
+                      <View key={index} style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        marginBottom: 8,
+                        paddingLeft: 4
+                      }}>
+                        <Ionicons 
+                          name={feature.icon as any} 
+                          size={16} 
+                          color={colors.primary} 
+                          style={{ marginRight: 12, width: 20 }} 
+                        />
+                        <Text style={{ 
+                          color: colors.text, 
+                          fontSize: 14,
+                          flex: 1
+                        }}>
+                          {feature.text}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  
+                  {/* Bottone di upgrade */}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: colors.primary,
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      marginTop: 16,
+                      alignItems: 'center'
+                    }}
+                    onPress={() => router.push('/onboarding/subscription-offer')}
+                  >
+                    <Text style={{
+                      color: 'white',
+                      fontSize: 16,
+                      fontWeight: '600'
+                    }}>
+                      {t('upgradeToPremium', { ns: 'purchases', defaultValue: 'Passa a Premium' })}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
             
             {/* Account Section */}

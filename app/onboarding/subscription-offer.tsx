@@ -25,7 +25,6 @@ import { useToast } from '../components/Toast';
 import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { clearAllNavigationBlocks } from '../contexts/AuthContext';
 import { usePurchase } from '../contexts/PurchaseContext';
-import * as purchaseService from '../lib/services/purchase.service';
 
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
@@ -364,23 +363,6 @@ export default function SubscriptionOfferScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        
-        {/* Link per gestire abbonamenti esistenti */}
-        <TouchableOpacity 
-          style={[styles.manageSubscriptionLink, { borderColor: colors.border }]}
-          onPress={async () => {
-            try {
-              await purchaseService.openSubscriptionManagement();
-            } catch (error) {
-              console.error('Error opening subscription management:', error);
-            }
-          }}
-        >
-          <Ionicons name="settings-outline" size={16} color={colors.primary} />
-          <Text style={[styles.manageSubscriptionText, { color: colors.primary }]}>
-            {i18n.language === 'it' ? 'Gestisci Abbonamenti Esistenti' : 'Manage Existing Subscriptions'}
-          </Text>
-        </TouchableOpacity>
       </View>
       
       {/* Bottoni in basso */}
@@ -551,22 +533,6 @@ const styles = StyleSheet.create({
   legalSeparator: {
     fontSize: 12,
     marginHorizontal: 4,
-  },
-  manageSubscriptionLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-  },
-  manageSubscriptionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginLeft: 8,
   },
   bottomButtons: {
     padding: 16,
