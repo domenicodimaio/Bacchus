@@ -166,8 +166,6 @@ export default function SettingsScreen() {
   
   // State
   const [language, setLanguage] = useState('it');
-
-  const [isPremium, setIsPremium] = useState(false);
   const [showDeveloperOptions, setShowDeveloperOptions] = useState(false); // 🔧 NASCOSTO di default per release
   const [isLoading, setIsLoading] = useState(false);
   
@@ -284,17 +282,8 @@ export default function SettingsScreen() {
       
 
       
-      // Load premium status in modo sicuro con try/catch
-      try {
-      const storedIsPremium = await AsyncStorage.getItem(STORAGE_KEY.IS_PREMIUM);
-        if (storedIsPremium !== null) {
-        setIsPremium(storedIsPremium === 'true');
-        }
-      } catch (error) {
-        console.error('Errore nel caricamento dello stato premium:', error);
-        // Default a false in caso di errore
-        setIsPremium(false);
-      }
+      // Premium status is now managed by PurchaseContext
+      // No need to load it manually here
       
       // 🛠️ Check for developer tools status
       try {
@@ -323,7 +312,6 @@ export default function SettingsScreen() {
       
       // In caso di errore, usa i valori predefiniti
       setLanguage('it');
-      setIsPremium(false);
       setShowDeveloperOptions(false);
       setIsLoading(false);
     }
@@ -521,9 +509,6 @@ export default function SettingsScreen() {
       const success = await toggleSimulatePremium(newValue);
       
       if (success) {
-        // Aggiorna stato locale
-        setIsPremium(newValue);
-        
         // 🔧 FORZA refresh PurchaseContext per aggiornare counter UI
         if (initializePurchases) {
           console.log('🎯 TOGGLE PREMIUM: Forzando refresh PurchaseContext...');
@@ -545,8 +530,6 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error('🎯 TOGGLE PREMIUM: ❌ Errore:', error);
-      // Riporta lo stato al valore originale in caso di errore
-      setIsPremium(isPremium);
       
       Alert.alert(
         '❌ Errore',
