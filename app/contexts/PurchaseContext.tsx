@@ -260,57 +260,97 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (isInitialized && user?.id) {
       console.log(`🎯 USER CHANGED: Updating purchases for user ${user.id}`);
       
-      // 🔧 FIX: Ricarica anche il counter sessioni quando cambia utente
-      const reloadSessionCounter = async () => {
+      // 🔧 FIX PREMIUM PERSISTENCE: Funzione migliorata per sincronizzazione RevenueCat
+      const syncUserPremiumStatus = async () => {
         try {
-          // 🔥 FIX CRITICO: ASPETTA che setUserForPurchases finisca PRIMA di controllare premium
-          console.log('🎯 USER CHANGED: Impostando utente per RevenueCat...');
+          console.log('🎯 USER LOGIN: ===== INIZIO SINCRONIZZAZIONE PREMIUM =====');
+          
+          // Step 1: Imposta utente su RevenueCat
+          console.log('🎯 USER LOGIN: Step 1 - Impostando utente per RevenueCat...');
           await purchaseService.setUserForPurchases(user.id);
-          console.log('🎯 USER CHANGED: RevenueCat sincronizzato, ora controllo premium...');
           
-          // 🔥 FIX RACE CONDITION: Aspetta un po' di più per essere sicuri che RevenueCat sia sincronizzato
-          console.log('🎯 USER CHANGED: Aspettando sincronizzazione completa RevenueCat...');
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Aumentato a 3 secondi per maggiore sicurezza
-          
-          // 🔥 FIX PERSISTENZA: FORZA il refresh delle informazioni customer da RevenueCat
-          console.log('🎯 USER CHANGED: Forzando refresh customerInfo da RevenueCat...');
+          // Step 2: Forza sincronizzazione con server Apple/Google
+          console.log('🎯 USER LOGIN: Step 2 - Forzando sincronizzazione con server Apple...');
           await purchaseService.refreshCustomerInfo();
           
-          // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per abbonamenti attivi
-          console.log('🎯 USER CHANGED: Controllo stato premium da RevenueCat...');
-          console.log('🎯 USER CHANGED: ===== INIZIO CONTROLLO PREMIUM =====');
+          // Step 3: Controlla stato premium MULTIPLO per essere sicuri
+          console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 1/3)...');
           let isPremium = await purchaseService.isPremium();
-          console.log('🎯 USER CHANGED: ===== FINE CONTROLLO PREMIUM =====');
-          console.log(`🎯 USER CHANGED: Risultato isPremium: ${isPremium}`);
+          console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium}`);
           
-          // 🔥 FIX BUG 2: Controlla SIMULATE_PREMIUM solo se non premium da RevenueCat
+          // Se non è premium, riprova dopo un breve delay
+          if (!isPremium) {
+            console.log('🎯 USER LOGIN: Non premium al primo tentativo, riprovo...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 2/3)...');
+            await purchaseService.refreshCustomerInfo(); // Refresh di nuovo
+            isPremium = await purchaseService.isPremium();
+            console.log(`🎯 USER LOGIN: Tentativo 2 - isPremium: ${isPremium}`);
+            
+            // Ultimo tentativo se ancora non premium
+            if (!isPremium) {
+              console.log('🎯 USER LOGIN: Ancora non premium, ultimo tentativo...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 3/3)...');
+              await purchaseService.refreshCustomerInfo(); // Refresh finale
+              isPremium = await purchaseService.isPremium();
+              console.log(`🎯 USER LOGIN: Tentativo 3 - isPremium: ${isPremium}`);
+            }
+          }
+          
+          // Step 4: Controlla simulazione premium solo se non premium da RevenueCat
           let simulatePremium = 'false';
           if (!isPremium) {
             simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
-          if (simulatePremium === 'true') {
-            console.log('🎯 USER CHANGED: Modalità simulazione premium attiva');
-            isPremium = true;
+            if (simulatePremium === 'true') {
+              console.log('🎯 USER LOGIN: Modalità simulazione premium attiva');
+              isPremium = true;
             }
           } else {
-            console.log('🎯 USER CHANGED: Abbonamento attivo trovato su RevenueCat');
+            console.log('🎯 USER LOGIN: ✅ ABBONAMENTO ATTIVO TROVATO SU REVENUECAT!');
           }
           
+          // Step 5: Aggiorna stato finale
           const remainingSessions = await purchaseService.getRemainingSessionsCount();
           const finalRemainingSessions = isPremium ? -1 : Math.max(0, remainingSessions);
           
-          console.log(`🎯 USER CHANGED RELOAD: isPremium=${isPremium}, remainingSessions=${remainingSessions}, final=${finalRemainingSessions}, simulatePremium=${simulatePremium}`);
+          console.log(`🎯 USER LOGIN: ===== RISULTATO FINALE =====`);
+          console.log(`🎯 USER LOGIN: isPremium: ${isPremium}`);
+          console.log(`🎯 USER LOGIN: simulatePremium: ${simulatePremium}`);
+          console.log(`🎯 USER LOGIN: remainingSessions: ${remainingSessions}`);
+          console.log(`🎯 USER LOGIN: finalRemainingSessions: ${finalRemainingSessions}`);
+          console.log(`🎯 USER LOGIN: ===== FINE SINCRONIZZAZIONE =====`);
           
           safeSetState({ 
             isPremium,
-            isAdFree: isPremium, // Se premium simulato, anche ad-free
+            isAdFree: isPremium,
             remainingFreeSessions: finalRemainingSessions 
           });
+          
         } catch (error) {
-          console.error('Error reloading session counter for user change:', error);
+          console.error('❌ USER LOGIN: Errore sincronizzazione premium:', error);
+          // In caso di errore, controlla almeno la simulazione locale
+          try {
+            const simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
+            const isPremium = simulatePremium === 'true';
+            const remainingSessions = await purchaseService.getRemainingSessionsCount();
+            const finalRemainingSessions = isPremium ? -1 : Math.max(0, remainingSessions);
+            
+            console.log(`🎯 USER LOGIN: Fallback - isPremium: ${isPremium} (da simulazione)`);
+            safeSetState({ 
+              isPremium,
+              isAdFree: isPremium,
+              remainingFreeSessions: finalRemainingSessions 
+            });
+          } catch (fallbackError) {
+            console.error('❌ USER LOGIN: Errore anche nel fallback:', fallbackError);
+          }
         }
       };
       
-      reloadSessionCounter();
+      syncUserPremiumStatus();
     } else if (isInitialized && !user) {
       // 🔥 FIX: Reset stato quando utente fa logout
       console.log('🎯 USER LOGOUT: Resetting purchase state');
@@ -608,13 +648,46 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           return false;
         }
         
+        // 🔥 FIX APPLE SANDBOX: Se dovremmo aggiornare lo stato, fallo automaticamente
+        if (result.shouldRefreshStatus) {
+          console.log('🔄 PURCHASE: shouldRefreshStatus=true, aggiorno stato premium...');
+          try {
+            // Forza refresh dello stato premium
+            await purchaseService.refreshCustomerInfo();
+            const isPremiumNow = await purchaseService.isPremium();
+            console.log(`🔄 PURCHASE: Dopo refresh forzato, isPremium: ${isPremiumNow}`);
+            
+            if (isPremiumNow) {
+              console.log('✅ PURCHASE: Utente ora risulta premium! Aggiorno UI...');
+              safeSetState({
+                isPremium: true,
+                isAdFree: true,
+                isLoading: false
+              });
+              
+              // Salva lo stato premium
+              await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS), 'true');
+              
+              Alert.alert(
+                'Abbonamento Riconosciuto',
+                'Il tuo abbonamento è stato riconosciuto e attivato!',
+                [{ text: 'OK' }]
+              );
+              
+              return true;
+            }
+          } catch (refreshError) {
+            console.error('❌ PURCHASE: Errore durante refresh forzato:', refreshError);
+          }
+        }
+        
         // Gestisci altri errori
         let errorMessage = t('purchaseError', { ns: 'purchases', defaultValue: 'Errore durante l\'acquisto. Riprova.' });
         
         if (result.error) {
           if (result.isAppleSandboxError) {
             // Errore specifico Apple Sandbox - messaggio più chiaro
-            errorMessage = 'Apple Sandbox: Hai già un abbonamento attivo su questo Apple ID.\n\n💡 Per testare con un altro account:\n1. Vai in Impostazioni iPhone\n2. App Store > Account Sandbox\n3. Esci e accedi con un altro account di test';
+            errorMessage = result.error; // Usa il messaggio specifico dal service
           } else if (result.error.includes('network') || result.error.includes('connection')) {
             errorMessage = t('networkError', { ns: 'common', defaultValue: 'Errore di connessione. Verifica la tua connessione internet.' });
           } else if (result.error.includes('payment')) {

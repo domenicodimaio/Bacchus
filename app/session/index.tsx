@@ -1393,6 +1393,11 @@ const styles = StyleSheet.create({
     settingsButton: {
       padding: 8,
     },
+  disclaimerContainer: {
+    position: 'relative',
+    zIndex: 100,
+    marginBottom: 8,
+  },
   mainContent: {
     flex: 1,
     alignItems: 'center',
@@ -1807,7 +1812,9 @@ const styles = StyleSheet.create({
         ref={scrollViewRef}
       >
         {/* 🔧 APPLE GUIDELINE 1.4: Safety Disclaimer - COPIATO IDENTICO DALLA DASHBOARD */}
-        <SafetyDisclaimer variant="banner" />
+        <View style={styles.disclaimerContainer}>
+          <SafetyDisclaimer variant="banner" />
+        </View>
         
         {/* Contenuto principale */}
         <View style={styles.mainContent}>

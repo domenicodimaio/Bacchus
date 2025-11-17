@@ -736,21 +736,48 @@ export const purchasePackage = async (pkg: any) => {
         }
         
         // 🍎 GESTIONE ERRORE APPLE SANDBOX: "Hai già un abbonamento"
-        // ⚠️ IMPORTANTE: Non trattiamo più questo come successo!
-        // L'errore 3532 significa che l'Apple ID sandbox ha già un abbonamento
-        // ma NON significa che QUESTO account app abbia il premium
+        // ⚠️ IMPORTANTE: Quando Apple dice "Hai già un abbonamento", dobbiamo verificare se questo utente dovrebbe essere premium
         if (revenueCatError.message?.includes('Hai già un abbonamento') || 
             revenueCatError.message?.includes('already have a subscription') ||
             revenueCatError.underlyingErrorMessage?.includes('3532')) {
           console.log('🍎 APPLE SANDBOX: Abbonamento già esistente per questo Apple ID (errore 3532)');
-          console.log('💡 SUGGERIMENTO: Vai in Impostazioni iPhone > App Store > Account Sandbox e cambia account');
+          console.log('🔍 APPLE SANDBOX: Verifico se questo utente dovrebbe essere premium...');
           
-          // Restituisci errore chiaro all'utente
-          return { 
-            success: false, 
-            error: 'Apple Sandbox: Questo Apple ID ha già un abbonamento di test attivo. Per testare nuovi acquisti, vai in Impostazioni iPhone > App Store > Account Sandbox e seleziona un altro account di test.',
-            isAppleSandboxError: true
-          };
+          try {
+            // Forza refresh delle informazioni da RevenueCat
+            await refreshCustomerInfo();
+            
+            // Controlla se ora l'utente risulta premium
+            const isPremiumNow = await isPremium();
+            console.log(`🔍 APPLE SANDBOX: Dopo refresh, isPremium: ${isPremiumNow}`);
+            
+            if (isPremiumNow) {
+              console.log('✅ APPLE SANDBOX: Utente risulta premium dopo refresh! Tratto come successo.');
+              // Se ora è premium, tratta come successo
+              const customerInfo = await getCustomerInfo();
+              return { 
+                success: true, 
+                customerInfo: customerInfo,
+                wasAlreadySubscribed: true
+              };
+            } else {
+              console.log('❌ APPLE SANDBOX: Utente non risulta premium dopo refresh.');
+              // Se non è premium, mostra errore ma suggerisci di controllare lo stato
+              return { 
+                success: false, 
+                error: 'Questo Apple ID ha già un abbonamento attivo. Se hai già un abbonamento, prova a fare logout e login per aggiornare lo stato.',
+                isAppleSandboxError: true,
+                shouldRefreshStatus: true
+              };
+            }
+          } catch (refreshError) {
+            console.error('❌ APPLE SANDBOX: Errore durante refresh:', refreshError);
+            return { 
+              success: false, 
+              error: 'Errore durante la verifica dell\'abbonamento esistente. Prova a fare logout e login.',
+              isAppleSandboxError: true
+            };
+          }
         }
         
         // RevenueCat fallito per altri motivi, proviamo con Expo In-App Purchases
@@ -1010,6 +1037,25 @@ export const openSubscriptionManagement = async (): Promise<void> => {
     
     console.log('🔧 SUBSCRIPTION_MANAGEMENT: Aprendo impostazioni gestione abbonamenti...');
     
+    // Mostra un alert informativo prima di aprire le impostazioni
+    const { Alert } = require('react-native');
+    
+    const shouldProceed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Gestione Abbonamenti',
+        'Stai per essere reindirizzato alle impostazioni di Apple per gestire i tuoi abbonamenti. Qui potrai:\n\n• Visualizzare i tuoi abbonamenti attivi\n• Modificare o cancellare abbonamenti\n• Cambiare piano di abbonamento\n• Visualizzare la cronologia dei pagamenti',
+        [
+          { text: 'Annulla', onPress: () => resolve(false), style: 'cancel' },
+          { text: 'Continua', onPress: () => resolve(true) }
+        ]
+      );
+    });
+    
+    if (!shouldProceed) {
+      console.log('🔧 SUBSCRIPTION_MANAGEMENT: Utente ha annullato');
+      return;
+    }
+    
     // Usa RevenueCat per aprire le impostazioni di gestione abbonamenti
     await Purchases.showManageSubscriptions();
     
@@ -1022,9 +1068,9 @@ export const openSubscriptionManagement = async (): Promise<void> => {
     
     Alert.alert(
       'Gestione Abbonamenti',
-      'Per gestire i tuoi abbonamenti, vai nelle Impostazioni del dispositivo > ID Apple > Abbonamenti.',
+      'Non è stato possibile aprire automaticamente le impostazioni.\n\nPer gestire i tuoi abbonamenti manualmente:\n\n1. Vai in Impostazioni iPhone\n2. Tocca il tuo nome in alto\n3. Tocca "Abbonamenti"\n4. Seleziona "Bacchus" per gestire l\'abbonamento',
       [
-        { text: 'Annulla', style: 'cancel' },
+        { text: 'OK', style: 'cancel' },
         { 
           text: 'Apri Impostazioni', 
           onPress: () => {

@@ -101,7 +101,7 @@ export default function SafetyDisclaimer({
           }}
           style={styles.infoButton}
           activeOpacity={0.6}
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="information-circle" size={20} color={colors.warning} />
         </TouchableOpacity>
@@ -223,14 +223,15 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   infoButton: {
-    padding: 8, // Ridotto per essere più preciso
-    borderRadius: 12,
+    padding: 10, // Aumentato per area touch più grande
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 36, // Ridotto per banner più stretto
-    minHeight: 36,
-    position: 'relative', // Assicura posizionamento corretto
-    zIndex: 10, // Porta il pulsante in primo piano
+    minWidth: 40, // Aumentato per touch area più grande
+    minHeight: 40,
+    position: 'relative',
+    zIndex: 999, // Z-index molto alto per essere sicuri
+    backgroundColor: 'transparent', // Assicura che non ci siano interferenze
   },
   
   fullContainer: {
