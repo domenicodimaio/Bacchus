@@ -157,18 +157,17 @@ export default function SettingsScreen() {
   const user = auth?.user || null;
   const signOut = auth?.logout || (async () => ({ success: false }));
   
-  // Purchase context for debug tools and subscription management
-  const { remainingFreeSessions, initializePurchases, toggleSimulatePremium, isPremium: isPremiumFromContext, getSubscriptionDetails } = usePurchase();
+  // Purchase context for debug tools
+  const { remainingFreeSessions, initializePurchases, toggleSimulatePremium } = usePurchase();
   
   // Get app version from Constants
   const appVersion = Constants?.expoConfig?.version || '1.0.0';
-  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '2786';
+  const appBuild = Constants?.expoConfig?.ios?.buildNumber || '2784';
   
   // State
   const [language, setLanguage] = useState('it');
 
-  // Usa isPremium dal contesto invece dello stato locale
-  const isPremium = isPremiumFromContext;
+  const [isPremium, setIsPremium] = useState(false);
   const [showDeveloperOptions, setShowDeveloperOptions] = useState(false); // 🔧 NASCOSTO di default per release
   const [isLoading, setIsLoading] = useState(false);
   
@@ -522,6 +521,9 @@ export default function SettingsScreen() {
       const success = await toggleSimulatePremium(newValue);
       
       if (success) {
+        // Aggiorna stato locale
+        setIsPremium(newValue);
+        
         // 🔧 FORZA refresh PurchaseContext per aggiornare counter UI
         if (initializePurchases) {
           console.log('🎯 TOGGLE PREMIUM: Forzando refresh PurchaseContext...');
@@ -543,6 +545,8 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error('🎯 TOGGLE PREMIUM: ❌ Errore:', error);
+      // Riporta lo stato al valore originale in caso di errore
+      setIsPremium(isPremium);
       
       Alert.alert(
         '❌ Errore',
@@ -681,15 +685,6 @@ export default function SettingsScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            
-            {/* Subscription Management Section - Solo per utenti premium */}
-            {isPremium && (
-              <SubscriptionManagementSection 
-                colors={colors}
-                t={t}
-                getSubscriptionDetails={getSubscriptionDetails}
-              />
-            )}
             
             {/* Account Section */}
             {isLoggedIn && (
@@ -1415,35 +1410,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     marginTop: 4,
-  },
-  subscriptionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  subscriptionValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  subscriptionInfo: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  subscriptionDisclaimer: {
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-  },
-  manageButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 }); 

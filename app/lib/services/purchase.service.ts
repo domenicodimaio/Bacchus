@@ -156,54 +156,22 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         console.log(`✅ RevenueCat: Login completato per utente ${userId}`);
         console.log(`🔍 RevenueCat: Created=${loginResult.created}, OriginalAppUserId=${loginResult.customerInfo?.originalAppUserId}`);
         
-        // 🔥 FIX CRITICO: Aspetta che RevenueCat sia sincronizzato con più tentativi
+        // 🔥 FIX CRITICO: Aspetta che RevenueCat sia sincronizzato
         console.log('🔄 RevenueCat: Aspettando sincronizzazione...');
         await new Promise(resolve => setTimeout(resolve, 1500)); // Aspetta 1.5 secondi
         
-        // 🔥 FIX: Verifica sincronizzazione con retry (fino a 3 tentativi)
-        let customerInfo: any = null;
-        let syncAttempts = 0;
-        const maxSyncAttempts = 3;
-        
-        while (syncAttempts < maxSyncAttempts) {
-          try {
-            customerInfo = await Purchases.getCustomerInfo();
-            const activeEntitlements = Object.keys(customerInfo?.entitlements?.active || {});
-            
-            console.log(`✅ RevenueCat: Sincronizzazione completata (tentativo ${syncAttempts + 1}/${maxSyncAttempts}) per ${userId}`, {
-              originalAppUserId: customerInfo?.originalAppUserId,
-              hasEntitlements: !!customerInfo?.entitlements?.active,
-              activeEntitlements: activeEntitlements,
-              entitlementsDetails: customerInfo?.entitlements?.active
-            });
-            
-            // Se abbiamo ottenuto i dati, esci dal loop
-            if (customerInfo) {
-              break;
-            }
-          } catch (syncError) {
-            console.warn(`⚠️ RevenueCat: Errore sincronizzazione (tentativo ${syncAttempts + 1}/${maxSyncAttempts}):`, syncError);
-          }
-          
-          syncAttempts++;
-          if (syncAttempts < maxSyncAttempts && !customerInfo) {
-            console.log(`🔄 RevenueCat: Retry sincronizzazione tra 1 secondo...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        // Se abbiamo ottenuto customerInfo, verifica i dettagli
-        if (customerInfo) {
+        // Verifica che la sincronizzazione sia avvenuta
+        try {
+          const customerInfo = await Purchases.getCustomerInfo();
           const activeEntitlements = Object.keys(customerInfo?.entitlements?.active || {});
           console.log(`✅ RevenueCat: Sincronizzazione completata per ${userId}`, {
             originalAppUserId: customerInfo?.originalAppUserId,
             hasEntitlements: !!customerInfo?.entitlements?.active,
-            activeEntitlements: activeEntitlements,
-            entitlementsDetails: customerInfo?.entitlements?.active
+            activeEntitlements: activeEntitlements
           });
           
           // 🔍 Controlla se c'è mismatch tra user ID
-          if (customerInfo && customerInfo?.originalAppUserId !== userId && activeEntitlements.length > 0) {
+          if (customerInfo?.originalAppUserId !== userId && activeEntitlements.length > 0) {
             // Verifica se l'utente usa Apple Sign In
             const AsyncStorage = require('@react-native-async-storage/async-storage').default;
             
@@ -226,6 +194,8 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
               console.warn('⚠️ Errore controllo Apple Sign In:', storageError);
             }
           }
+        } catch (syncError) {
+          console.warn('⚠️ RevenueCat: Errore verifica sincronizzazione:', syncError);
         }
         
       } catch (loginError) {
@@ -504,6 +474,35 @@ export const getCustomerInfo = async () => {
 };
 
 /**
+ * Forza il refresh delle informazioni del cliente da RevenueCat
+ */
+export const refreshCustomerInfo = async () => {
+  try {
+    if (isExpoGo) {
+      console.log('🔄 REFRESH: Expo Go - skip refresh');
+      return { entitlements: { active: {} } };
+    }
+    
+    console.log('🔄 REFRESH: Forzando refresh customerInfo da server RevenueCat...');
+    // Usa syncPurchases per forzare la sincronizzazione con i server Apple/Google
+    await Purchases.syncPurchases();
+    console.log('🔄 REFRESH: syncPurchases completato, ottenendo customerInfo aggiornato...');
+    
+    const customerInfo = await Purchases.getCustomerInfo();
+    console.log('🔄 REFRESH: CustomerInfo aggiornato ricevuto:', {
+      originalAppUserId: customerInfo.originalAppUserId,
+      activeEntitlements: Object.keys(customerInfo.entitlements.active || {})
+    });
+    
+    return customerInfo;
+  } catch (error) {
+    console.error('❌ REFRESH: Errore durante refresh customerInfo:', error);
+    // Fallback al getCustomerInfo normale
+    return await getCustomerInfo();
+  }
+};
+
+/**
  * Controlla se l'utente ha un'autorizzazione specifica
  */
 export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean> => {
@@ -534,7 +533,8 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       originalAppUserId: customerInfo.originalAppUserId,
       currentUserId: currentUserId,
       activeEntitlements: Object.keys(customerInfo.entitlements.active || {}),
-      targetEntitlement: entitlement
+      targetEntitlement: entitlement,
+      allActiveSubscriptions: customerInfo.activeSubscriptions || []
     });
     
     // ⚠️ APPLE SIGN IN FIX: Per Apple Sign In, l'abbonamento segue l'Apple ID, non l'account app
@@ -948,102 +948,95 @@ export const isPremium = async (): Promise<boolean> => {
 };
 
 /**
- * Ottiene i dettagli dell'abbonamento attivo dell'utente
- * Restituisce informazioni su tipo, scadenza, rinnovo, ecc.
+ * Controlla se l'utente ha già un abbonamento attivo (mensile o annuale)
  */
-export const getSubscriptionDetails = async (): Promise<{
-  isActive: boolean;
-  productIdentifier?: string;
-  expirationDate?: Date;
-  willRenew?: boolean;
-  periodType?: string;
-  planType?: 'monthly' | 'annual' | 'unknown';
-  formattedExpirationDate?: string;
-  formattedRenewalDate?: string;
-} | null> => {
+export const hasActiveSubscription = async (): Promise<{ hasSubscription: boolean, subscriptionType: 'monthly' | 'annual' | null }> => {
   try {
-    console.log('📋 SUBSCRIPTION_DETAILS: Recupero dettagli abbonamento...');
-    
     if (isExpoGo) {
-      // In Expo Go, restituisci dati mock
       const localPremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
-      if (localPremium === 'true') {
-        return {
-          isActive: true,
-          productIdentifier: 'mock_premium',
-          expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 giorni da ora
-          willRenew: true,
-          periodType: 'NORMAL',
-          planType: 'monthly',
-          formattedExpirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT'),
-          formattedRenewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT'),
-        };
-      }
-      return null;
+      return { 
+        hasSubscription: localPremium === 'true', 
+        subscriptionType: localPremium === 'true' ? 'monthly' : null 
+      };
     }
     
+    console.log('🔍 SUBSCRIPTION_CHECK: Controllo abbonamenti attivi...');
     const customerInfo = await getCustomerInfo();
     
-    if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) {
-      console.log('📋 SUBSCRIPTION_DETAILS: Nessun abbonamento attivo trovato');
-      return null;
+    if (!customerInfo || !customerInfo.activeSubscriptions) {
+      console.log('🔍 SUBSCRIPTION_CHECK: Nessun abbonamento attivo trovato');
+      return { hasSubscription: false, subscriptionType: null };
     }
     
-    const premiumEntitlement = customerInfo.entitlements.active[Entitlement.PREMIUM];
+    const activeSubscriptions = customerInfo.activeSubscriptions;
+    console.log('🔍 SUBSCRIPTION_CHECK: Abbonamenti attivi:', activeSubscriptions);
     
-    if (!premiumEntitlement) {
-      console.log('📋 SUBSCRIPTION_DETAILS: Entitlement premium non trovato');
-      return null;
+    // Controlla se ha abbonamento mensile
+    const hasMonthly = activeSubscriptions.includes('com.bacchusapp.app.Monthly');
+    // Controlla se ha abbonamento annuale  
+    const hasAnnual = activeSubscriptions.includes('com.bacchusapp.app.Annual');
+    
+    if (hasMonthly) {
+      console.log('✅ SUBSCRIPTION_CHECK: Abbonamento MENSILE attivo');
+      return { hasSubscription: true, subscriptionType: 'monthly' };
+    } else if (hasAnnual) {
+      console.log('✅ SUBSCRIPTION_CHECK: Abbonamento ANNUALE attivo');
+      return { hasSubscription: true, subscriptionType: 'annual' };
+    } else {
+      console.log('🔍 SUBSCRIPTION_CHECK: Nessun abbonamento premium attivo');
+      return { hasSubscription: false, subscriptionType: null };
     }
-    
-    console.log('📋 SUBSCRIPTION_DETAILS: Entitlement premium trovato:', {
-      productIdentifier: premiumEntitlement.productIdentifier,
-      expirationDate: premiumEntitlement.expirationDate,
-      willRenew: premiumEntitlement.willRenew,
-      periodType: premiumEntitlement.periodType,
-    });
-    
-    // Determina il tipo di piano dal productIdentifier
-    const productId = premiumEntitlement.productIdentifier?.toLowerCase() || '';
-    let planType: 'monthly' | 'annual' | 'unknown' = 'unknown';
-    
-    if (productId.includes('month') || productId.includes('mensile')) {
-      planType = 'monthly';
-    } else if (productId.includes('annual') || productId.includes('year') || productId.includes('annuale')) {
-      planType = 'annual';
-    }
-    
-    // Formatta le date
-    let formattedExpirationDate: string | undefined;
-    let formattedRenewalDate: string | undefined;
-    
-    if (premiumEntitlement.expirationDate) {
-      const expirationDate = new Date(premiumEntitlement.expirationDate);
-      formattedExpirationDate = expirationDate.toLocaleDateString('it-IT', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
-      
-      // La data di rinnovo è la stessa della scadenza se willRenew è true
-      if (premiumEntitlement.willRenew) {
-        formattedRenewalDate = formattedExpirationDate;
-      }
-    }
-    
-    return {
-      isActive: true,
-      productIdentifier: premiumEntitlement.productIdentifier,
-      expirationDate: premiumEntitlement.expirationDate ? new Date(premiumEntitlement.expirationDate) : undefined,
-      willRenew: premiumEntitlement.willRenew,
-      periodType: premiumEntitlement.periodType,
-      planType,
-      formattedExpirationDate,
-      formattedRenewalDate,
-    };
   } catch (error) {
-    console.error('❌ SUBSCRIPTION_DETAILS: Errore recupero dettagli abbonamento:', error);
-    return null;
+    console.error('❌ SUBSCRIPTION_CHECK: Errore controllo abbonamenti:', error);
+    return { hasSubscription: false, subscriptionType: null };
+  }
+};
+
+/**
+ * Apre le impostazioni di gestione abbonamenti del sistema
+ */
+export const openSubscriptionManagement = async (): Promise<void> => {
+  try {
+    if (isExpoGo) {
+      console.log('🔧 SUBSCRIPTION_MANAGEMENT: Expo Go - simulazione apertura impostazioni');
+      const { Alert } = require('react-native');
+      Alert.alert(
+        'Gestione Abbonamenti',
+        'In Expo Go, questa funzione aprirà le impostazioni di gestione abbonamenti del dispositivo.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    console.log('🔧 SUBSCRIPTION_MANAGEMENT: Aprendo impostazioni gestione abbonamenti...');
+    
+    // Usa RevenueCat per aprire le impostazioni di gestione abbonamenti
+    await Purchases.showManageSubscriptions();
+    
+    console.log('✅ SUBSCRIPTION_MANAGEMENT: Impostazioni aperte con successo');
+  } catch (error) {
+    console.error('❌ SUBSCRIPTION_MANAGEMENT: Errore apertura impostazioni:', error);
+    
+    // Fallback: apri le impostazioni manualmente
+    const { Linking, Alert, Platform } = require('react-native');
+    
+    Alert.alert(
+      'Gestione Abbonamenti',
+      'Per gestire i tuoi abbonamenti, vai nelle Impostazioni del dispositivo > ID Apple > Abbonamenti.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { 
+          text: 'Apri Impostazioni', 
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Linking.openURL('App-prefs:APPLE_ACCOUNT&path=SUBSCRIPTIONS');
+            } else {
+              Linking.openURL('market://details?id=com.bacchusapp.app');
+            }
+          }
+        }
+      ]
+    );
   }
 };
 
