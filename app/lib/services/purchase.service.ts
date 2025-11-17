@@ -132,6 +132,26 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
   try {
     console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
     
+    // 🔥 FIX PREMIUM PERSISTENCE: Controlla se l'utente usa Apple Sign In
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    let revenueCatUserId = userId; // Default: usa l'ID interno dell'app
+    
+    try {
+      const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${userId}`);
+      if (appleUserData) {
+        const appleData = JSON.parse(appleUserData);
+        if (appleData.appleId) {
+          // 🔥 CRITICO: Per Apple Sign In, usa l'Apple ID come RevenueCat user ID
+          revenueCatUserId = appleData.appleId;
+          console.log(`🍎 APPLE SIGN IN: Usando Apple ID come RevenueCat user ID`);
+          console.log(`   App User ID: ${userId}`);
+          console.log(`   RevenueCat User ID: ${revenueCatUserId}`);
+        }
+      }
+    } catch (appleCheckError) {
+      console.warn('⚠️ Errore controllo Apple Sign In, uso ID interno:', appleCheckError);
+    }
+    
     // Se l'utente è cambiato, pulisci lo stato precedente
     if (currentUserId && currentUserId !== userId) {
       console.log(`🔄 PURCHASE_SERVICE: Utente cambiato da ${currentUserId} a ${userId}, pulizia stato`);
@@ -147,13 +167,14 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
       }
     }
     
-    currentUserId = userId;
+    currentUserId = userId; // Mantieni sempre l'ID interno per l'app
     
     // Configura RevenueCat per il nuovo utente
     if (isRevenueCatAvailable && Purchases) {
       try {
-        const loginResult = await Purchases.logIn(userId);
-        console.log(`✅ RevenueCat: Login completato per utente ${userId}`);
+        console.log(`🔄 RevenueCat: Login con user ID: ${revenueCatUserId}`);
+        const loginResult = await Purchases.logIn(revenueCatUserId);
+        console.log(`✅ RevenueCat: Login completato per utente ${revenueCatUserId}`);
         console.log(`🔍 RevenueCat: Created=${loginResult.created}, OriginalAppUserId=${loginResult.customerInfo?.originalAppUserId}`);
         
         // 🔥 FIX CRITICO: Aspetta che RevenueCat sia sincronizzato
@@ -170,29 +191,14 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
             activeEntitlements: activeEntitlements
           });
           
-          // 🔍 Controlla se c'è mismatch tra user ID
-          if (customerInfo?.originalAppUserId !== userId && activeEntitlements.length > 0) {
-            // Verifica se l'utente usa Apple Sign In
-            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-            
-            try {
-        // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
-        const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${userId}`);
-              if (appleUserData) {
-                console.log(`✅ APPLE SIGN IN: Mismatch user ID normale per Apple Sign In`);
-                console.log(`   App User ID: ${userId}`);
-                console.log(`   RevenueCat User ID: ${customerInfo?.originalAppUserId}`);
-                console.log(`   ✅ Abbonamento segue Apple ID - tutto normale`);
-              } else {
-                console.warn(`⚠️ SANDBOX ISSUE: RevenueCat ritorna entitlements di un altro user!`);
-                console.warn(`   App User ID richiesto: ${userId}`);
-                console.warn(`   RevenueCat User ID: ${customerInfo?.originalAppUserId}`);
-                console.warn(`   Questo è normale in sandbox quando più account app condividono lo stesso Apple ID`);
-                console.warn(`   In PRODUZIONE questo non accadrà perché ogni utente ha il proprio Apple ID`);
-              }
-            } catch (storageError) {
-              console.warn('⚠️ Errore controllo Apple Sign In:', storageError);
-            }
+          // 🔍 Verifica coerenza user ID (ora dovrebbero corrispondere sempre)
+          if (customerInfo?.originalAppUserId !== revenueCatUserId) {
+            console.warn(`⚠️ SYNC: RevenueCat user ID mismatch dopo login`);
+            console.warn(`   Expected: ${revenueCatUserId}`);
+            console.warn(`   Got: ${customerInfo?.originalAppUserId}`);
+            console.warn(`   Questo potrebbe indicare un problema di sincronizzazione`);
+          } else {
+            console.log(`✅ SYNC: RevenueCat user ID corrispondente: ${revenueCatUserId}`);
           }
         } catch (syncError) {
           console.warn('⚠️ RevenueCat: Errore verifica sincronizzazione:', syncError);
@@ -537,7 +543,8 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       allActiveSubscriptions: customerInfo.activeSubscriptions || []
     });
     
-    // ⚠️ APPLE SIGN IN FIX: Per Apple Sign In, l'abbonamento segue l'Apple ID, non l'account app
+    // 🔥 FIX PREMIUM PERSISTENCE: Ora che usiamo l'Apple ID come RevenueCat user ID,
+    // gli ID dovrebbero sempre corrispondere. Se non corrispondono, è un problema sandbox.
     if (customerInfo.originalAppUserId && customerInfo.originalAppUserId !== currentUserId) {
       console.warn(`⚠️ hasEntitlement: RevenueCat user ID (${customerInfo.originalAppUserId}) ≠ currentUserId (${currentUserId})`);
       
@@ -545,41 +552,32 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       
       try {
-        // 🔥 FIX: Controlla APPLE_USER_DATA specifico per l'utente corrente
-        console.log(`🔍 PREMIUM_CHECK: Controllo se utente ${currentUserId} usa Apple Sign In...`);
         const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${currentUserId}`);
-        console.log(`🔍 PREMIUM_CHECK: APPLE_USER_DATA_${currentUserId} = ${appleUserData ? 'TROVATO' : 'NON TROVATO'}`);
         
         if (appleUserData) {
-          console.log(`✅ PREMIUM_CHECK: UTENTE USA APPLE SIGN IN!`);
-          console.log(`   RevenueCat originalAppUserId: ${customerInfo.originalAppUserId}`);
-          console.log(`   App currentUserId: ${currentUserId}`);
-          console.log(`   ✅ APPLE SIGN IN: Abbonamento segue Apple ID, non account app`);
-          console.log(`   ✅ ENTITLEMENT ${entitlement}: ${!!customerInfo.entitlements.active[entitlement] ? 'VALIDO' : 'NON TROVATO'}`);
+          console.log(`🍎 PREMIUM_CHECK: Utente Apple Sign In - dovrebbe usare Apple ID come RevenueCat ID`);
+          console.log(`   App User ID: ${currentUserId}`);
+          console.log(`   RevenueCat User ID: ${customerInfo.originalAppUserId}`);
           
-          // Per Apple Sign In, l'abbonamento è valido anche se gli ID non corrispondono
+          // Se è Apple Sign In ma gli ID non corrispondono, potrebbe essere un problema di sincronizzazione
+          // Accetta comunque l'entitlement se presente
           const hasEntitlementResult = !!customerInfo.entitlements.active[entitlement];
-          console.log(`🎯 PREMIUM_CHECK: RISULTATO FINALE per Apple Sign In: ${hasEntitlementResult}`);
+          console.log(`🎯 PREMIUM_CHECK: RISULTATO per Apple Sign In (ID mismatch): ${hasEntitlementResult}`);
           return hasEntitlementResult;
         } else {
-          console.warn(`⚠️ PREMIUM_CHECK: UTENTE NON USA APPLE SIGN IN`);
-          console.warn(`   Possibile problema sandbox: più account app condividono stesso Apple ID test`);
-          console.warn(`   Ritorno false per evitare che l'utente attuale erediti entitlements di un altro`);
-          console.log(`🎯 PREMIUM_CHECK: RISULTATO FINALE per non-Apple: false`);
-          
-          // Non dare entitlements di un altro utente se non usa Apple Sign In!
+          console.warn(`⚠️ PREMIUM_CHECK: Utente non-Apple con ID mismatch - possibile problema sandbox`);
+          console.warn(`   Ritorno false per evitare cross-contamination tra account`);
           return false;
         }
       } catch (storageError) {
         console.warn(`⚠️ hasEntitlement: Errore controllo Apple Sign In:`, storageError);
-        // In caso di errore, per sicurezza ritorna false
         return false;
       }
     }
     
-    // Caso normale: user ID corrispondono
+    // Caso normale: user ID corrispondono o controllo diretto
     const hasEntitlementResult = !!customerInfo.entitlements.active[entitlement];
-    console.log(`✅ PREMIUM_CHECK: User ID corrispondono - controllo diretto`);
+    console.log(`✅ PREMIUM_CHECK: Controllo entitlement diretto`);
     console.log(`🎯 PREMIUM_CHECK: RISULTATO FINALE: ${hasEntitlementResult}`);
     return hasEntitlementResult;
   } catch (error) {
@@ -762,7 +760,43 @@ export const purchasePackage = async (pkg: any) => {
               };
             } else {
               console.log('❌ APPLE SANDBOX: Utente non risulta premium dopo refresh.');
-              // Se non è premium, mostra errore ma suggerisci di controllare lo stato
+              
+              // 🔥 FIX: Per Apple Sign In, forza il re-login con Apple ID
+              const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+              try {
+                const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${currentUserId}`);
+                if (appleUserData) {
+                  const appleData = JSON.parse(appleUserData);
+                  if (appleData.appleId) {
+                    console.log('🍎 APPLE SANDBOX: Tentativo re-login con Apple ID...');
+                    
+                    // Forza logout e re-login con Apple ID
+                    await Purchases.logOut();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    const reLoginResult = await Purchases.logIn(appleData.appleId);
+                    console.log('🍎 APPLE SANDBOX: Re-login completato:', reLoginResult.customerInfo?.originalAppUserId);
+                    
+                    // Controlla di nuovo premium
+                    await refreshCustomerInfo();
+                    const isPremiumAfterReLogin = await isPremium();
+                    
+                    if (isPremiumAfterReLogin) {
+                      console.log('✅ APPLE SANDBOX: Premium riconosciuto dopo re-login!');
+                      const customerInfo = await getCustomerInfo();
+                      return { 
+                        success: true, 
+                        customerInfo: customerInfo,
+                        wasAlreadySubscribed: true
+                      };
+                    }
+                  }
+                }
+              } catch (reLoginError) {
+                console.error('❌ APPLE SANDBOX: Errore re-login:', reLoginError);
+              }
+              
+              // Se tutto fallisce, mostra errore ma suggerisci di controllare lo stato
               return { 
                 success: false, 
                 error: 'Questo Apple ID ha già un abbonamento attivo. Se hai già un abbonamento, prova a fare logout e login per aggiornare lo stato.',
