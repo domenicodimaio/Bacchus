@@ -284,5 +284,29 @@
   "waitForTrend": "Attendi qualche minuto per vedere l'andamento",
   "addDrinksToChart": "Aggiungi bevande per visualizzare il grafico",
   "bac": "BAC",
-  "startedAt": "Iniziata alle"
+  "startedAt": "Iniziata alle",
+  "selectFoodType": "Seleziona il tipo di alimento",
+  "selectTiming": "Quando hai mangiato",
+  "effectOnBAC": "Effetto sul tasso alcolemico",
+  "absorptionDescription": "Riduzione del tasso di assorbimento dell'alcol",
+  "consumptionTiming": "Orario di consumo",
+  "foodType": "Tipo di alimento",
+  "whenDidYouEat": "Quando hai mangiato?",
+  "confirmFood": "Conferma Alimento",
+  "foodTypes": {
+    "snack": "Snack",
+    "light_meal": "Pasto leggero",
+    "full_meal": "Pasto completo", 
+    "heavy_meal": "Pasto abbondante"
+  },
+  "foodTimingOptions": {
+    "before": "Prima di bere",
+    "beforeDescription": "Effetto ridotto sulla diminuzione del tasso alcolico",
+    "during": "Durante il bere",
+    "duringDescription": "Effetto moderato sulla diminuzione del tasso alcolico", 
+    "after": "Dopo aver bevuto",
+    "afterDescription": "Effetto significativo sulla diminuzione del tasso alcolico"
+  },
+  "selectFoodMessage": "Seleziona un alimento dalla lista",
+  "errorSavingFood": "Si è verificato un errore durante il salvataggio dell'alimento"
 }

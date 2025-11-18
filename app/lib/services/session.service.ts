@@ -88,6 +88,9 @@ export function resetSessionState(): void {
   _initialized = false;
   _currentUserId = null;
   
+  // 🔥 FIX ISOLAMENTO SESSIONI: Pulisci anche la cache dell'user ID
+  _currentUserIdCache = null;
+  
   // Ferma il timer se attivo
   stopBACUpdateTimer();
 }
@@ -279,6 +282,10 @@ export function resetSessionService(preserveHistory: boolean = false): void {
   }
   
   _currentUserId = null;
+  
+  // 🔥 FIX ISOLAMENTO SESSIONI: Pulisci anche la cache dell'user ID
+  _currentUserIdCache = null;
+  console.log('🔄 RESET: Cache user ID pulita per evitare contaminazione tra account');
   
   // Ferma timer BAC se attivo
   stopBACUpdateTimer();
@@ -634,8 +641,14 @@ export async function getCurrentUser() {
 // Ottiene l'ID dell'utente corrente
 let _currentUserIdCache: string | null = null;
 
-export async function getCurrentUserId() {
+export async function getCurrentUserId(forceRefresh: boolean = false) {
   try {
+    // Se forceRefresh è true, pulisci la cache
+    if (forceRefresh) {
+      _currentUserIdCache = null;
+      console.log('🔄 getCurrentUserId: Cache forzatamente pulita');
+    }
+    
     // Se abbiamo già un ID in cache, restituiscilo
     if (_currentUserIdCache) {
       return _currentUserIdCache;
@@ -646,15 +659,23 @@ export async function getCurrentUserId() {
     // Se c'è un utente autenticato, usa il suo ID
     if (user) {
       _currentUserIdCache = user.id;
+      console.log(`🔍 getCurrentUserId: Nuovo user ID in cache: ${user.id}`);
       return user.id;
     }
     
     // Altrimenti, restituisci null (utente ospite)
+    console.log('🔍 getCurrentUserId: Nessun utente autenticato (ospite)');
     return null;
   } catch (error) {
     console.error('Error getting current user ID:', error);
     return null;
   }
+}
+
+// 🔥 FIX ISOLAMENTO SESSIONI: Funzione per pulire esplicitamente la cache user ID
+export function clearUserIdCache(): void {
+  _currentUserIdCache = null;
+  console.log('🔄 clearUserIdCache: Cache user ID pulita manualmente');
 }
 
 // Salva una sessione su Supabase

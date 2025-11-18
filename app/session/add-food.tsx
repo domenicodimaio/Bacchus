@@ -53,28 +53,28 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 const foodPresets: FoodPreset[] = [
   {
     id: 'snack',
-    name: 'Snack',
+    name: 'snack', // Chiave di traduzione
     icon: 'cookie',
     absorptionFactor: 0.3,
     iconColor: '#FFA000', // Colore arancione
   },
   {
     id: 'light_meal',
-    name: 'Pasto leggero',
+    name: 'light_meal', // Chiave di traduzione
     icon: 'utensils',
     absorptionFactor: 0.5,
     iconColor: '#4CAF50', // Colore verde
   },
   {
     id: 'full_meal',
-    name: 'Pasto completo',
+    name: 'full_meal', // Chiave di traduzione
     icon: 'hamburger',
     absorptionFactor: 0.7,
     iconColor: '#2196F3', // Colore blu
   },
   {
     id: 'heavy_meal',
-    name: 'Pasto abbondante',
+    name: 'heavy_meal', // Chiave di traduzione
     icon: 'pizza-slice',
     absorptionFactor: 0.8,
     iconColor: '#9C27B0', // Colore viola
@@ -83,9 +83,9 @@ const foodPresets: FoodPreset[] = [
 
 // Quando si è mangiato rispetto al bere
 const timingOptions = [
-  { id: 'before', name: 'Prima di bere', description: 'Effetto ridotto sulla diminuzione del tasso alcolico', factor: 1.0 },
-  { id: 'during', name: 'Durante il bere', description: 'Effetto moderato sulla diminuzione del tasso alcolico', factor: 0.8 },
-  { id: 'after', name: 'Dopo aver bevuto', description: 'Effetto significativo sulla diminuzione del tasso alcolico', factor: 0.6 },
+  { id: 'before', name: 'before', description: 'beforeDescription', factor: 1.0 },
+  { id: 'during', name: 'during', description: 'duringDescription', factor: 0.8 },
+  { id: 'after', name: 'after', description: 'afterDescription', factor: 0.6 },
 ];
 
 export default function AddFoodScreen() {
@@ -166,20 +166,20 @@ export default function AddFoodScreen() {
           <View style={styles.stepContent}>
             <View style={styles.sectionContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t('Orario di consumo')}
+                {t('consumptionTiming')}
               </Text>
               
               <TimeSelector
                 value={consumptionTime}
                 onChange={handleTimeChange}
-                label={t('Orario di consumo')}
+                label={t('consumptionTiming')}
                 nowLabel={t('now', { defaultValue: 'Adesso' })}
               />
             </View>
             
             <View style={styles.sectionContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t('Tipo di alimento')}
+                {t('foodType')}
               </Text>
               <View style={styles.foodGrid}>
                 {foodPresets.map((food) => (
@@ -208,7 +208,7 @@ export default function AddFoodScreen() {
                         selectedFood?.id === food.id && { fontWeight: 'bold' }
                       ]}
                     >
-                      {t(food.name)}
+                      {t(`foodTypes.${food.name}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -224,7 +224,7 @@ export default function AddFoodScreen() {
           <View style={styles.stepContent}>
             <View style={styles.sectionContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t('Quando hai mangiato')}
+                {t('whenDidYouEat')}
               </Text>
               <View style={styles.timingContainer}>
                 {timingOptions.map((timing) => (
@@ -247,10 +247,10 @@ export default function AddFoodScreen() {
                         selectedTiming.id === timing.id && { fontWeight: 'bold' }
                       ]}
                     >
-                      {timing.name}
+                      {t(`foodTimingOptions.${timing.name}`)}
                     </Text>
                     <Text style={[styles.timingDescription, { color: colors.textSecondary }]}>
-                      {timing.description}
+                      {t(`foodTimingOptions.${timing.description}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -258,13 +258,13 @@ export default function AddFoodScreen() {
               
               <View style={styles.absorptionInfoContainer}>
                 <Text style={[styles.absorptionTitle, { color: colors.text }]}>
-                  {t('effectOnBAC', { defaultValue: 'Effetto sul tasso alcolemico' })}
+                  {t('effectOnBAC')}
                 </Text>
                 <Text style={[styles.absorptionValue, { color: colors.primary }]}>
                   {Math.round(finalAbsorptionFactor * 100)}%
                 </Text>
                 <Text style={[styles.absorptionDescription, { color: colors.textSecondary }]}>
-                  {t('absorptionDescription', { defaultValue: 'Riduzione del tasso di assorbimento dell\'alcol' })}
+                  {t('absorptionDescription')}
                 </Text>
               </View>
             </View>
@@ -276,7 +276,7 @@ export default function AddFoodScreen() {
   const handleSaveFood = async () => {
     if (!selectedFood) {
       toast?.showToast({
-        message: t('selectFoodMessage', { ns: 'common', defaultValue: 'Seleziona un alimento dalla lista' }),
+        message: t('selectFoodMessage'),
         type: 'error'
       });
       return;
@@ -311,7 +311,7 @@ export default function AddFoodScreen() {
     } catch (error) {
       console.error('Errore nel salvataggio del cibo:', error);
       toast?.showToast({
-        message: t('errorSavingFood', { ns: 'common', defaultValue: 'Si è verificato un errore durante il salvataggio dell\'alimento' }),
+        message: t('errorSavingFood'),
         type: 'error'
       });
     } finally {
@@ -393,7 +393,7 @@ export default function AddFoodScreen() {
               onPress={goToPreviousStep}
             >
               <Text style={[styles.backButtonText, {color: colors.primary}]}>
-                {t('back', { defaultValue: 'Indietro' })}
+                {t('back')}
               </Text>
             </TouchableOpacity>
             
@@ -409,7 +409,7 @@ export default function AddFoodScreen() {
             >
               <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{marginRight: 8}} />
               <Text style={[styles.dashboardButtonText, { color: '#FFFFFF' }]}>
-                {t('confirmFood', { defaultValue: 'Conferma Alimento' })}
+                {t('confirmFood')}
                     </Text>
             </TouchableOpacity>
           </View>
@@ -427,7 +427,7 @@ export default function AddFoodScreen() {
               onPress={() => navigation.goBack()}
             >
               <Text style={[styles.backButtonText, {color: colors.primary}]}>
-                {t('cancel', { defaultValue: 'Annulla' })}
+                {t('cancel')}
               </Text>
             </TouchableOpacity>
             
@@ -443,7 +443,7 @@ export default function AddFoodScreen() {
                 disabled={!selectedFood}
             >
                 <Text style={styles.nextButtonText}>
-                  {t('next', { defaultValue: 'Avanti' })}
+                  {t('next')}
                 </Text>
                 <Ionicons 
                   name="arrow-forward" 

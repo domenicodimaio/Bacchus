@@ -284,5 +284,29 @@
   "waitForTrend": "Wait a few minutes to see the trend",
   "addDrinksToChart": "Add drinks to view the chart",
   "bac": "BAC",
-  "startedAt": "Started at"
+  "startedAt": "Started at",
+  "selectFoodType": "Select food type",
+  "selectTiming": "When did you eat",
+  "effectOnBAC": "Effect on BAC",
+  "absorptionDescription": "Reduction of alcohol absorption rate",
+  "consumptionTiming": "Consumption Time",
+  "foodType": "Food Type",
+  "whenDidYouEat": "When did you eat?",
+  "confirmFood": "Confirm Food",
+  "foodTypes": {
+    "snack": "Snack",
+    "light_meal": "Light Meal", 
+    "full_meal": "Full Meal",
+    "heavy_meal": "Heavy Meal"
+  },
+  "foodTimingOptions": {
+    "before": "Before drinking",
+    "beforeDescription": "Reduced effect on alcohol absorption reduction",
+    "during": "While drinking", 
+    "duringDescription": "Moderate effect on alcohol absorption reduction",
+    "after": "After drinking",
+    "afterDescription": "Significant effect on alcohol absorption reduction"
+  },
+  "selectFoodMessage": "Select a food from the list",
+  "errorSavingFood": "An error occurred while saving the food"
 }

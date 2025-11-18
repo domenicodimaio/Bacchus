@@ -116,8 +116,9 @@ const STORAGE_KEYS = {
 // 🔧 FIX MULTI-ACCOUNT: Chiavi specifiche per utente
 const getUserSpecificKey = (baseKey: string, userId?: string): string => {
   if (!userId) {
-    console.warn(`⚠️ getUserSpecificKey: userId mancante per ${baseKey}, usando chiave globale`);
-    return baseKey;
+    console.warn(`⚠️ getUserSpecificKey: userId mancante per ${baseKey}, usando chiave temporanea`);
+    // 🔥 FIX ISOLAMENTO PREMIUM: Non usare chiave globale, usa chiave temporanea per evitare contaminazione
+    return `${baseKey}_TEMP_NO_USER`;
   }
   return `${baseKey}_${userId}`;
 };
@@ -161,6 +162,9 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         try {
           await Purchases.logOut();
           console.log('🔄 RevenueCat: Logout completato per cambio utente');
+          
+          // 🔥 FIX ISOLAMENTO PREMIUM: Aspetta che il logout sia completato
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (logoutError) {
           console.warn('⚠️ RevenueCat: Errore logout:', logoutError);
         }
@@ -412,10 +416,21 @@ export const resetUserForPurchases = async () => {
       try {
         await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
         await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId));
+        await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.SESSION_COUNT, currentUserId));
+        await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.WEEKLY_SESSION_RESET, currentUserId));
         console.log(`🔄 RESET: Pulito stato locale per utente ${currentUserId}`);
       } catch (storageError) {
         console.warn('⚠️ RESET: Errore pulizia AsyncStorage:', storageError);
-  }
+      }
+    }
+
+    // 🔥 FIX ISOLAMENTO PREMIUM: Pulisci anche eventuali chiavi temporanee
+    try {
+      await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, null));
+      await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, null));
+      console.log('🔄 RESET: Pulite anche chiavi temporanee');
+    } catch (tempCleanError) {
+      console.warn('⚠️ RESET: Errore pulizia chiavi temporanee:', tempCleanError);
     }
 
     // Logout da RevenueCat
@@ -423,14 +438,18 @@ export const resetUserForPurchases = async () => {
     try {
       await Purchases.logOut();
         console.log('🔄 RESET: RevenueCat logout completato');
+        
+        // 🔥 FIX ISOLAMENTO PREMIUM: Aspetta che il logout sia completato
+        await new Promise(resolve => setTimeout(resolve, 500));
     } catch (logoutError) {
         console.warn('⚠️ RESET: Errore RevenueCat logout:', logoutError);
-    }
+      }
     }
     
     // Reset utente corrente
+    const oldUserId = currentUserId;
     currentUserId = null;
-    console.log('🔄 RESET: Reset completato');
+    console.log(`🔄 RESET: Reset completato - utente ${oldUserId} -> null`);
     
     return true;
   } catch (error) {

@@ -325,6 +325,10 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     
     // Importa e inizializza il servizio sessioni
     const sessionServiceImport = await import('./session.service');
+    
+    // 🔥 FIX ISOLAMENTO SESSIONI: Pulisci cache user ID prima di inizializzare
+    sessionServiceImport.clearUserIdCache();
+    
     await sessionServiceImport.initSessionService();
     
     // Tenta di verificare la connessione a Supabase
@@ -376,6 +380,9 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
       await AsyncStorage.setItem(SUPABASE_AUTH_TOKEN_KEY, JSON.stringify(data.session));
       await AsyncStorage.setItem(tokenKey, JSON.stringify(data.session));
     }
+    
+    // 🔥 FIX ISOLAMENTO SESSIONI: Pulisci cache user ID prima di inizializzare
+    sessionServiceImport.clearUserIdCache();
     
     // Inizializza il servizio sessioni con l'ID utente
     await sessionServiceImport.initSessionService(data.user.id);
@@ -661,6 +668,12 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             await AsyncStorage.setItem(tokenKey, JSON.stringify(data.session));
             
             console.log('🍎 AUTH: Sessione salvata correttamente');
+            
+            // 🔥 FIX ISOLAMENTO SESSIONI: Inizializza session service con nuovo utente
+            const sessionServiceImport = await import('./session.service');
+            sessionServiceImport.clearUserIdCache();
+            await sessionServiceImport.initSessionService(data.user.id);
+            console.log('🍎 AUTH: Session service inizializzato per utente:', data.user.id);
             
             // 🔥 FIX: Salva APPLE_USER_DATA con chiave specifica per utente
             if (appleUserData) {
@@ -1429,6 +1442,9 @@ export const switchToGuestMode = async (): Promise<boolean> => {
     } else {
       console.log('Nessun utente autenticato trovato, pulizia sessioni...');
       
+      // 🔥 FIX ISOLAMENTO SESSIONI: Pulisci cache user ID prima di inizializzare
+      sessionServiceDirect.clearUserIdCache();
+      
       // Se non c'è un utente, reinizializza comunque il servizio sessioni
       await sessionServiceDirect.initSessionService();
     }
@@ -1691,6 +1707,9 @@ export const resetAllLocalData = async (): Promise<boolean> => {
     
     // Pulisci le sessioni - prima rimuoviamo dati dal server se possibile
     try {
+      // 🔥 FIX ISOLAMENTO SESSIONI: Pulisci cache user ID prima di inizializzare
+      sessionServiceDirect.clearUserIdCache();
+      
       // Utilizziamo initSessionService invece di clearAllSessions per pulizia
       await sessionServiceDirect.initSessionService();
     } catch (e) {
