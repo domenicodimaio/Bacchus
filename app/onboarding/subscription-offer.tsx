@@ -25,6 +25,8 @@ import { useToast } from '../components/Toast';
 import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { clearAllNavigationBlocks } from '../contexts/AuthContext';
 import { usePurchase } from '../contexts/PurchaseContext';
+import { ResponsiveContainer, ResponsiveGrid } from '../components/ResponsiveContainer';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
@@ -51,6 +53,9 @@ export default function SubscriptionOfferScreen() {
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [skipOffered, setSkipOffered] = useState(false);
+  
+  // Responsive layout
+  const { styles: responsiveStyles, isIPad, deviceInfo } = useResponsiveLayout();
   
   // Stato base
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | null>(null);
@@ -234,18 +239,29 @@ export default function SubscriptionOfferScreen() {
   ];
   
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ResponsiveContainer 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      showIPadBanner={true}
+      scrollable={true}
+      maxWidth={isIPad ? 600 : undefined}
+    >
       <StatusBar style="light" />
       
       {/* Bottone di chiusura */}
       <TouchableOpacity 
         onPress={handleClose}
-        style={styles.closeButton}
+        style={[
+          styles.closeButton,
+          isIPad && { top: 80, right: 40 } // Più spazio su iPad
+        ]}
       >
-        <Ionicons name="close" size={24} color={colors.text} />
+        <Ionicons name="close" size={isIPad ? 28 : 24} color={colors.text} />
       </TouchableOpacity>
       
-      <View style={styles.content}>
+      <View style={[
+        styles.content,
+        isIPad && { paddingTop: 40, paddingHorizontal: 40 }
+      ]}>
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -387,7 +403,7 @@ export default function SubscriptionOfferScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ResponsiveContainer>
   );
 }
 
@@ -538,13 +554,15 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
+    // Responsive: più spazio su iPad per evitare overlap
+    minHeight: 120,
   },
   primaryButton: {
-    height: 50,
+    height: 56, // Aumentato per touch target migliore
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16, // Più spazio tra i pulsanti
   },
   primaryButtonText: {
     color: 'white',
@@ -556,6 +574,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 44, // Touch target minimo Apple
   },
   secondaryButtonText: {
     fontSize: 16,

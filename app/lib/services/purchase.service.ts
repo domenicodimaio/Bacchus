@@ -413,7 +413,7 @@ export const resetUserForPurchases = async () => {
     
     // Pulisci lo stato premium specifico per l'utente corrente
     if (currentUserId) {
-      try {
+    try {
         await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId));
         await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.CUSTOMER_INFO, currentUserId));
         await AsyncStorage.removeItem(getUserSpecificKey(STORAGE_KEYS.SESSION_COUNT, currentUserId));
@@ -421,7 +421,7 @@ export const resetUserForPurchases = async () => {
         console.log(`🔄 RESET: Pulito stato locale per utente ${currentUserId}`);
       } catch (storageError) {
         console.warn('⚠️ RESET: Errore pulizia AsyncStorage:', storageError);
-      }
+  }
     }
 
     // 🔥 FIX ISOLAMENTO PREMIUM: Pulisci anche eventuali chiavi temporanee
@@ -443,7 +443,7 @@ export const resetUserForPurchases = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
     } catch (logoutError) {
         console.warn('⚠️ RESET: Errore RevenueCat logout:', logoutError);
-      }
+    }
     }
     
     // Reset utente corrente
@@ -813,8 +813,8 @@ export const purchasePackage = async (pkg: any) => {
                 }
               } catch (reLoginError) {
                 console.error('❌ APPLE SANDBOX: Errore re-login:', reLoginError);
-              }
-              
+        }
+        
               // Se tutto fallisce, mostra errore ma suggerisci di controllare lo stato
               return { 
                 success: false, 

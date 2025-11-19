@@ -22,6 +22,10 @@ export default {
       infoPlist: {
         UIDeviceFamily: [1], // 1 = iPhone only (not 2 = iPad)
         UIRequiresFullScreen: true, // Richiede schermo intero (iPhone only)
+        UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'], // Solo portrait su iPhone
+        UIStatusBarHidden: false,
+        UILaunchStoryboardName: 'SplashScreen',
+        UIUserInterfaceIdiom: 'phone', // Esplicitamente phone, non tablet
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
         NSSupportsLiveActivitiesFrequentUpdates: true,

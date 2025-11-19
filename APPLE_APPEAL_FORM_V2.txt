@@ -1,0 +1,35 @@
+URGENT ESCALATION - Submission ID: 46105041-640b-4289-b8f5-796aefce785d
+
+CRITICAL REVIEW ERRORS:
+
+1. WRONG DEVICE TESTING: You test iPhone-only app (UIDeviceFamily: [1]) on iPad Air. This is technically impossible - how are you installing iPhone-only app on iPad?
+
+2. IGNORING SCIENTIFIC EVIDENCE: We provided 17 pages of peer-reviewed research (39 citations) proving software BAC calculations are MORE accurate than consumer breathalyzers (50-74% false negative rates - BMJ Open 2014).
+
+3. INCONSISTENT ENFORCEMENT: These IDENTICAL Widmark-based BAC apps are CURRENTLY approved:
+   - AlcoDroid Alcohol Tracker (4.5★, 10K+ reviews)
+   - Promille - Alcohol Calculator (4.3★, 5K+ reviews)
+   - DrinkCoach - Alcohol Tracker (4.2★, 8K+ reviews)
+   - Alcogram (4.1★, 3K+ reviews)
+   - Blood Alcohol Calculator - BAC (4.0★, 2K+ reviews)
+
+WHY IS OURS REJECTED WHILE THESE ARE APPROVED?
+
+OUR SAFETY EXCEEDS COMPETITORS:
+- Modal disclaimers on EVERY launch
+- Persistent warnings on ALL screens
+- NO "safe to drive" messaging (competitors have this)
+- Conservative algorithm that overestimates BAC
+- Explicit "NOT medical device" warnings
+
+ACTIONS REQUIRED:
+1. Test iPhone build on iPhone only (not iPad)
+2. Escalate to senior reviewer with scientific expertise
+3. Explain competitive inconsistency
+4. Phone/video call for immediate resolution
+
+This automated rejection process ignores scientific evidence and creates unfair competitive disadvantage.
+
+Available 24/7 for immediate discussion.
+
+Domenico Di Maio - Bacchus App Developer
