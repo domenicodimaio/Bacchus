@@ -16,18 +16,13 @@ export default {
       '**/*'
     ],
     ios: {
-      supportsTablet: true, // 🔄 APPLE FEEDBACK: Ora supportiamo ufficialmente iPad
+      supportsTablet: false, // 🔄 APPLE FEEDBACK: iPhone-only ma che funzioni bene quando upscalato su iPad
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2802',
+      buildNumber: '2803',
       infoPlist: {
-        UIDeviceFamily: [1, 2], // 1 = iPhone, 2 = iPad - Supportiamo entrambi
-        UIRequiresFullScreen: false, // Permetti multitasking su iPad
-        UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'], // Portrait su iPhone
-        'UISupportedInterfaceOrientations~ipad': [
-          'UIInterfaceOrientationPortrait',
-          'UIInterfaceOrientationLandscapeLeft',
-          'UIInterfaceOrientationLandscapeRight'
-        ], // iPad supporta anche landscape
+        UIDeviceFamily: [1], // 1 = iPhone only - ma layout responsive per upscaling iPad
+        UIRequiresFullScreen: true, // iPhone app in modalità fullscreen
+        UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'], // Solo portrait
         UIStatusBarHidden: false,
         UILaunchStoryboardName: 'SplashScreen',
         ITSAppUsesNonExemptEncryption: false,
@@ -50,9 +45,9 @@ export default {
       },
       associatedDomains: ['applinks:bacchus.app']
     },
-    android: {
-      package: 'com.bacchusapp.app',
-      versionCode: 2802,
+      android: {
+        package: 'com.bacchusapp.app',
+        versionCode: 2803,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'

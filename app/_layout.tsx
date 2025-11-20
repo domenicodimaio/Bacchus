@@ -12,7 +12,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import DebugConsole from './components/DebugConsole';
-import { IPadWarning } from './components/IPadWarning';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ActiveProfilesProvider } from './contexts/ProfileContext';
@@ -186,7 +185,6 @@ export default function RootLayout() {
                     />
                     <StatusBar style="auto" />
                     <DebugConsole />
-                    <IPadWarning />
                   </PurchaseProvider>
                 </ActiveProfilesProvider>
               </AuthProvider>

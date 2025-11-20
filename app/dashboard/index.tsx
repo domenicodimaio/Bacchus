@@ -32,7 +32,6 @@ import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePurchase } from '../contexts/PurchaseContext';
 import SafetyDisclaimer from '../components/SafetyDisclaimer';
-import { IPadOptimizedLayout, IPadCard } from '../components/IPadOptimizedLayout';
 
 // Mock active profile
 const activeProfile = {
@@ -416,11 +415,7 @@ function DashboardScreen() {
   };
 
   return (
-    <IPadOptimizedLayout 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      showBanner={true}
-      scrollable={false}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       
       <AppHeader 
@@ -663,7 +658,7 @@ function DashboardScreen() {
         </ScrollView>
       )}
       
-    </IPadOptimizedLayout>
+    </View>
   );
 }
 
