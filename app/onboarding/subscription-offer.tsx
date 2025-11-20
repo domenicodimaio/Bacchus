@@ -249,10 +249,7 @@ export default function SubscriptionOfferScreen() {
         <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
       
-      <View style={[
-        styles.content,
-        isIPad && { paddingTop: 40, paddingHorizontal: 40 }
-      ]}>
+      <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -317,7 +314,7 @@ export default function SubscriptionOfferScreen() {
               </View>
             </View>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (yearlyPrice/12).toFixed(2) + '/mese • Rinnovo automatico' })}
+              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })}
             </Text>
             
             {selectedPlan === 'yearly' && (
