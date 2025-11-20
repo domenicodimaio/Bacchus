@@ -98,7 +98,9 @@ export const getResponsiveDimensions = () => {
     margin: baseMargin,
     fontSizes,
     componentSizes,
-    maxWidth: deviceInfo.isIPad ? 600 : screenWidth, // Limita larghezza su iPad
+    maxWidth: deviceInfo.isIPad 
+      ? (deviceInfo.orientation === 'landscape' ? 800 : 600) 
+      : screenWidth, // Larghezza adattiva per iPad landscape/portrait
   };
 };
 
@@ -120,26 +122,26 @@ export const useResponsiveDimensions = () => {
 };
 
 /**
- * Verifica se l'app dovrebbe mostrare un warning per iPad
+ * Verifica se l'app dovrebbe mostrare un welcome message per iPad
  */
-export const shouldShowIPadWarning = (): boolean => {
+export const shouldShowIPadWelcome = (): boolean => {
   return isIPad();
 };
 
 /**
- * Ottiene il messaggio di warning per iPad
+ * Ottiene il messaggio di benvenuto per iPad
  */
-export const getIPadWarningMessage = (language: 'it' | 'en' = 'en') => {
+export const getIPadWelcomeMessage = (language: 'it' | 'en' = 'en') => {
   const messages = {
     it: {
-      title: "App Ottimizzata per iPhone",
-      message: "Questa app è stata progettata specificamente per iPhone. Su iPad potresti riscontrare problemi di layout. Per la migliore esperienza, ti consigliamo di utilizzare un iPhone.",
-      button: "Ho Capito"
+      title: "Benvenuto su iPad!",
+      message: "Bacchus è ora ottimizzato anche per iPad! Goditi un'esperienza migliorata con layout adattivi, font più grandi e controlli ottimizzati per il tuo dispositivo.",
+      button: "Inizia"
     },
     en: {
-      title: "iPhone-Optimized App",
-      message: "This app is specifically designed for iPhone. You may experience layout issues on iPad. For the best experience, we recommend using an iPhone.",
-      button: "I Understand"
+      title: "Welcome to iPad!",
+      message: "Bacchus is now optimized for iPad! Enjoy an enhanced experience with adaptive layouts, larger fonts, and controls optimized for your device.",
+      button: "Get Started"
     }
   };
   

@@ -16,16 +16,20 @@ export default {
       '**/*'
     ],
     ios: {
-      supportsTablet: false,
+      supportsTablet: true, // 🔄 APPLE FEEDBACK: Ora supportiamo ufficialmente iPad
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2796',
+      buildNumber: '2797',
       infoPlist: {
-        UIDeviceFamily: [1], // 1 = iPhone only (not 2 = iPad)
-        UIRequiresFullScreen: true, // Richiede schermo intero (iPhone only)
-        UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'], // Solo portrait su iPhone
+        UIDeviceFamily: [1, 2], // 1 = iPhone, 2 = iPad - Supportiamo entrambi
+        UIRequiresFullScreen: false, // Permetti multitasking su iPad
+        UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'], // Portrait su iPhone
+        'UISupportedInterfaceOrientations~ipad': [
+          'UIInterfaceOrientationPortrait',
+          'UIInterfaceOrientationLandscapeLeft',
+          'UIInterfaceOrientationLandscapeRight'
+        ], // iPad supporta anche landscape
         UIStatusBarHidden: false,
-        UILaunchStoryboardName: 'SplashScreen',
-        UIUserInterfaceIdiom: 'phone', // Esplicitamente phone, non tablet
+        UILaunchStoryboardName: 'SplashScreen'
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
         NSSupportsLiveActivitiesFrequentUpdates: true,

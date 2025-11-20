@@ -1,8 +1,8 @@
 /**
- * iPad Warning Component
+ * iPad Welcome Component
  * 
- * Mostra un warning quando l'app viene utilizzata su iPad,
- * spiegando che è ottimizzata per iPhone
+ * Mostra un messaggio di benvenuto quando l'app viene utilizzata su iPad,
+ * evidenziando le ottimizzazioni per questo dispositivo
  */
 
 import React, { useState, useEffect } from 'react';
@@ -19,50 +19,50 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-import { shouldShowIPadWarning, getIPadWarningMessage } from '../lib/utils/deviceUtils';
+import { shouldShowIPadWelcome, getIPadWelcomeMessage } from '../lib/utils/deviceUtils';
 
-const IPAD_WARNING_SHOWN_KEY = 'bacchus_ipad_warning_shown';
+const IPAD_WELCOME_SHOWN_KEY = 'bacchus_ipad_welcome_shown';
 
-interface IPadWarningProps {
+interface IPadWelcomeProps {
   onDismiss?: () => void;
 }
 
-export const IPadWarning: React.FC<IPadWarningProps> = ({ onDismiss }) => {
+export const IPadWarning: React.FC<IPadWelcomeProps> = ({ onDismiss }) => {
   const [isVisible, setIsVisible] = useState(false);
   const { i18n } = useTranslation();
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
 
   useEffect(() => {
-    checkAndShowWarning();
+    checkAndShowWelcome();
   }, []);
 
-  const checkAndShowWarning = async () => {
+  const checkAndShowWelcome = async () => {
     try {
       // Solo su iPad
-      if (!shouldShowIPadWarning()) {
+      if (!shouldShowIPadWelcome()) {
         return;
       }
 
-      // Controlla se il warning è già stato mostrato
-      const hasShownWarning = await AsyncStorage.getItem(IPAD_WARNING_SHOWN_KEY);
+      // Controlla se il welcome è già stato mostrato
+      const hasShownWelcome = await AsyncStorage.getItem(IPAD_WELCOME_SHOWN_KEY);
       
-      if (!hasShownWarning) {
+      if (!hasShownWelcome) {
         setIsVisible(true);
       }
     } catch (error) {
-      console.warn('Error checking iPad warning:', error);
+      console.warn('Error checking iPad welcome:', error);
     }
   };
 
   const handleDismiss = async () => {
     try {
-      // Salva che il warning è stato mostrato
-      await AsyncStorage.setItem(IPAD_WARNING_SHOWN_KEY, 'true');
+      // Salva che il welcome è stato mostrato
+      await AsyncStorage.setItem(IPAD_WELCOME_SHOWN_KEY, 'true');
       setIsVisible(false);
       onDismiss?.();
     } catch (error) {
-      console.warn('Error saving iPad warning state:', error);
+      console.warn('Error saving iPad welcome state:', error);
       setIsVisible(false);
       onDismiss?.();
     }
@@ -70,13 +70,13 @@ export const IPadWarning: React.FC<IPadWarningProps> = ({ onDismiss }) => {
 
   const showDetailedInfo = () => {
     const language = i18n.language as 'it' | 'en';
-    const messages = getIPadWarningMessage(language);
+    const messages = getIPadWelcomeMessage(language);
     
     Alert.alert(
       messages.title,
       `${messages.message}\n\n${language === 'it' 
-        ? 'Problemi noti su iPad:\n• Layout potrebbe essere tagliato\n• Alcuni pulsanti potrebbero sovrapporsi\n• Esperienza non ottimale\n\nL\'app è configurata come iPhone-only nelle impostazioni Apple.'
-        : 'Known issues on iPad:\n• Layout may be cut off\n• Some buttons may overlap\n• Suboptimal experience\n\nThe app is configured as iPhone-only in Apple settings.'
+        ? 'Ottimizzazioni iPad:\n• Layout adattivi per schermi grandi\n• Font e controlli più grandi\n• Touch target ottimizzati\n• Esperienza migliorata per tablet\n\nGoditi Bacchus sul tuo iPad!'
+        : 'iPad Optimizations:\n• Adaptive layouts for large screens\n• Larger fonts and controls\n• Optimized touch targets\n• Enhanced tablet experience\n\nEnjoy Bacchus on your iPad!'
       }`,
       [{ text: messages.button, onPress: handleDismiss }]
     );
@@ -87,7 +87,7 @@ export const IPadWarning: React.FC<IPadWarningProps> = ({ onDismiss }) => {
   }
 
   const language = i18n.language as 'it' | 'en';
-  const messages = getIPadWarningMessage(language);
+  const messages = getIPadWelcomeMessage(language);
 
   return (
     <Modal
@@ -100,9 +100,9 @@ export const IPadWarning: React.FC<IPadWarningProps> = ({ onDismiss }) => {
         <View style={[styles.container, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.header}>
             <Ionicons 
-              name="warning" 
+              name="tablet-portrait" 
               size={32} 
-              color="#FF9500" 
+              color="#007AFF" 
               style={styles.icon}
             />
             <Text style={[styles.title, { color: colors.text }]}>
@@ -119,9 +119,9 @@ export const IPadWarning: React.FC<IPadWarningProps> = ({ onDismiss }) => {
               style={[styles.infoButton, { borderColor: colors.border }]}
               onPress={showDetailedInfo}
             >
-              <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+              <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
               <Text style={[styles.infoButtonText, { color: colors.primary }]}>
-                {language === 'it' ? 'Dettagli' : 'Details'}
+                {language === 'it' ? 'Scopri le novità' : 'What\'s New'}
               </Text>
             </TouchableOpacity>
 
@@ -140,7 +140,7 @@ export const IPadWarning: React.FC<IPadWarningProps> = ({ onDismiss }) => {
   );
 };
 
-// Componente per mostrare un banner persistente (opzionale)
+// Componente per mostrare un banner positivo per iPad
 export const IPadBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const { i18n } = useTranslation();
@@ -148,7 +148,7 @@ export const IPadBanner: React.FC = () => {
   const colors = currentTheme.COLORS;
 
   useEffect(() => {
-    setIsVisible(shouldShowIPadWarning());
+    setIsVisible(shouldShowIPadWelcome());
   }, []);
 
   if (!isVisible) {
@@ -158,16 +158,16 @@ export const IPadBanner: React.FC = () => {
   const language = i18n.language as 'it' | 'en';
   
   return (
-    <View style={[styles.banner, { backgroundColor: '#FF950020', borderColor: '#FF9500' }]}>
-      <Ionicons name="tablet-portrait" size={16} color="#FF9500" />
+    <View style={[styles.banner, { backgroundColor: '#007AFF20', borderColor: '#007AFF' }]}>
+      <Ionicons name="tablet-portrait" size={16} color="#007AFF" />
       <Text style={[styles.bannerText, { color: colors.text }]}>
         {language === 'it' 
-          ? 'App ottimizzata per iPhone' 
-          : 'iPhone-optimized app'
+          ? 'Ottimizzato per iPad' 
+          : 'Optimized for iPad'
         }
       </Text>
       <TouchableOpacity onPress={() => setIsVisible(false)}>
-        <Ionicons name="close" size={16} color="#FF9500" />
+        <Ionicons name="close" size={16} color="#007AFF" />
       </TouchableOpacity>
     </View>
   );

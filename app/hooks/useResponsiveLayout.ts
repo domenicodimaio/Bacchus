@@ -114,9 +114,16 @@ export const useResponsiveLayout = () => {
 
   const getModalWidth = () => {
     if (deviceInfo.isIPad) {
-      return deviceInfo.orientation === 'landscape' ? '60%' : '80%';
+      return deviceInfo.orientation === 'landscape' ? '50%' : '70%';
     }
     return '90%';
+  };
+
+  const getContentPadding = () => {
+    if (deviceInfo.isIPad) {
+      return deviceInfo.orientation === 'landscape' ? 40 : 24;
+    }
+    return 16;
   };
 
   return {
@@ -126,6 +133,7 @@ export const useResponsiveLayout = () => {
     screenType: getScreenType(),
     getColumns,
     getModalWidth,
+    getContentPadding,
     isIPad: deviceInfo.isIPad,
     isLargeScreen: deviceInfo.isLargeScreen,
   };

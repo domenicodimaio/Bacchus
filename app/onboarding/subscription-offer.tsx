@@ -27,6 +27,7 @@ import { clearAllNavigationBlocks } from '../contexts/AuthContext';
 import { usePurchase } from '../contexts/PurchaseContext';
 import { ResponsiveContainer, ResponsiveGrid } from '../components/ResponsiveContainer';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { IPadOptimizedLayout, IPadCard } from '../components/IPadOptimizedLayout';
 
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
@@ -239,11 +240,10 @@ export default function SubscriptionOfferScreen() {
   ];
   
   return (
-    <ResponsiveContainer 
+    <IPadOptimizedLayout 
       style={[styles.container, { backgroundColor: colors.background }]}
-      showIPadBanner={true}
+      showBanner={true}
       scrollable={true}
-      maxWidth={isIPad ? 600 : undefined}
     >
       <StatusBar style="light" />
       
@@ -403,7 +403,7 @@ export default function SubscriptionOfferScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </ResponsiveContainer>
+    </IPadOptimizedLayout>
   );
 }
 
