@@ -18,7 +18,7 @@ export default {
     ios: {
       supportsTablet: true, // 🔄 APPLE FEEDBACK: Ora supportiamo ufficialmente iPad
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2800',
+      buildNumber: '2801',
       infoPlist: {
         UIDeviceFamily: [1, 2], // 1 = iPhone, 2 = iPad - Supportiamo entrambi
         UIRequiresFullScreen: false, // Permetti multitasking su iPad
@@ -52,7 +52,7 @@ export default {
     },
     android: {
       package: 'com.bacchusapp.app',
-      versionCode: 2800,
+      versionCode: 2801,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
