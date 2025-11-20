@@ -770,6 +770,12 @@ export const purchasePackage = async (pkg: any) => {
             
             if (isPremiumNow) {
               console.log('✅ APPLE SANDBOX: Utente risulta premium dopo refresh! Tratto come successo.');
+              
+              // 🔥 FIX ACCOUNT IN-APP: Salva stato premium anche in AsyncStorage per persistenza
+              const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+              await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'true');
+              console.log('💾 APPLE SANDBOX: Stato premium salvato in AsyncStorage per persistenza account in-app');
+              
               // Se ora è premium, tratta come successo
               const customerInfo = await getCustomerInfo();
               return { 

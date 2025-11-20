@@ -25,7 +25,6 @@ import { useToast } from '../components/Toast';
 import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { clearAllNavigationBlocks } from '../contexts/AuthContext';
 import { usePurchase } from '../contexts/PurchaseContext';
-import { ResponsiveContainer, ResponsiveGrid } from '../components/ResponsiveContainer';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 // Versione estremamente semplificata
@@ -55,7 +54,7 @@ export default function SubscriptionOfferScreen() {
   const [skipOffered, setSkipOffered] = useState(false);
   
   // Responsive layout
-  const { styles: responsiveStyles, isIPad, deviceInfo } = useResponsiveLayout();
+  const { styles: responsiveStyles, deviceInfo } = useResponsiveLayout();
   
   // Stato base
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | null>(null);
@@ -239,23 +238,15 @@ export default function SubscriptionOfferScreen() {
   ];
   
   return (
-    <ResponsiveContainer 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      showIPadBanner={false}
-      scrollable={true}
-      maxWidth={600}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
       
       {/* Bottone di chiusura */}
       <TouchableOpacity 
         onPress={handleClose}
-        style={[
-          styles.closeButton,
-          isIPad && { top: 80, right: 40 } // Più spazio su iPad
-        ]}
+        style={styles.closeButton}
       >
-        <Ionicons name="close" size={isIPad ? 28 : 24} color={colors.text} />
+        <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
       
       <View style={[
@@ -403,7 +394,7 @@ export default function SubscriptionOfferScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </ResponsiveContainer>
+    </View>
   );
 }
 
