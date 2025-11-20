@@ -29,7 +29,7 @@ export default {
           'UIInterfaceOrientationLandscapeRight'
         ], // iPad supporta anche landscape
         UIStatusBarHidden: false,
-        UILaunchStoryboardName: 'SplashScreen'
+        UILaunchStoryboardName: 'SplashScreen',
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
         NSSupportsLiveActivitiesFrequentUpdates: true,
