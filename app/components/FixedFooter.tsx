@@ -151,18 +151,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     minWidth: 100,
+    minHeight: 44, // Touch target minimo Apple per iPad
   },
   gradientButton: {
-    paddingVertical: 12,
+    paddingVertical: 14, // Aumentato per migliore touch target
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44, // Touch target minimo Apple
   },
   secondaryButtonContent: {
-    paddingVertical: 12,
+    paddingVertical: 14, // Aumentato per migliore touch target
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44, // Touch target minimo Apple
   },
   buttonText: {
     fontSize: 16,

@@ -459,6 +459,11 @@ export default function LoginScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.innerContainer}>
             {/* Logo */}
             <TouchableOpacity 
@@ -660,7 +665,7 @@ export default function LoginScreen() {
                 {t('dontHaveAccount', { defaultValue: 'Non hai un account?' })}
               </Text>
               <Link href="/auth/signup" asChild>
-                <TouchableOpacity>
+                <TouchableOpacity style={styles.registerButton}>
                   <Text style={[styles.signupText, { color: '#00bcd7' }]}>
                     {t('register', { defaultValue: 'Registrati' })}
                   </Text>
@@ -668,6 +673,7 @@ export default function LoginScreen() {
               </Link>
             </Animated.View>
           </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -678,11 +684,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    minHeight: height, // Assicura che il contenuto riempia almeno l'altezza dello schermo
+  },
   innerContainer: {
     flex: 1,
     alignItems: 'center',
     padding: 16,
     justifyContent: 'space-between',
+    minHeight: height - 100, // Spazio minimo per il contenuto
   },
   logoContainer: {
     alignItems: 'center',
@@ -783,10 +794,11 @@ const styles = StyleSheet.create({
   socialButton: {
     flex: 1,
     flexDirection: 'row',
-    height: 48,
+    height: 52, // Aumentato per migliore touch target su iPad
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 44, // Touch target minimo Apple
   },
   socialIcon: {
     marginRight: 8,
@@ -798,14 +810,24 @@ const styles = StyleSheet.create({
   footerContainer: {
     flexDirection: 'row',
     marginTop: 15,
-    marginBottom: 10,
+    marginBottom: 20,
+    paddingVertical: 10, // Più spazio per touch target
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   noAccountText: {
     fontSize: 14,
     marginRight: 5,
   },
+  registerButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 44, // Touch target minimo Apple per iPad
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   signupText: {
-    fontSize: 14,
+    fontSize: 16, // Aumentato per migliore leggibilità su iPad
     fontWeight: '600',
   },
   buttonContainer: {

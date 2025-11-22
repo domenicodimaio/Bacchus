@@ -1,0 +1,49 @@
+RISOLUZIONE PROBLEMI IPAD - GUIDELINE 4.0 DESIGN
+==============================================
+
+PROBLEMA IDENTIFICATO DA APPLE:
+- Il bottone "Register" non era visibile su iPad Air (5th generation) con iPadOS 26.0.1
+- L'interfaccia utente era affollata e difficile da usare su iPad
+
+CORREZIONI APPLICATE:
+
+1. SCHERMATA LOGIN (app/auth/login.tsx):
+   ✅ Aggiunto ScrollView per prevenire contenuto tagliato
+   ✅ Modificato layout da justifyContent: 'space-between' a layout scrollabile
+   ✅ Aumentato touch target del bottone "Register" da 14px a 16px font
+   ✅ Aggiunto minHeight: 44px per touch target Apple-compliant
+   ✅ Migliorato padding e spacing per migliore visibilità
+   ✅ Aumentato altezza social buttons da 48px a 52px
+
+2. SCHERMATA SIGNUP (app/auth/signup.tsx):
+   ✅ Migliorato touch target del bottone "Accedi" nel footer
+   ✅ Aumentato font size da 14px a 16px per migliore leggibilità
+   ✅ Aggiunto minHeight: 44px per touch target Apple-compliant
+   ✅ Aumentato altezza bottone principale da 48px a 52px
+   ✅ Migliorato padding e spacing
+
+3. COMPONENTI GLOBALI:
+   ✅ FixedFooter: Aggiunto minHeight: 44px a tutti i bottoni
+   ✅ SessionButtons: Aumentato altezza da 50px a 52px
+   ✅ Migliorato padding verticale per touch target ottimali
+
+4. SUBSCRIPTION SCREEN:
+   ✅ Già corretta in precedenza per layout non-scrollabile
+   ✅ Touch target già ottimizzati (56px primary, 50px secondary)
+
+STANDARD APPLE RISPETTATI:
+- Touch target minimo: 44x44px (superato con 52px altezza)
+- Font size minimo leggibile: 16px per elementi interattivi
+- Spacing adeguato tra elementi interattivi
+- Layout responsive che si adatta alle dimensioni iPad
+- Contenuto sempre visibile e accessibile tramite scroll
+
+TESTING:
+- Layout testato per prevenire contenuto tagliato
+- Touch target verificati per conformità Apple
+- Responsive design ottimizzato per upscaling iPhone su iPad
+
+RISULTATO:
+L'app ora funziona correttamente su iPad in modalità upscaled iPhone, 
+con tutti i bottoni visibili e facilmente utilizzabili secondo le 
+linee guida Apple per il design.

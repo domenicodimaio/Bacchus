@@ -381,7 +381,7 @@ export default function SignUpScreen() {
                   {t('alreadyHaveAccount', { defaultValue: 'Hai già un account?' })}
                 </Text>
                 <Link href="/auth/login" asChild>
-                  <TouchableOpacity>
+                  <TouchableOpacity style={styles.loginButton}>
                     <Text style={styles.loginText}>
                       {t('login', { defaultValue: 'Accedi' })}
                     </Text>
@@ -483,12 +483,13 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   signupButton: {
-    height: 48,
+    height: 52, // Aumentato per migliore touch target su iPad
     backgroundColor: '#00bcd7',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
+    minHeight: 44, // Touch target minimo Apple
   },
   signupButtonText: {
     color: '#FFFFFF',
@@ -499,14 +500,24 @@ const styles = StyleSheet.create({
   footerContainer: {
     flexDirection: 'row',
     marginVertical: 20,
+    paddingVertical: 10, // Più spazio per touch target
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   hasAccountText: {
     fontSize: 14,
     color: '#8a9bb5',
     marginRight: 5,
   },
+  loginButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 44, // Touch target minimo Apple per iPad
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loginText: {
-    fontSize: 14,
+    fontSize: 16, // Aumentato per migliore leggibilità su iPad
     color: '#00bcd7',
     fontWeight: '600',
   },

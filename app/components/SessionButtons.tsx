@@ -63,12 +63,13 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    height: 50,
+    height: 52, // Aumentato leggermente per migliore touch target su iPad
     borderRadius: 25,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 15,
+    minHeight: 44, // Touch target minimo Apple
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -93,12 +94,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   endButton: {
-    height: 50,
+    height: 52, // Aumentato leggermente per migliore touch target su iPad
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
     backgroundColor: '#FF5252',
+    minHeight: 44, // Touch target minimo Apple
     ...Platform.select({
       ios: {
         shadowColor: '#000',
