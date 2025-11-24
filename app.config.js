@@ -18,7 +18,7 @@ export default {
     ios: {
       supportsTablet: false, // 🔄 APPLE FEEDBACK: iPhone-only ma che funzioni bene quando upscalato su iPad
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2814',
+      buildNumber: '2815',
       infoPlist: {
         UIDeviceFamily: [1], // 1 = iPhone only - ma layout responsive per upscaling iPad
         UIRequiresFullScreen: true, // iPhone app in modalità fullscreen
@@ -27,7 +27,6 @@ export default {
         UILaunchStoryboardName: 'SplashScreen',
         // 🔥 FIX DEFINITIVO IPAD: Forza modalità iPhone anche su iPad
         UIUserInterfaceIdiom: 'phone', // Forza sempre modalità iPhone
-        UIRequiredDeviceCapabilities: ['telephony'], // Richiede funzionalità telefono (solo iPhone)
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
         NSSupportsLiveActivitiesFrequentUpdates: true,
@@ -50,7 +49,7 @@ export default {
     },
       android: {
         package: 'com.bacchusapp.app',
-        versionCode: 2814,
+        versionCode: 2815,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
