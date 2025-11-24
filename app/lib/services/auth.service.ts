@@ -1149,7 +1149,14 @@ export const getCurrentUser = async (): Promise<User | null> => {
       // In modalità offline, prova a recuperare l'utente dal localStorage
       const userJson = await AsyncStorage.getItem(USER_DATA_KEY);
       if (userJson) {
-        return JSON.parse(userJson) as User;
+        try {
+          return JSON.parse(userJson) as User;
+        } catch (parseError) {
+          console.error('[AUTH] Errore parsing user data da AsyncStorage:', parseError);
+          // Rimuovi i dati corrotti
+          await AsyncStorage.removeItem(USER_DATA_KEY);
+          return null;
+        }
       }
       return null;
     }

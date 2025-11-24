@@ -179,21 +179,26 @@ class RemoteLoggingService {
     try {
       console.log(`📤 Uploading ${logsToUpload.length} log entries...`);
       
-      const { error } = await supabase
+      // Timeout per evitare hang
+      const uploadPromise = supabase
         .from('app_logs')
         .insert(logsToUpload);
+        
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Upload timeout')), 10000)
+      );
+      
+      const { error } = await Promise.race([uploadPromise, timeoutPromise]);
 
       if (error) {
         console.error('❌ Failed to upload logs:', error);
-        // Rimetti i log nella coda per riprova successiva
-        this.logQueue.unshift(...logsToUpload);
+        // Non rimettere i log in coda per evitare loop infiniti
       } else {
         console.log('✅ Logs uploaded successfully');
       }
     } catch (uploadError) {
       console.error('❌ Upload error:', uploadError);
-      // Rimetti i log nella coda
-      this.logQueue.unshift(...logsToUpload);
+      // Non rimettere i log in coda per evitare accumulo
     } finally {
       this.isUploading = false;
     }

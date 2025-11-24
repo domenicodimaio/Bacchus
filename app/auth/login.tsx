@@ -654,10 +654,7 @@ export default function LoginScreen() {
               )}
             </Animated.View>
             
-            {/* Spacer per separare i bottoni social dal footer */}
-            <View style={{ height: 30 }} />
-            
-            {/* Footer con link di registrazione */}
+            {/* Footer con link di registrazione - Layout verticale */}
             <Animated.View 
               style={[
                 styles.footerContainer,
@@ -689,13 +686,12 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 20, // Spazio extra per il footer
   },
   innerContainer: {
+    flex: 1,
     alignItems: 'center',
     padding: 16,
-    justifyContent: 'flex-start', // Cambiato da space-between per permettere scroll
-    minHeight: height - 100, // Spazio minimo per il contenuto
+    justifyContent: 'space-between', // Torna al layout originale
   },
   logoContainer: {
     alignItems: 'center',
@@ -810,17 +806,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerContainer: {
-    flexDirection: 'row',
-    marginTop: 'auto', // Spinge il footer in basso ma rimane visibile
+    flexDirection: 'column', // Layout verticale come richiesto
+    marginTop: 20,
     marginBottom: 20,
-    paddingVertical: 10, // Più spazio per touch target
+    paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 60, // Altezza minima per assicurare visibilità
   },
   noAccountText: {
     fontSize: 14,
-    marginRight: 5,
+    marginBottom: 8, // Spazio tra testo e bottone
+    textAlign: 'center',
   },
   registerButton: {
     paddingVertical: 8,
