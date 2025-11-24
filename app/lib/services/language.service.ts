@@ -6,7 +6,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // import * as Localization from 'expo-localization'; // DISABILITATO per build stabile
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform, NativeModules } from 'react-native';
 import i18n from '../../i18n';
 import { LANGUAGE_STORAGE_KEY } from '../../i18n';
 
@@ -22,7 +22,6 @@ export const getDefaultLanguage = (): string => {
     console.log('🌐 Rilevamento automatico lingua dispositivo...');
     
     // Usa React Native per ottenere la locale del dispositivo
-    const { Platform, NativeModules } = require('react-native');
     let deviceLocale = 'en';
     
     if (Platform.OS === 'ios') {
