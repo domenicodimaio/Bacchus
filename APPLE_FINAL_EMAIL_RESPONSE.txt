@@ -1,0 +1,68 @@
+Subject: App Review Response - Bacchus App - All iPad Issues Resolved (Build 2804)
+
+Dear Apple Review Team,
+
+Thank you for your continued feedback regarding our Bacchus app submission. We have comprehensively addressed all the iPad compatibility issues you identified and have submitted a new build (Build 2804) with complete fixes.
+
+ISSUES RESOLVED:
+
+1. Subscription Screen Text Overlap on iPad
+We have completely redesigned the subscription screen layout for iPad compatibility:
+- Implemented automatic iPad detection for upscaled iPhone apps
+- Changed plan selection from horizontal to vertical layout on iPad to prevent overlap
+- Increased font sizes and spacing for better readability when upscaled
+- Enhanced touch targets to meet Apple's 44x44pt minimum requirements
+- Optimized all UI elements for larger screen real estate
+
+2. Register Button Visibility on iPad Air (5th generation)
+The Register button is now fully visible and accessible:
+- Implemented scrollable layout to prevent content cutoff
+- Enhanced touch targets for all interactive elements
+- Increased button heights from 48pt to 52pt for optimal touch experience
+- Applied consistent improvements across login and signup screens
+
+TECHNICAL IMPROVEMENTS IMPLEMENTED:
+
+Responsive Design System:
+- Intelligent screen size detection (width > 400px or height > 800px)
+- Dynamic font scaling for iPad upscaling scenarios
+- Adaptive spacing and padding that scales appropriately
+- Enhanced visual hierarchy that remains clear at larger scales
+
+Enhanced Touch Targets:
+- All interactive elements now meet or exceed Apple's 44x44pt guidelines
+- Increased button heights and improved padding throughout the app
+- Enhanced accessibility for users on larger screens
+
+Layout Optimizations:
+- Subscription plans: Vertical stacking on iPad with increased spacing
+- Remove Ads section: Centered vertical layout for better readability
+- Benefits list: Larger icons and improved text spacing
+- Header elements: Appropriately scaled for iPad viewing
+
+VERIFICATION COMPLETED:
+
+We have thoroughly tested the updated app on iPad Air (5th generation) with iPadOS 26.1 and confirmed:
+- No text overlap in any screen, including the Subscriptions screen
+- The Register button is fully visible and easily accessible
+- All interactive elements meet Apple's touch target guidelines
+- The app provides an excellent user experience when upscaled on iPad
+- All functionality works properly in iPad's upscaled iPhone mode
+
+ADDITIONAL ENHANCEMENTS:
+
+Beyond addressing the specific issues you raised, we have also:
+- Improved premium subscription persistence across all account types
+- Enhanced session isolation between different user accounts
+- Completed translation coverage for all app features
+- Optimized performance and user experience throughout the app
+
+The new build (Build 2804) represents a comprehensive solution to all design concerns raised during the review process. Our iPhone app now provides an exceptional experience for users who download it on iPad devices, with proper scaling, readable text, and accessible controls.
+
+We are confident that these improvements fully address all iPad compatibility requirements and look forward to your approval.
+
+Best regards,
+
+Domenico Di Maio
+Developer
+Bacchus App

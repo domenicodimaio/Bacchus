@@ -173,7 +173,7 @@ export default function AddFoodScreen() {
                 value={consumptionTime}
                 onChange={handleTimeChange}
                 label={t('consumptionTiming')}
-                nowLabel={t('now', { defaultValue: 'Adesso' })}
+                nowLabel={t('now')}
               />
             </View>
             
@@ -359,8 +359,8 @@ export default function AddFoodScreen() {
           ))}
         </View>
         <Text style={[styles.progressText, {color: colors.textSecondary}]}>
-          {currentStep === 0 && t('selectFoodType', { defaultValue: 'Seleziona il tipo di alimento' })}
-          {currentStep === 1 && t('selectTiming', { defaultValue: 'Quando hai mangiato' })}
+          {currentStep === 0 && t('selectFoodType')}
+          {currentStep === 1 && t('selectTiming')}
         </Text>
             </View>
 
@@ -375,7 +375,7 @@ export default function AddFoodScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
-              {t('saving', { ns: 'common', defaultValue: 'Salvataggio in corso...' })}
+              {t('saving', { ns: 'common' })}
             </Text>
           </View>
         )}

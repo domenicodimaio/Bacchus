@@ -9,7 +9,8 @@ import {
   Platform,
   Linking,
   Image,
-  Alert
+  Alert,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +33,11 @@ export default function SubscriptionsScreen() {
   const { t } = useTranslation(['purchases', 'common']);
   const { currentTheme } = useTheme();
   const colors = currentTheme.COLORS;
+  
+  // Detect if running on iPad (upscaled iPhone app)
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
+  const isIPadUpscaled = screenWidth > 400 || screenHeight > 800;
   
   const {
     isLoading,
@@ -232,12 +238,12 @@ export default function SubscriptionsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Intestazione */}
-        <View style={styles.headerContainer}>
-          <Ionicons name="star" size={40} color={colors.primary} />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
+        <View style={[styles.headerContainer, isIPadUpscaled && styles.headerContainerIPad]}>
+          <Ionicons name="star" size={isIPadUpscaled ? 56 : 40} color={colors.primary} />
+          <Text style={[styles.headerTitle, isIPadUpscaled && styles.headerTitleIPad, { color: colors.text }]}>
             {t('premium')}
           </Text>
-          <Text style={[styles.headerDescription, { color: colors.textSecondary }]}>
+          <Text style={[styles.headerDescription, isIPadUpscaled && styles.headerDescriptionIPad, { color: colors.textSecondary }]}>
             {t('premiumDescription')}
           </Text>
         </View>
@@ -267,10 +273,11 @@ export default function SubscriptionsScreen() {
         {!isPremium && (
           <>
             {/* Selezione piano */}
-            <View style={styles.planSelection}>
+            <View style={[styles.planSelection, isIPadUpscaled && styles.planSelectionIPad]}>
               <TouchableOpacity
                 style={[
                   styles.planOption,
+                  isIPadUpscaled && styles.planOptionIPad,
                   { 
                     backgroundColor: selectedPlan === 'monthly' 
                       ? colors.primary 
@@ -282,12 +289,14 @@ export default function SubscriptionsScreen() {
               >
                 <Text style={[
                   styles.planText,
+                  isIPadUpscaled && styles.planTextIPad,
                   { color: selectedPlan === 'monthly' ? '#FFFFFF' : colors.text }
                 ]}>
                   {t('monthlySubscription')}
                 </Text>
                 <Text style={[
                   styles.planPrice,
+                  isIPadUpscaled && styles.planPriceIPad,
                   { color: selectedPlan === 'monthly' ? '#FFFFFF' : colors.text }
                 ]}>
                   {t('priceMonthly', { price: monthlyPrice })}
@@ -297,6 +306,7 @@ export default function SubscriptionsScreen() {
               <TouchableOpacity
                 style={[
                   styles.planOption,
+                  isIPadUpscaled && styles.planOptionIPad,
                   { 
                     backgroundColor: selectedPlan === 'yearly' 
                       ? colors.primary 
@@ -306,19 +316,22 @@ export default function SubscriptionsScreen() {
                 ]}
                 onPress={() => setSelectedPlan('yearly')}
               >
-                <View style={styles.yearlyLabelContainer}>
+                <View style={[styles.yearlyLabelContainer, isIPadUpscaled && styles.yearlyLabelContainerIPad]}>
                   <Text style={[
                     styles.planText,
+                    isIPadUpscaled && styles.planTextIPad,
                     { color: selectedPlan === 'yearly' ? '#FFFFFF' : colors.text }
                   ]}>
                     {t('yearlySubscription')}
                   </Text>
                   <View style={[
                     styles.discountBadge,
+                    isIPadUpscaled && styles.discountBadgeIPad,
                     { backgroundColor: selectedPlan === 'yearly' ? '#FFFFFF' : colors.primary }
                   ]}>
                     <Text style={[
                       styles.discountText,
+                      isIPadUpscaled && styles.discountTextIPad,
                       { color: selectedPlan === 'yearly' ? colors.primary : '#FFFFFF' }
                     ]}>
                       {t('yearlyDiscount', { percent: yearlyDiscount })}
@@ -327,6 +340,7 @@ export default function SubscriptionsScreen() {
                 </View>
                 <Text style={[
                   styles.planPrice,
+                  isIPadUpscaled && styles.planPriceIPad,
                   { color: selectedPlan === 'yearly' ? '#FFFFFF' : colors.text }
                 ]}>
                   {t('priceYearly', { price: yearlyPrice })}
@@ -338,6 +352,7 @@ export default function SubscriptionsScreen() {
             <TouchableOpacity
               style={[
                 styles.subscribeButton,
+                isIPadUpscaled && styles.subscribeButtonIPad,
                 { backgroundColor: colors.primary },
                 processingPayment && { opacity: 0.7 }
               ]}
@@ -347,7 +362,7 @@ export default function SubscriptionsScreen() {
               {processingPayment ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.subscribeText}>
+                <Text style={[styles.subscribeText, isIPadUpscaled && styles.subscribeTextIPad]}>
                   {t('subscribe')}
                 </Text>
               )}
@@ -356,8 +371,8 @@ export default function SubscriptionsScreen() {
         )}
         
         {/* Elenco vantaggi */}
-        <View style={styles.benefitsSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <View style={[styles.benefitsSection, isIPadUpscaled && styles.benefitsSectionIPad]}>
+          <Text style={[styles.sectionTitle, isIPadUpscaled && styles.sectionTitleIPad, { color: colors.text }]}>
             {t('subscriptionBenefits')}
           </Text>
           
@@ -367,36 +382,42 @@ export default function SubscriptionsScreen() {
               text={t('unlimitedSessions')}
               colors={colors}
               isActive={isPremium}
+              isIPadUpscaled={isIPadUpscaled}
             />
             <BenefitItem
               icon="stats-chart"
               text={t('advancedStatistics')}
               colors={colors}
               isActive={isPremium}
+              isIPadUpscaled={isIPadUpscaled}
             />
             <BenefitItem
               icon="download"
               text={t('dataExport')}
               colors={colors}
               isActive={isPremium}
+              isIPadUpscaled={isIPadUpscaled}
             />
             <BenefitItem
               icon="calculator"
               text={t('personalizedCalculations')}
               colors={colors}
               isActive={isPremium}
+              isIPadUpscaled={isIPadUpscaled}
             />
             <BenefitItem
               icon="apps"
               text={t('iosWidgets')}
               colors={colors}
               isActive={isPremium}
+              isIPadUpscaled={isIPadUpscaled}
             />
             <BenefitItem
               icon="eye-off"
               text={t('noAds')}
               colors={colors}
               isActive={isPremium || isAdFree}
+              isIPadUpscaled={isIPadUpscaled}
             />
           </View>
         </View>
@@ -404,23 +425,24 @@ export default function SubscriptionsScreen() {
         {/* Rimuovi pubblicità (se non premium e non ad-free) */}
         {!isPremium && !isAdFree && (
           <View style={[styles.removeAdsCard, { backgroundColor: colors.cardBackground }]}>
-            <View style={styles.removeAdsContent}>
-              <Ionicons name="eye-off" size={24} color={colors.primary} />
-              <View style={styles.removeAdsText}>
-                <Text style={[styles.removeAdsTitle, { color: colors.text }]}>
+            <View style={[styles.removeAdsContent, isIPadUpscaled && styles.removeAdsContentIPad]}>
+              <Ionicons name="eye-off" size={isIPadUpscaled ? 32 : 24} color={colors.primary} />
+              <View style={[styles.removeAdsText, isIPadUpscaled && styles.removeAdsTextIPad]}>
+                <Text style={[styles.removeAdsTitle, isIPadUpscaled && styles.removeAdsTitleIPad, { color: colors.text }]}>
                   {t('removeAds')}
                 </Text>
-                <Text style={[styles.removeAdsDescription, { color: colors.textSecondary }]}>
+                <Text style={[styles.removeAdsDescription, isIPadUpscaled && styles.removeAdsDescriptionIPad, { color: colors.textSecondary }]}>
                   {t('removeAdsDescription')}
                 </Text>
               </View>
-              <Text style={[styles.removeAdsPrice, { color: colors.text }]}>
+              <Text style={[styles.removeAdsPrice, isIPadUpscaled && styles.removeAdsPriceIPad, { color: colors.text }]}>
                 {t('priceOneTime', { price: removeAdsPrice })}
               </Text>
             </View>
             <TouchableOpacity
               style={[
                 styles.removeAdsButton,
+                isIPadUpscaled && styles.removeAdsButtonIPad,
                 { backgroundColor: colors.primary },
                 processingPayment && { opacity: 0.7 }
               ]}
@@ -430,7 +452,7 @@ export default function SubscriptionsScreen() {
               {processingPayment ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.removeAdsButtonText}>
+                <Text style={[styles.removeAdsButtonText, isIPadUpscaled && styles.removeAdsButtonTextIPad]}>
                   {t('purchase')}
                 </Text>
               )}
@@ -544,22 +566,24 @@ export default function SubscriptionsScreen() {
 }
 
 // Componente per elemento vantaggio
-const BenefitItem = ({ icon, text, colors, isActive = true }) => (
-  <View style={styles.benefitItem}>
+const BenefitItem = ({ icon, text, colors, isActive = true, isIPadUpscaled = false }) => (
+  <View style={[styles.benefitItem, isIPadUpscaled && styles.benefitItemIPad]}>
     <View style={[
       styles.benefitIconContainer,
+      isIPadUpscaled && styles.benefitIconContainerIPad,
       { 
         backgroundColor: isActive ? colors.primary + '20' : colors.textSecondary + '20',
       }
     ]}>
       <Ionicons 
         name={icon} 
-        size={20} 
+        size={isIPadUpscaled ? 28 : 20} 
         color={isActive ? colors.primary : colors.textSecondary} 
       />
     </View>
     <Text style={[
       styles.benefitText,
+      isIPadUpscaled && styles.benefitTextIPad,
       { color: isActive ? colors.text : colors.textSecondary }
     ]}>
       {text}
@@ -844,5 +868,107 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     marginLeft: 8,
+  },
+  
+  // iPad-specific styles for better upscaling
+  headerContainerIPad: {
+    marginBottom: 32,
+  },
+  headerTitleIPad: {
+    fontSize: 32,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  headerDescriptionIPad: {
+    fontSize: 20,
+    lineHeight: 28,
+    paddingHorizontal: 20,
+  },
+  subscribeButtonIPad: {
+    height: 64,
+    marginBottom: 40,
+  },
+  subscribeTextIPad: {
+    fontSize: 20,
+  },
+  benefitsSectionIPad: {
+    marginBottom: 40,
+  },
+  sectionTitleIPad: {
+    fontSize: 22,
+    marginBottom: 20,
+  },
+  benefitItemIPad: {
+    marginBottom: 20,
+  },
+  benefitIconContainerIPad: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 16,
+  },
+  benefitTextIPad: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  planSelectionIPad: {
+    flexDirection: 'column',
+    height: 'auto',
+    gap: 16,
+  },
+  planOptionIPad: {
+    height: 120,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  planTextIPad: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  planPriceIPad: {
+    fontSize: 20,
+  },
+  yearlyLabelContainerIPad: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  discountBadgeIPad: {
+    marginLeft: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  discountTextIPad: {
+    fontSize: 14,
+  },
+  removeAdsContentIPad: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    gap: 16,
+  },
+  removeAdsTextIPad: {
+    alignItems: 'center',
+    marginLeft: 0,
+  },
+  removeAdsTitleIPad: {
+    fontSize: 20,
+    textAlign: 'center',
+  },
+  removeAdsDescriptionIPad: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  removeAdsPriceIPad: {
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  removeAdsButtonIPad: {
+    height: 52,
+    marginTop: 8,
+  },
+  removeAdsButtonTextIPad: {
+    fontSize: 18,
   },
 }); 

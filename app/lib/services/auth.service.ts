@@ -387,6 +387,17 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     // Inizializza il servizio sessioni con l'ID utente
     await sessionServiceImport.initSessionService(data.user.id);
     
+    // 🔥 FIX PERSISTENZA PREMIUM: Inizializza anche il servizio acquisti per account in-app
+    console.log('[AUTH] 🛒 Inizializzazione servizio acquisti per account in-app...');
+    try {
+      const purchaseServiceImport = await import('./purchase.service');
+      await purchaseServiceImport.setUserForPurchases(data.user.id);
+      console.log('[AUTH] ✅ Servizio acquisti inizializzato per utente:', data.user.id);
+    } catch (purchaseError) {
+      console.warn('[AUTH] ⚠️ Errore inizializzazione servizio acquisti:', purchaseError);
+      // Non bloccare il login per errori del servizio acquisti
+    }
+    
     // Login completato con successo
       return {
         success: true,
