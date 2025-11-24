@@ -151,10 +151,10 @@ export default function LoginScreen() {
         })
       ]),
       
-      // Infine il footer
+      // Infine il footer (più veloce per assicurare visibilità)
       Animated.timing(footerOpacity, {
         toValue: 1,
-        duration: 450,
+        duration: 300,
         useNativeDriver: true,
         easing: Easing.out(Easing.ease)
       })
@@ -654,6 +654,9 @@ export default function LoginScreen() {
               )}
             </Animated.View>
             
+            {/* Spacer per separare i bottoni social dal footer */}
+            <View style={{ height: 30 }} />
+            
             {/* Footer con link di registrazione */}
             <Animated.View 
               style={[
@@ -686,13 +689,12 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    minHeight: height, // Assicura che il contenuto riempia almeno l'altezza dello schermo
+    paddingBottom: 20, // Spazio extra per il footer
   },
   innerContainer: {
-    flex: 1,
     alignItems: 'center',
     padding: 16,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // Cambiato da space-between per permettere scroll
     minHeight: height - 100, // Spazio minimo per il contenuto
   },
   logoContainer: {
@@ -809,11 +811,12 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'row',
-    marginTop: 15,
+    marginTop: 'auto', // Spinge il footer in basso ma rimane visibile
     marginBottom: 20,
     paddingVertical: 10, // Più spazio per touch target
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 60, // Altezza minima per assicurare visibilità
   },
   noAccountText: {
     fontSize: 14,
