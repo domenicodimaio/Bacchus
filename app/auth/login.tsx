@@ -455,16 +455,7 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-          <View style={styles.innerContainer}>
+        <View style={styles.innerContainer}>
             {/* Logo */}
             <TouchableOpacity 
               onPress={handleDebugReset}
@@ -672,9 +663,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </Animated.View>
-          </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -683,9 +672,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
   },
   innerContainer: {
     flex: 1,

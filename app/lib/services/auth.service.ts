@@ -387,6 +387,16 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     // Inizializza il servizio sessioni con l'ID utente
     await sessionServiceImport.initSessionService(data.user.id);
     
+    // 🔥 FIX PERSISTENZA SESSIONI: Sincronizza con Supabase per caricare sessioni attive da altri dispositivi
+    console.log('[AUTH] 🔄 Sincronizzazione sessioni da Supabase...');
+    try {
+      await sessionServiceImport.syncWithSupabase(data.user.id);
+      console.log('[AUTH] ✅ Sincronizzazione sessioni completata');
+    } catch (syncError) {
+      console.warn('[AUTH] ⚠️ Errore sincronizzazione sessioni:', syncError);
+      // Non bloccare il login per errori di sincronizzazione
+    }
+    
     // 🔥 FIX PERSISTENZA PREMIUM: Inizializza anche il servizio acquisti per account in-app
     console.log('[AUTH] 🛒 Inizializzazione servizio acquisti per account in-app...');
     try {
@@ -685,6 +695,15 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
             sessionServiceImport.clearUserIdCache();
             await sessionServiceImport.initSessionService(data.user.id);
             console.log('🍎 AUTH: Session service inizializzato per utente:', data.user.id);
+            
+            // 🔥 FIX PERSISTENZA SESSIONI: Sincronizza con Supabase per Apple Sign In
+            console.log('🍎 AUTH: 🔄 Sincronizzazione sessioni da Supabase...');
+            try {
+              await sessionServiceImport.syncWithSupabase(data.user.id);
+              console.log('🍎 AUTH: ✅ Sincronizzazione sessioni completata');
+            } catch (syncError) {
+              console.warn('🍎 AUTH: ⚠️ Errore sincronizzazione sessioni:', syncError);
+            }
             
             // 🔥 FIX: Salva APPLE_USER_DATA con chiave specifica per utente
             if (appleUserData) {

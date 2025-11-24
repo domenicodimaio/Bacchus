@@ -15,7 +15,6 @@ import {
   Animated,
   Easing,
   Dimensions,
-  ScrollView,
 } from 'react-native';
 import { router, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -249,11 +248,7 @@ export default function SignUpScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.innerContainer}>
+          <View style={styles.innerContainer}>
               {/* Logo */}
               <View style={styles.logoContainer}>
                 <Image
@@ -388,8 +383,7 @@ export default function SignUpScreen() {
                   </TouchableOpacity>
                 </Link>
               </Animated.View>
-            </View>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -399,9 +393,6 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
   },
   innerContainer: {
     flex: 1,
@@ -498,16 +489,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   footerContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column', // Layout verticale come login
     marginVertical: 20,
-    paddingVertical: 10, // Più spazio per touch target
+    paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   hasAccountText: {
     fontSize: 14,
     color: '#8a9bb5',
-    marginRight: 5,
+    marginBottom: 8, // Spazio tra testo e bottone
+    textAlign: 'center',
   },
   loginButton: {
     paddingVertical: 8,
