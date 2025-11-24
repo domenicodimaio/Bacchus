@@ -1,6 +1,9 @@
 // Polyfill diretto per crypto.getRandomValues
 import 'react-native-get-random-values';
 
+// 🔥 FIX DEFINITIVO IPAD: Forza modalità iPhone PRIMA di tutto
+import './lib/utils/deviceForcePhone';
+
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { View, StyleSheet, LogBox, ActivityIndicator } from 'react-native';
@@ -18,6 +21,7 @@ import { ActiveProfilesProvider } from './contexts/ProfileContext';
 import { PurchaseProvider } from './contexts/PurchaseContext';
 import { hasCompletedProfileWizard } from './lib/services/auth.service';
 import './lib/services/logging.service'; // Inizializza il servizio di logging
+import { usePhoneStyles } from './hooks/usePhoneDimensions';
 
 // 🔧 FIX CRITICO: Rendi AsyncStorage globale per compatibilità
 // Questo risolve "Property 'AsyncStorage' doesn't exist" in produzione
@@ -158,43 +162,56 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <ToastProvider>
-            <ErrorBoundary>
-              <AuthProvider>
-                <ActiveProfilesProvider>
-                  <PurchaseProvider>
-                    <NavigationHandler />
-                    <Stack
-                      screenOptions={({ route }) => {
-                        // 🔥 FIX BUG 3: Abilita swipe back SOLO per schermate specifiche
-                        const routeName = route.name || '';
-                        const gestureRoutes = ['session-details', 'add-drink', 'add-food', 'settings', 'profiles/edit'];
-                        const shouldEnable = gestureRoutes.some(r => routeName.includes(r));
-                        
-                        return {
-                          headerShown: false,
-                          animation: 'fade',
-                          contentStyle: { backgroundColor: 'transparent' },
-                          gestureEnabled: shouldEnable,
-                          fullScreenGestureEnabled: shouldEnable,
-                          gestureDirection: 'horizontal'
-                        };
-                      }}
-                    />
-                    <StatusBar style="auto" />
-                    <DebugConsole />
-                  </PurchaseProvider>
-                </ActiveProfilesProvider>
-              </AuthProvider>
-            </ErrorBoundary>
-          </ToastProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+      <PhoneLayoutWrapper>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <ToastProvider>
+              <ErrorBoundary>
+                <AuthProvider>
+                  <ActiveProfilesProvider>
+                    <PurchaseProvider>
+                      <NavigationHandler />
+                      <Stack
+                        screenOptions={({ route }) => {
+                          // 🔥 FIX BUG 3: Abilita swipe back SOLO per schermate specifiche
+                          const routeName = route.name || '';
+                          const gestureRoutes = ['session-details', 'add-drink', 'add-food', 'settings', 'profiles/edit'];
+                          const shouldEnable = gestureRoutes.some(r => routeName.includes(r));
+                          
+                          return {
+                            headerShown: false,
+                            animation: 'fade',
+                            contentStyle: { backgroundColor: 'transparent' },
+                            gestureEnabled: shouldEnable,
+                            fullScreenGestureEnabled: shouldEnable,
+                            gestureDirection: 'horizontal'
+                          };
+                        }}
+                      />
+                      <StatusBar style="auto" />
+                      <DebugConsole />
+                    </PurchaseProvider>
+                  </ActiveProfilesProvider>
+                </AuthProvider>
+              </ErrorBoundary>
+            </ToastProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </PhoneLayoutWrapper>
     </ThemeProvider>
   );
 }
+
+// 🔥 FIX DEFINITIVO IPAD: Componente per forzare layout iPhone
+const PhoneLayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const phoneStyles = usePhoneStyles();
+  
+  return (
+    <View style={[{ flex: 1, backgroundColor: '#0c2348' }, phoneStyles.phoneContainer]}>
+      {children}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

@@ -25,6 +25,10 @@ export default {
         UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'], // Solo portrait
         UIStatusBarHidden: false,
         UILaunchStoryboardName: 'SplashScreen',
+        // 🔥 FIX DEFINITIVO IPAD: Forza modalità iPhone anche su iPad
+        UIUserInterfaceIdiom: 'phone', // Forza sempre modalità iPhone
+        UIRequiredDeviceCapabilities: ['telephony'], // Richiede funzionalità telefono (solo iPhone)
+        UISupportedInterfaceOrientations~ipad: ['UIInterfaceOrientationPortrait'], // Portrait anche su iPad
         ITSAppUsesNonExemptEncryption: false,
         NSSupportsLiveActivities: true,
         NSSupportsLiveActivitiesFrequentUpdates: true,

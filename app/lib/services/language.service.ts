@@ -27,8 +27,25 @@ export const getDefaultLanguage = (): string => {
     
     if (Platform.OS === 'ios') {
       // iOS: usa NativeModules per ottenere la locale
+      // 🔥 FIX IPAD: Prova multiple fonti per rilevare lingua su iPad
       deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
-                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] || 'en';
+                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
+                   NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
+                   NativeModules.SettingsManager?.settings?.locale ||
+                   'en';
+      
+      // 🔥 FIX IPAD: Se non riesce a rilevare, prova con Intl API
+      if (deviceLocale === 'en' && typeof Intl !== 'undefined') {
+        try {
+          const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
+          console.log('🌐 Intl locale rilevata:', intlLocale);
+          if (intlLocale) {
+            deviceLocale = intlLocale;
+          }
+        } catch (intlError) {
+          console.log('🌐 Intl non disponibile:', intlError);
+        }
+      }
     } else {
       // Android: usa NativeModules per ottenere la locale
       deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en';
