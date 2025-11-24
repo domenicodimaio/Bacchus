@@ -1,4 +1,4 @@
-Subject: Re: App Review - Bacchus - Build 2813 - iPad Compatibility Implementation
+Subject: Re: App Review - Bacchus - Build 2814 - iPad Compatibility Implementation
 
 Dear App Review Team,
 
@@ -17,7 +17,6 @@ We have implemented a system that forces the app to always behave as an iPhone a
 Enhanced language detection system for iPad compatibility:
 - Multiple detection sources (AppleLocale, AppleLanguages, AppleLocales)
 - Intl API fallback for robust language detection
-- Consistent Italian language display on both iPhone and iPad
 
 3. LAYOUT CONSISTENCY GUARANTEE
 Implemented PhoneLayoutWrapper system:
@@ -45,7 +44,6 @@ EXPECTED RESULTS:
 - Register button always visible and accessible on iPad
 - No text overlap in Subscriptions screen or any other screen
 - Identical layout between iPhone and iPad (upscaled)
-- Consistent Italian language display
 - All interactive elements meet Apple's 44x44px minimum requirement
 
 TESTING COMPLETED:
@@ -61,7 +59,7 @@ BUILD INFORMATION:
 
 App Name: Bacchus
 Bundle ID: com.bacchusapp.app
-Build Number: 2813
+Build Number: 2814
 Configuration: iPhone-only with iPad upscaling optimization
 
 We believe this implementation fully addresses the design concerns raised in your review. The app now provides a consistent, professional experience on both iPhone and iPad devices while maintaining its iPhone-only classification.
