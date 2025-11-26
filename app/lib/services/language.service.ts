@@ -26,31 +26,31 @@ export const getDefaultLanguage = (): string => {
     
     if (Platform.OS === 'ios') {
       // iOS: usa NativeModules per ottenere la locale
+      console.log('🌐 DEBUG: Platform.OS:', Platform.OS);
+      console.log('🌐 DEBUG: Platform.isPad:', Platform.isPad);
       console.log('🌐 DEBUG: NativeModules.SettingsManager:', NativeModules.SettingsManager);
       console.log('🌐 DEBUG: settings:', NativeModules.SettingsManager?.settings);
       
-      // 🔥 FIX IPAD: Prova PRIMA con Intl API che è più affidabile su iPad
-      if (typeof Intl !== 'undefined') {
+      // 🔥 FIX IPAD: Prova PRIMA con NativeModules che è più affidabile
+      deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
+                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
+                   NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
+                   NativeModules.SettingsManager?.settings?.locale ||
+                   'en';
+      console.log('🌐 NativeModules locale rilevata:', deviceLocale);
+      
+      // Se NativeModules non ha funzionato o ha restituito 'en', prova con Intl API
+      if (deviceLocale === 'en' && typeof Intl !== 'undefined') {
         try {
           const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
-          console.log('🌐 Intl locale rilevata:', intlLocale);
-          if (intlLocale && intlLocale !== 'en-US') {
+          console.log('🌐 Intl locale come fallback:', intlLocale);
+          if (intlLocale && intlLocale.startsWith('it')) {
             deviceLocale = intlLocale;
-            console.log('🌐 Usando Intl locale:', deviceLocale);
+            console.log('🌐 Usando Intl locale italiana:', deviceLocale);
           }
         } catch (intlError) {
           console.log('🌐 Intl non disponibile:', intlError);
         }
-      }
-      
-      // Se Intl non ha funzionato, prova con NativeModules
-      if (!deviceLocale || deviceLocale === 'en') {
-        deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
-                     NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-                     NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
-                     NativeModules.SettingsManager?.settings?.locale ||
-                     'en';
-        console.log('🌐 Usando NativeModules locale:', deviceLocale);
       }
     } else {
       // Android: usa NativeModules per ottenere la locale

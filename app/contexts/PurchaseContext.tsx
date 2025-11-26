@@ -278,26 +278,17 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           let isPremium = await purchaseService.isPremium();
           console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium}`);
           
-          // Se non è premium, riprova dopo un breve delay
+          // Se non è premium, riprova con delay ridotto
           if (!isPremium) {
-            console.log('🎯 USER LOGIN: Non premium al primo tentativo, riprovo (500ms)...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('🎯 USER LOGIN: Non premium al primo tentativo, riprovo (200ms)...');
+            await new Promise(resolve => setTimeout(resolve, 200)); // Ridotto da 500ms
             
-            console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 2/3)...');
+            console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 2/2)...');
             await purchaseService.refreshCustomerInfo(); // Refresh di nuovo
             isPremium = await purchaseService.isPremium();
             console.log(`🎯 USER LOGIN: Tentativo 2 - isPremium: ${isPremium}`);
             
-            // Ultimo tentativo se ancora non premium
-            if (!isPremium) {
-              console.log('🎯 USER LOGIN: Ancora non premium, ultimo tentativo (1s)...');
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 3/3)...');
-              await purchaseService.refreshCustomerInfo(); // Refresh finale
-              isPremium = await purchaseService.isPremium();
-              console.log(`🎯 USER LOGIN: Tentativo 3 - isPremium: ${isPremium}`);
-            }
+            // Non fare un terzo tentativo - troppo lento
           }
           
           // Step 4: Controlla simulazione premium solo se non premium da RevenueCat
@@ -328,6 +319,35 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             isAdFree: isPremium,
             remainingFreeSessions: finalRemainingSessions 
           });
+          
+          // 🔥 FIX SYNC VELOCE: Avvia sincronizzazione periodica premium per aggiornamenti rapidi
+          if (!isPremium) {
+            console.log('🎯 USER LOGIN: Avvio sync periodica premium per aggiornamenti rapidi...');
+            const premiumSyncInterval = setInterval(async () => {
+              try {
+                const currentPremium = await purchaseService.isPremium();
+                if (currentPremium !== isPremium) {
+                  console.log('🎯 SYNC PERIODICA: Stato premium cambiato:', currentPremium);
+                  safeSetState({ 
+                    isPremium: currentPremium,
+                    isAdFree: currentPremium,
+                    remainingFreeSessions: currentPremium ? -1 : finalRemainingSessions 
+                  });
+                  if (currentPremium) {
+                    clearInterval(premiumSyncInterval); // Stop sync quando diventa premium
+                  }
+                }
+              } catch (error) {
+                console.warn('🎯 SYNC PERIODICA: Errore:', error);
+              }
+            }, 3000); // Ogni 3 secondi per sync rapida
+            
+            // Cleanup dopo 30 secondi per evitare sync infinita
+            setTimeout(() => {
+              clearInterval(premiumSyncInterval);
+              console.log('🎯 SYNC PERIODICA: Timeout raggiunto, stop sync');
+            }, 30000);
+          }
           
         } catch (error) {
           console.error('❌ USER LOGIN: Errore sincronizzazione premium:', error);

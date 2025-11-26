@@ -54,9 +54,30 @@ const getDeviceLanguage = () => {
     let deviceLocale = 'en';
     
     if (Platform.OS === 'ios') {
-      // iOS: usa NativeModules per ottenere la locale
+      // iOS: usa NativeModules per ottenere la locale (stessa logica di language.service.ts)
+      console.log('🌐 [i18n] DEBUG: Platform.isPad:', Platform.isPad);
+      console.log('🌐 [i18n] DEBUG: NativeModules.SettingsManager:', NativeModules.SettingsManager);
+      
       deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
-                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] || 'en';
+                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
+                   NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
+                   NativeModules.SettingsManager?.settings?.locale ||
+                   'en';
+      console.log('🌐 [i18n] NativeModules locale rilevata:', deviceLocale);
+      
+      // Se NativeModules non ha funzionato o ha restituito 'en', prova con Intl API
+      if (deviceLocale === 'en' && typeof Intl !== 'undefined') {
+        try {
+          const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
+          console.log('🌐 [i18n] Intl locale come fallback:', intlLocale);
+          if (intlLocale && intlLocale.startsWith('it')) {
+            deviceLocale = intlLocale;
+            console.log('🌐 [i18n] Usando Intl locale italiana:', deviceLocale);
+          }
+        } catch (intlError) {
+          console.log('🌐 [i18n] Intl non disponibile:', intlError);
+        }
+      }
     } else {
       // Android: usa NativeModules per ottenere la locale
       deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en';

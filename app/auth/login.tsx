@@ -15,7 +15,8 @@ import {
   Animated,
   Easing,
   Dimensions,
-  Linking
+  Linking,
+  ScrollView
 } from 'react-native';
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -457,6 +458,11 @@ export default function LoginScreen() {
         <StatusBar style="light" />
         
         <View style={[styles.innerContainer, { minHeight: height }]}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Logo */}
             <TouchableOpacity 
               onPress={handleDebugReset}
@@ -647,8 +653,9 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               )}
             </Animated.View>
+          </ScrollView>
             
-            {/* Footer con link di registrazione - Layout verticale */}
+          {/* Footer con link di registrazione - Layout verticale */}
             <Animated.View 
               style={[
                 styles.footerContainer,
@@ -678,9 +685,13 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     flex: 1,
-    alignItems: 'center',
     padding: 16,
-    justifyContent: 'space-between', // Torna al layout originale
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: Platform.isPad ? 40 : 20, // Più spazio su iPad
   },
   logoContainer: {
     alignItems: 'center',
@@ -802,9 +813,9 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'column', // Layout verticale come richiesto
-    marginTop: 20,
-    marginBottom: 20,
-    paddingVertical: 10,
+    marginTop: Platform.isPad ? 30 : 20, // Più spazio su iPad
+    marginBottom: Platform.isPad ? 40 : 20, // Più spazio in basso su iPad
+    paddingVertical: Platform.isPad ? 20 : 10, // Più padding su iPad
     justifyContent: 'center',
     alignItems: 'center',
   },
