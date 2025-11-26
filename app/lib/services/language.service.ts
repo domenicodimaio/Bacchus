@@ -26,24 +26,31 @@ export const getDefaultLanguage = (): string => {
     
     if (Platform.OS === 'ios') {
       // iOS: usa NativeModules per ottenere la locale
-      // 🔥 FIX IPAD: Prova multiple fonti per rilevare lingua su iPad
-      deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
-                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-                   NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
-                   NativeModules.SettingsManager?.settings?.locale ||
-                   'en';
+      console.log('🌐 DEBUG: NativeModules.SettingsManager:', NativeModules.SettingsManager);
+      console.log('🌐 DEBUG: settings:', NativeModules.SettingsManager?.settings);
       
-      // 🔥 FIX IPAD: Se non riesce a rilevare, prova con Intl API
-      if (deviceLocale === 'en' && typeof Intl !== 'undefined') {
+      // 🔥 FIX IPAD: Prova PRIMA con Intl API che è più affidabile su iPad
+      if (typeof Intl !== 'undefined') {
         try {
           const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
           console.log('🌐 Intl locale rilevata:', intlLocale);
-          if (intlLocale) {
+          if (intlLocale && intlLocale !== 'en-US') {
             deviceLocale = intlLocale;
+            console.log('🌐 Usando Intl locale:', deviceLocale);
           }
         } catch (intlError) {
           console.log('🌐 Intl non disponibile:', intlError);
         }
+      }
+      
+      // Se Intl non ha funzionato, prova con NativeModules
+      if (!deviceLocale || deviceLocale === 'en') {
+        deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
+                     NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
+                     NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
+                     NativeModules.SettingsManager?.settings?.locale ||
+                     'en';
+        console.log('🌐 Usando NativeModules locale:', deviceLocale);
       }
     } else {
       // Android: usa NativeModules per ottenere la locale

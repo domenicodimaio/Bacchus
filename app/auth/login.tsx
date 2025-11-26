@@ -15,7 +15,6 @@ import {
   Animated,
   Easing,
   Dimensions,
-  ScrollView,
   Linking
 } from 'react-native';
 import { router, Link, useLocalSearchParams } from 'expo-router';
@@ -36,7 +35,6 @@ import { COLORS } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import config from '../lib/config';
 import { createClient } from '@supabase/supabase-js';
-import { getResponsiveDimensions, getResponsiveContainerStyle, getResponsiveCardStyle, getResponsiveButtonStyle, getResponsiveTextStyle } from '../lib/utils/responsiveUtils';
 
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
@@ -452,21 +450,13 @@ export default function LoginScreen() {
   };
 
   // Ottieni dimensioni responsive
-  const responsiveDims = getResponsiveDimensions();
-  const containerStyle = getResponsiveContainerStyle();
-  const cardStyle = getResponsiveCardStyle();
-  const buttonStyle = getResponsiveButtonStyle();
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <ScrollView 
-          contentContainerStyle={[containerStyle, { minHeight: height }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View style={[styles.innerContainer, { minHeight: height }]}>
             {/* Logo */}
             <TouchableOpacity 
               onPress={handleDebugReset}
@@ -486,7 +476,7 @@ export default function LoginScreen() {
             {/* Login Card */}
             <Animated.View 
               style={[
-                cardStyle,
+                styles.card,
                 { 
                   backgroundColor: '#162a4e',
                   opacity: cardOpacity,
@@ -582,7 +572,7 @@ export default function LoginScreen() {
                 
                 {/* Login button */}
                 <TouchableOpacity 
-                  style={[buttonStyle, { backgroundColor: '#00bcd7' }]}
+                  style={[styles.loginButton, { backgroundColor: '#00bcd7' }]}
                   onPress={handleLogin}
                   disabled={isLoading}
                 >
@@ -623,7 +613,7 @@ export default function LoginScreen() {
             >
               {/* Google login button */}
               <TouchableOpacity 
-                style={[buttonStyle, { 
+                style={[styles.socialButton, { 
                   backgroundColor: '#ffffff',
                   borderWidth: 1,
                   borderColor: '#2c3e60',
@@ -642,7 +632,7 @@ export default function LoginScreen() {
               {/* Apple login button */}
               {appleAuthAvailable && (
                 <TouchableOpacity 
-                  style={[buttonStyle, { 
+                  style={[styles.socialButton, { 
                     backgroundColor: '#000000',
                     marginLeft: 8,
                     flex: 1
@@ -676,7 +666,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </Animated.View>
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );

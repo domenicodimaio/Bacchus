@@ -25,7 +25,6 @@ import { useToast } from '../components/Toast';
 import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { clearAllNavigationBlocks } from '../contexts/AuthContext';
 import { usePurchase } from '../contexts/PurchaseContext';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
@@ -53,8 +52,6 @@ export default function SubscriptionOfferScreen() {
   const [restoring, setRestoring] = useState(false);
   const [skipOffered, setSkipOffered] = useState(false);
   
-  // Responsive layout
-  const { styles: responsiveStyles, deviceInfo } = useResponsiveLayout();
   
   // Stato base
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | null>(null);
@@ -438,27 +435,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   planContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   planCard: {
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: 'transparent',
+    minHeight: 120,
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
   },
   fullPrice: {
     fontSize: 14,
@@ -467,23 +467,25 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   planPrice: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
+    marginBottom: 4,
   },
   planDetails: {
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 6,
     textAlign: 'center',
+    lineHeight: 14,
   },
   discountBadge: {
-    marginLeft: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    marginLeft: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
   discountText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   checkmark: {
