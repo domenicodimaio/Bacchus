@@ -110,10 +110,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           // 🔧 FIX CRITICO: Riattiva caricamento profili e sessioni
           await loadUserProfiles(currentUser.id);
           
-          // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database all'avvio
-          console.log('[AUTH_CONTEXT] Caricamento sessioni dal database all\'avvio...');
+          // 🔥 FIX PERSISTENZA CROSS-DEVICE: Sincronizza sessioni da Supabase all'avvio per caricare sessioni da altri dispositivi
+          console.log('[AUTH_CONTEXT] Sincronizzazione sessioni da Supabase all\'avvio per cross-device...');
           const sessionService = require('../lib/services/session.service');
-          await sessionService.loadSessionHistoryFromStorage();
+          try {
+            await sessionService.syncWithSupabase(currentUser.id);
+            console.log('[AUTH_CONTEXT] ✅ Sincronizzazione sessioni cross-device all\'avvio completata');
+          } catch (syncError) {
+            console.warn('[AUTH_CONTEXT] ⚠️ Errore sincronizzazione sessioni cross-device all\'avvio:', syncError);
+            // Fallback: carica almeno le sessioni locali
+            await sessionService.loadSessionHistoryFromStorage();
+          }
           
           // Controllo wizard semplificato
           try {
@@ -166,10 +173,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           console.log('[AUTH_CONTEXT] Ricaricamento profili dopo login...');
           await loadUserProfiles(currentUser.id);
           
-          // 🔥 FIX PERSISTENZA: Ricarica anche le sessioni dal database dopo login
-          console.log('[AUTH_CONTEXT] Ricaricamento sessioni dal database dopo login...');
+          // 🔥 FIX PERSISTENZA CROSS-DEVICE: Sincronizza sessioni da Supabase per caricare sessioni da altri dispositivi
+          console.log('[AUTH_CONTEXT] Sincronizzazione sessioni da Supabase per cross-device...');
           const sessionService = require('../lib/services/session.service');
-          await sessionService.loadSessionHistoryFromStorage();
+          try {
+            await sessionService.syncWithSupabase(currentUser.id);
+            console.log('[AUTH_CONTEXT] ✅ Sincronizzazione sessioni cross-device completata');
+          } catch (syncError) {
+            console.warn('[AUTH_CONTEXT] ⚠️ Errore sincronizzazione sessioni cross-device:', syncError);
+            // Fallback: carica almeno le sessioni locali
+            await sessionService.loadSessionHistoryFromStorage();
+          }
           
           // 🔥 FIX APPLE LOGIN: Controllo wizard COMPLETO per Apple Login
           console.log('🚨 DEBUG_APPLE: onAuthStateChange - Controllo wizard per Apple Login...');

@@ -968,11 +968,36 @@ export const loadProfilesFromSupabase = async (): Promise<UserProfile[]> => {
   }
 };
 
+// Debounce per evitare sincronizzazioni troppo frequenti
+let syncProfilesTimeout: NodeJS.Timeout | null = null;
+
 /**
  * Sincronizza i profili locali con quelli su Supabase
  * Versione migliorata che forza sempre il refresh dei profili dal database
  */
-export const syncProfiles = async (): Promise<boolean> => {
+export const syncProfiles = async (debounceMs: number = 1000): Promise<boolean> => {
+  // Cancella il timeout precedente se esiste
+  if (syncProfilesTimeout) {
+    clearTimeout(syncProfilesTimeout);
+  }
+  
+  // Se è richiesto debounce, aspetta
+  if (debounceMs > 0) {
+    return new Promise((resolve) => {
+      syncProfilesTimeout = setTimeout(async () => {
+        const result = await syncProfilesInternal();
+        resolve(result);
+      }, debounceMs);
+    });
+  }
+  
+  return syncProfilesInternal();
+};
+
+/**
+ * Funzione interna di sincronizzazione profili
+ */
+const syncProfilesInternal = async (): Promise<boolean> => {
   try {
     console.log('=== SINCRONIZZAZIONE PROFILI INIZIATA ===');
     
@@ -985,10 +1010,10 @@ export const syncProfiles = async (): Promise<boolean> => {
     
     console.log('Sincronizzazione profili per utente:', currentUser.id);
     
-    // Forza il reset e pulizia completa prima della sincronizzazione
-    // Questo è importante per garantire che dati di altri account non persistano
-    console.log('Pulizia di cache e profili non validi...');
-    await resetLocalProfiles();
+    // 🔧 FIX: Sincronizzazione meno aggressiva - non resettare tutto
+    // Solo pulisci la cache senza rimuovere i profili locali validi
+    console.log('Pulizia cache profili (senza reset completo)...');
+    // await resetLocalProfiles(); // RIMOSSO: troppo aggressivo, causa logout
     
     // Forza il refresh dei profili dal database
     const profiles = await getProfiles(true);

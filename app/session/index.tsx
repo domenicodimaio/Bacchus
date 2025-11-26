@@ -471,21 +471,22 @@ function SessionScreen() {
         const activeSession = await sessionService.updateSessionBAC();
         
         if (activeSession) {
-          // Validazione critica: verifica che i dati essenziali siano presenti
+          // 🔧 FIX: Validazione meno rigida - prova prima a riparare la sessione
           if (!activeSession.profile || !activeSession.profile.weightKg) {
-            console.error('🔴 SESSION: Sessione invalida - dati profilo mancanti');
+            console.warn('⚠️ SESSION: Dati profilo mancanti, tentativo di riparazione...');
             
-            // Mostra un errore adeguato
-            showToast({
-              type: 'error',
-              message: t('errorLoadingSession', { 
-                ns: 'session',
-                defaultValue: 'Errore nel caricamento della sessione'
-              }),
-            });
-            
-            // Prova a correggere la sessione prima di arrenderti
+            // Prova a correggere la sessione PRIMA di mostrare errore
             try {
+              console.log('🔧 SESSION: Tentativo riparazione integrità sessione...');
+              
+              // Prima sincronizza con Supabase per assicurarsi che i profili siano aggiornati
+              const currentUser = await authService.getCurrentUser();
+              if (currentUser) {
+                console.log('🔄 SESSION: Sincronizzazione profili prima della riparazione...');
+                const profileService = require('../lib/services/profile.service');
+                await profileService.syncProfiles();
+              }
+              
               const fixedSession = await sessionService.ensureSessionIntegrity();
               if (fixedSession) {
                 console.log('🟢 SESSION: Sessione riparata, riprovo');

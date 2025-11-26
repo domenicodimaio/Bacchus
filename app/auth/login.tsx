@@ -709,6 +709,12 @@ const styles = StyleSheet.create({
     padding: 20,
     marginVertical: 15,
   },
+  card: {
+    width: '100%',
+    borderRadius: 15,
+    padding: 20,
+    marginVertical: 15,
+  },
   cardTitle: {
     fontSize: 26,
     fontWeight: 'bold',
