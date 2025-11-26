@@ -479,13 +479,9 @@ function SessionScreen() {
             try {
               console.log('🔧 SESSION: Tentativo riparazione integrità sessione...');
               
-              // Prima sincronizza con Supabase per assicurarsi che i profili siano aggiornati
-              const currentUser = await authService.getCurrentUser();
-              if (currentUser) {
-                console.log('🔄 SESSION: Sincronizzazione profili prima della riparazione...');
-                const profileService = require('../lib/services/profile.service');
-                await profileService.syncProfiles();
-              }
+              // 🔥 FIX LOGOUT: NON chiamare syncProfiles qui perché causa logout
+              // syncProfiles() è troppo aggressivo e può causare logout automatico
+              // Invece usa solo ensureSessionIntegrity che ripara la sessione localmente
               
               const fixedSession = await sessionService.ensureSessionIntegrity();
               if (fixedSession) {

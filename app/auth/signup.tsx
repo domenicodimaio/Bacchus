@@ -27,6 +27,10 @@ import { useTranslation } from 'react-i18next';
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
 
+// 🔥 RILEVAMENTO IPAD: Considera iPad se iOS con schermo >= 700px
+const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
+console.log('📱 Device detection SIGNUP:', { isIPad, width, height });
+
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
 
@@ -402,27 +406,27 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: isIPad ? 5 : 20, // iPad: MOLTO ridotto
+    marginBottom: isIPad ? 5 : 20,
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 10,
+    width: isIPad ? 90 : 120, // iPad: MOLTO ridotto
+    height: isIPad ? 90 : 120,
+    marginBottom: isIPad ? 5 : 10,
   },
   appSubtitle: {
-    fontSize: 16,
+    fontSize: isIPad ? 13 : 16, // iPad: ridotto
     color: '#8a9bb5',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: isIPad ? 10 : 20,
   },
   signupCard: {
     width: '100%',
     backgroundColor: '#162a4e',
     borderRadius: 15,
-    padding: 20,
-    marginTop: 10,
-    marginBottom: 20,
+    padding: isIPad ? 12 : 20, // iPad: MOLTO ridotto
+    marginTop: isIPad ? 5 : 10,
+    marginBottom: isIPad ? 10 : 20,
     borderWidth: 1,
     borderColor: '#254175',
     shadowColor: '#000',
@@ -432,15 +436,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardTitle: {
-    fontSize: 26,
+    fontSize: isIPad ? 20 : 26, // iPad: MOLTO ridotto
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 5,
+    marginBottom: isIPad ? 3 : 5,
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: isIPad ? 12 : 14, // iPad: ridotto
     color: '#8a9bb5',
-    marginBottom: 20,
+    marginBottom: isIPad ? 12 : 20,
   },
   formContainer: {
     width: '100%',
@@ -450,7 +454,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1e355a',
     borderRadius: 10,
-    marginBottom: 16,
+    marginBottom: isIPad ? 10 : 16, // iPad: ridotto
     paddingHorizontal: 16,
     height: 48,
     borderWidth: 1,
@@ -490,7 +494,7 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'column', // Layout verticale come login
-    marginVertical: 20,
+    marginVertical: isIPad ? 8 : 20, // iPad: MOLTO ridotto
     paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',

@@ -2064,6 +2064,16 @@ export async function addFood(food: FoodRecord): Promise<boolean> {
     // Salva la sessione aggiornata
     await saveSessionLocally(activeSession, 'active');
     
+    // 🔥 FIX SYNC: Sincronizza con Supabase come per addDrink
+    if (_currentUserId) {
+      try {
+        await saveSessionToSupabase(activeSession, true);
+        console.log('✅ SESSION SYNC: Cibo salvato su Supabase');
+      } catch (supabaseError) {
+        console.error('❌ SESSION SYNC: Errore salvataggio cibo su Supabase:', supabaseError);
+      }
+    }
+    
     // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
     console.log('📱 Live Activities disabilitate per release stabile');
     
@@ -2099,6 +2109,16 @@ export async function removeFood(foodId: string): Promise<boolean> {
 
     // Salva la sessione aggiornata
     await saveSessionLocally(activeSession, 'active');
+    
+    // 🔥 FIX SYNC: Sincronizza con Supabase
+    if (_currentUserId) {
+      try {
+        await saveSessionToSupabase(activeSession, true);
+        console.log('✅ SESSION SYNC: Rimozione cibo salvata su Supabase');
+      } catch (supabaseError) {
+        console.error('❌ SESSION SYNC: Errore salvataggio rimozione cibo su Supabase:', supabaseError);
+      }
+    }
     
     // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
     console.log('📱 Live Activities disabilitate per release stabile');

@@ -421,13 +421,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: isIPad ? 12 : 20, // iPad: ridotto
+    marginBottom: isIPad ? 10 : 20,
   },
   logo: {
-    width: 70,
-    height: 70,
-    marginBottom: 10,
+    width: isIPad ? 50 : 70, // iPad: MOLTO ridotto
+    height: isIPad ? 50 : 70,
+    marginBottom: isIPad ? 6 : 10,
   },
   title: {
     fontSize: isIPad ? 20 : 24, // iPad: ridotto

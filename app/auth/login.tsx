@@ -15,7 +15,6 @@ import {
   Animated,
   Easing,
   Dimensions,
-  ScrollView,
   Linking
 } from 'react-native';
 import { router, Link, useLocalSearchParams } from 'expo-router';
@@ -302,6 +301,10 @@ export default function LoginScreen() {
           global.__WIZARD_AFTER_REGISTRATION__ = false;
         }
         
+        // 🔥 FIX PREMIUM: Aspetta che premium sia sincronizzato PRIMA del redirect
+        console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Aspetta 1.5 sec
+        
         router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert(
@@ -328,6 +331,10 @@ export default function LoginScreen() {
       const { success, error } = await loginWithProvider('google');
       
       if (success) {
+        // 🔥 FIX PREMIUM: Aspetta che premium sia sincronizzato
+        console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert(
@@ -375,6 +382,11 @@ export default function LoginScreen() {
           // La navigazione sarà gestita da AuthContext.onAuthStateChange
         } else {
           console.log('APPLE_FLOW: Utente Apple esistente con profilo - Dashboard');
+          
+          // 🔥 FIX PREMIUM: Aspetta che premium sia sincronizzato
+          console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           router.replace('/(tabs)/dashboard');
         }
       } else if (error === 'oauth_in_progress') {
@@ -461,12 +473,7 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <ScrollView 
-          contentContainerStyle={[styles.scrollContainer]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces={false}
-        >
+        <View style={[styles.innerContainer]}>
             {/* Logo */}
             <TouchableOpacity 
               onPress={handleDebugReset}
@@ -676,7 +683,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </Animated.View>
-          </ScrollView>
+          </View>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -700,19 +707,19 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: isIPad ? 5 : 10, // iPad: margini ridotti
-    marginTop: isIPad ? 5 : 10,
+    marginBottom: isIPad ? 2 : 10, // iPad: margini MOLTO ridotti
+    marginTop: isIPad ? 2 : 10,
   },
   logo: {
-    width: isIPad ? 120 : 150, // iPad: logo più piccolo
-    height: isIPad ? 120 : 150,
-    marginBottom: isIPad ? 5 : 10,
+    width: isIPad ? 100 : 150, // iPad: logo MOLTO più piccolo
+    height: isIPad ? 100 : 150,
+    marginBottom: isIPad ? 2 : 10,
   },
   appTitle: {
-    fontSize: isIPad ? 28 : 32, // iPad: ridotto per evitare taglio
+    fontSize: isIPad ? 24 : 32, // iPad: MOLTO ridotto
     fontWeight: 'bold',
-    marginBottom: isIPad ? 3 : 5,
-    letterSpacing: isIPad ? 3 : 4,
+    marginBottom: isIPad ? 2 : 5,
+    letterSpacing: isIPad ? 2 : 4,
   },
   appSubtitle: {
     fontSize: 14,
@@ -722,19 +729,19 @@ const styles = StyleSheet.create({
   loginCard: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: padding ridotto
-    marginVertical: isIPad ? 10 : 15,
+    padding: isIPad ? 12 : 20, // iPad: padding MOLTO ridotto
+    marginVertical: isIPad ? 6 : 15,
   },
   card: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: padding ridotto
-    marginVertical: isIPad ? 10 : 15,
+    padding: isIPad ? 12 : 20, // iPad: padding MOLTO ridotto
+    marginVertical: isIPad ? 6 : 15,
   },
   cardTitle: {
-    fontSize: isIPad ? 22 : 26, // iPad: ridotto
+    fontSize: isIPad ? 20 : 26, // iPad: MOLTO ridotto
     fontWeight: 'bold',
-    marginBottom: isIPad ? 3 : 5,
+    marginBottom: isIPad ? 2 : 5,
   },
   cardSubtitle: {
     fontSize: 14,
@@ -818,9 +825,9 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'column', // Layout verticale come richiesto
-    marginTop: isIPad ? 10 : 20, // iPad: margini ridotti
-    marginBottom: isIPad ? 10 : 20,
-    paddingVertical: isIPad ? 5 : 10,
+    marginTop: isIPad ? 6 : 20, // iPad: margini MOLTO ridotti
+    marginBottom: isIPad ? 6 : 20,
+    paddingVertical: isIPad ? 3 : 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
