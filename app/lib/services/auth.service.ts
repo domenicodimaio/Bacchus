@@ -397,12 +397,19 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
       // Non bloccare il login per errori di sincronizzazione
     }
     
-    // 🔥 FIX PERSISTENZA PREMIUM: Inizializza anche il servizio acquisti per account in-app
+    // 🔥 FIX PERSISTENZA PREMIUM: Inizializza servizio acquisti e FORZA refresh immediato
     console.log('[AUTH] 🛒 Inizializzazione servizio acquisti per account in-app...');
     try {
       const purchaseServiceImport = await import('./purchase.service');
       await purchaseServiceImport.setUserForPurchases(data.user.id);
-      console.log('[AUTH] ✅ Servizio acquisti inizializzato per utente:', data.user.id);
+      
+      // 🔥 FORZA REFRESH IMMEDIATO RevenueCat per rilevare premium
+      console.log('[AUTH] 🔄 Forzando refresh RevenueCat per rilevare premium...');
+      await purchaseServiceImport.refreshCustomerInfo();
+      
+      // Controlla subito stato premium
+      const isPremium = await purchaseServiceImport.isPremium();
+      console.log('[AUTH] ✅ Stato premium rilevato:', isPremium);
     } catch (purchaseError) {
       console.warn('[AUTH] ⚠️ Errore inizializzazione servizio acquisti:', purchaseError);
       // Non bloccare il login per errori del servizio acquisti
@@ -703,6 +710,23 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               console.log('🍎 AUTH: ✅ Sincronizzazione sessioni completata');
             } catch (syncError) {
               console.warn('🍎 AUTH: ⚠️ Errore sincronizzazione sessioni:', syncError);
+            }
+            
+            // 🔥 FIX PREMIUM LENTA: Forza refresh immediato RevenueCat per Apple Sign In
+            console.log('🍎 AUTH: 🛒 Inizializzazione servizio acquisti...');
+            try {
+              const purchaseServiceImport = await import('./purchase.service');
+              await purchaseServiceImport.setUserForPurchases(data.user.id);
+              
+              // 🔥 FORZA REFRESH IMMEDIATO per rilevare premium
+              console.log('🍎 AUTH: 🔄 Forzando refresh RevenueCat...');
+              await purchaseServiceImport.refreshCustomerInfo();
+              
+              // Controlla subito stato premium
+              const isPremium = await purchaseServiceImport.isPremium();
+              console.log('🍎 AUTH: ✅ Stato premium rilevato:', isPremium);
+            } catch (purchaseError) {
+              console.warn('🍎 AUTH: ⚠️ Errore inizializzazione servizio acquisti:', purchaseError);
             }
             
             // 🔥 FIX: Salva APPLE_USER_DATA con chiave specifica per utente

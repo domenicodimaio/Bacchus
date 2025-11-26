@@ -18,6 +18,10 @@ import {
   ActivityIndicator,
   Dimensions
 } from 'react-native';
+
+// 🔥 RILEVAMENTO IPAD: Rileva iPad per ridurre dimensioni button
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isIPad = Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700;
 import { router, useNavigation, useLocalSearchParams } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -1277,8 +1281,8 @@ const styles = StyleSheet.create({
   },
   dashboardButton: {
     flexDirection: 'row',
-    height: 50,
-    borderRadius: 25,
+    height: isIPad ? 44 : 50, // iPad: ridotto per evitare taglio
+    borderRadius: isIPad ? 22 : 25,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -1300,7 +1304,7 @@ const styles = StyleSheet.create({
     }),
   },
   dashboardButtonText: {
-    fontSize: 16,
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto
     fontWeight: 'bold',
   },
   editIndicator: {

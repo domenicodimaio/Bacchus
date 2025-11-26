@@ -10,7 +10,12 @@ import {
   Alert,
   BackHandler,
   Linking,
+  Dimensions,
 } from 'react-native';
+
+// 🔥 RILEVAMENTO IPAD: Rileva iPad per ridurre dimensioni
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isIPad = Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700;
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -425,34 +430,34 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: isIPad ? 20 : 24, // iPad: ridotto
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: isIPad ? 4 : 6,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto
     textAlign: 'center',
   },
   planContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+    paddingHorizontal: isIPad ? 16 : 24, // iPad: padding ridotto
+    marginBottom: isIPad ? 16 : 24,
   },
   planCard: {
-    padding: 20,
+    padding: isIPad ? 14 : 20, // iPad: padding ridotto
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: isIPad ? 10 : 16,
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: 120,
+    minHeight: isIPad ? 100 : 120, // iPad: altezza ridotta
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: 16,
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: isIPad ? 6 : 8,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -467,15 +472,15 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   planPrice: {
-    fontSize: 15,
+    fontSize: isIPad ? 13 : 15, // iPad: ridotto
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: isIPad ? 3 : 4,
   },
   planDetails: {
-    fontSize: 10,
-    marginTop: 6,
+    fontSize: isIPad ? 9 : 10, // iPad: ridotto
+    marginTop: isIPad ? 4 : 6,
     textAlign: 'center',
-    lineHeight: 14,
+    lineHeight: isIPad ? 12 : 14,
   },
   discountBadge: {
     marginLeft: 10,

@@ -40,6 +40,10 @@ import { createClient } from '@supabase/supabase-js';
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
 
+// 🔥 RILEVAMENTO IPAD: Considera iPad se iOS con schermo >= 700px
+const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
+console.log('📱 Device detection:', { isIPad, width, height });
+
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
 
@@ -696,19 +700,19 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 10,
-    marginTop: 10,
+    marginBottom: isIPad ? 5 : 10, // iPad: margini ridotti
+    marginTop: isIPad ? 5 : 10,
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 10,
+    width: isIPad ? 120 : 150, // iPad: logo più piccolo
+    height: isIPad ? 120 : 150,
+    marginBottom: isIPad ? 5 : 10,
   },
   appTitle: {
-    fontSize: 32,
+    fontSize: isIPad ? 28 : 32, // iPad: ridotto per evitare taglio
     fontWeight: 'bold',
-    marginBottom: 5,
-    letterSpacing: 4,
+    marginBottom: isIPad ? 3 : 5,
+    letterSpacing: isIPad ? 3 : 4,
   },
   appSubtitle: {
     fontSize: 14,
@@ -718,19 +722,19 @@ const styles = StyleSheet.create({
   loginCard: {
     width: '100%',
     borderRadius: 15,
-    padding: 20,
-    marginVertical: 15,
+    padding: isIPad ? 16 : 20, // iPad: padding ridotto
+    marginVertical: isIPad ? 10 : 15,
   },
   card: {
     width: '100%',
     borderRadius: 15,
-    padding: 20,
-    marginVertical: 15,
+    padding: isIPad ? 16 : 20, // iPad: padding ridotto
+    marginVertical: isIPad ? 10 : 15,
   },
   cardTitle: {
-    fontSize: 26,
+    fontSize: isIPad ? 22 : 26, // iPad: ridotto
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: isIPad ? 3 : 5,
   },
   cardSubtitle: {
     fontSize: 14,
@@ -814,9 +818,9 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'column', // Layout verticale come richiesto
-    marginTop: 20,
-    marginBottom: 20,
-    paddingVertical: 10,
+    marginTop: isIPad ? 10 : 20, // iPad: margini ridotti
+    marginBottom: isIPad ? 10 : 20,
+    paddingVertical: isIPad ? 5 : 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
