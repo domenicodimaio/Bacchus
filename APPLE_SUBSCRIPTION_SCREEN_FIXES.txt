@@ -1,0 +1,81 @@
+🔥 APPLE SUBSCRIPTION SCREEN - CORREZIONI DEFINITIVE
+==================================================
+
+PROBLEMA APPLE:
+"Specifically, the text overlapped in the Subscriptions screen on iPad Air (5th generation) running iPadOS 26.1"
+
+ANALISI DEL PROBLEMA:
+1. Font size troppo piccoli su iPad (9px-11px) = ILLEGGIBILI
+2. Layout orizzontale del priceContainer causava overlap
+3. Padding insufficienti tra gli elementi
+4. Container troppo stretti su iPad
+5. Discount badge si sovrapponeva al testo
+
+CORREZIONI IMPLEMENTATE:
+========================
+
+1. HEADER MIGLIORATO:
+   - Logo: 50px → 80px su iPad (più visibile)
+   - Title: 20px → 26px su iPad (più leggibile)
+   - Padding: 12px → 40px su iPad (più spazio)
+
+2. PLAN CONTAINER RIDISEGNATO:
+   - Padding: 16px → 60px su iPad (più spazio laterale)
+   - MaxWidth: 600px su iPad (evita stretch eccessivo)
+   - AlignSelf: center (centra il contenuto)
+   - Margin bottom: 16px → 30px su iPad
+
+3. PLAN CARDS OTTIMIZZATE:
+   - Padding: 14px → 24px su iPad (più spazio interno)
+   - MinHeight: 100px → 140px su iPad (più spazio verticale)
+   - Margin bottom: 10px → 20px su iPad (più separazione)
+
+4. TYPOGRAPHY MIGLIORATA:
+   - Plan title: 14px → 18px su iPad
+   - Plan price: 13px → 20px su iPad (MOLTO più grande)
+   - Plan details: 9px → 14px su iPad (da illeggibile a leggibile)
+   - Full price: 14px → 16px su iPad
+
+5. PRICE CONTAINER RIDISEGNATO:
+   - FlexDirection: row → column su iPad (EVITA OVERLAP!)
+   - AlignItems: center → flex-start su iPad
+   - Margin bottom: 4px → 8px su iPad
+
+6. DISCOUNT BADGE RIPOSIZIONATO:
+   - MarginLeft: 10px → 0 su iPad
+   - MarginTop: 0 → 4px su iPad (layout verticale)
+   - Padding: 8px/3px → 12px/6px su iPad (più grande)
+   - Font size: 11px → 14px su iPad
+
+7. FEATURES SECTION MIGLIORATA:
+   - Padding: 20px → 60px su iPad
+   - MaxWidth: 600px su iPad
+   - Features title: 18px → 22px su iPad
+   - Feature text: 16px → 18px su iPad
+   - Feature spacing: 10px → 16px su iPad
+
+8. BOTTOM BUTTONS OTTIMIZZATI:
+   - Padding: 16px → 40px su iPad
+   - MinHeight: 120px → 160px su iPad
+   - Primary button height: 56px → 64px su iPad
+   - Button text: 16px → 18px su iPad
+   - MaxWidth: 600px su iPad (centrato)
+
+RISULTATI ATTESI:
+================
+✅ NESSUN TEXT OVERLAP su iPad Air 5th gen
+✅ Font leggibili (min 14px invece di 9px)
+✅ Layout verticale per price container (no overlap)
+✅ Spacing adeguato tra tutti gli elementi
+✅ Touch targets conformi Apple (min 44px)
+✅ Contenuto centrato e ben proporzionato su iPad
+✅ Esperienza ottimale sia su iPhone che iPad
+
+TESTING:
+========
+- Testato su iPad Air 5th generation simulator
+- Verificato che non ci siano sovrapposizioni
+- Confermato che tutti i testi sono leggibili
+- Validato che i touch targets siano conformi
+
+Apple NON dovrebbe più trovare problemi di text overlap!

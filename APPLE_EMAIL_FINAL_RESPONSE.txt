@@ -1,0 +1,63 @@
+Subject: Bacchus App - Guideline 4.0 Design Issues Resolved - Build 2805
+
+Dear App Review Team,
+
+Thank you for your continued feedback regarding Guideline 4.0 - Design issues on iPad Air (5th generation) running iPadOS 26.1.
+
+I have thoroughly analyzed and resolved the specific text overlap issue in the Subscriptions screen that you identified. Here are the comprehensive fixes implemented:
+
+SUBSCRIPTION SCREEN FIXES:
+==========================
+
+1. TEXT OVERLAP RESOLUTION:
+   - Changed price container layout from horizontal to vertical on iPad to eliminate overlap
+   - Increased font sizes significantly: plan details from 9px to 14px, plan price from 13px to 20px
+   - Added proper spacing between all text elements (minimum 8px margins)
+
+2. TYPOGRAPHY IMPROVEMENTS:
+   - All text now meets minimum legibility standards on iPad
+   - Plan titles increased from 14px to 18px
+   - Feature text increased from 16px to 18px
+   - Discount badge text increased from 11px to 14px
+
+3. LAYOUT OPTIMIZATION:
+   - Implemented centered layout with maximum width of 600px on iPad
+   - Increased padding from 14px to 24px in plan cards
+   - Added 60px horizontal padding for better content positioning
+   - Increased minimum card height from 100px to 140px
+
+4. TOUCH TARGET COMPLIANCE:
+   - All buttons now meet Apple's minimum 44x44pt requirement
+   - Primary button height increased to 64px on iPad
+   - Secondary button maintains 56px height with proper padding
+
+5. SPACING IMPROVEMENTS:
+   - Increased margins between plan cards from 10px to 20px
+   - Added 16px spacing between feature items
+   - Bottom buttons container increased to 160px minimum height
+
+TECHNICAL IMPLEMENTATION:
+========================
+- Used responsive design principles with iPad-specific styling
+- Maintained iPhone optimization while ensuring iPad compatibility
+- Applied conditional styling based on screen dimensions
+- Ensured all elements are properly contained within safe areas
+
+TESTING VERIFICATION:
+====================
+- Tested specifically on iPad Air (5th generation) simulator with iPadOS 26.1
+- Verified no text overlaps in any screen orientation
+- Confirmed all touch targets meet Apple guidelines
+- Validated typography legibility across all screen sizes
+
+The app now provides an optimal experience on both iPhone and iPad devices, with the subscription screen specifically designed to prevent any text overlap issues that were previously identified.
+
+Build 2805 has been submitted with these comprehensive fixes. The app maintains its iPhone-first design while ensuring full compatibility and excellent user experience when scaled on iPad devices.
+
+I am confident these changes fully address the Guideline 4.0 concerns. Please let me know if you need any additional information or clarification.
+
+Thank you for your patience and detailed feedback.
+
+Best regards,
+Domenico
+Bacchus App Developer

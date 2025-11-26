@@ -369,10 +369,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         console.log('[AUTH_CONTEXT] Caricamento profili dopo login...');
         await loadUserProfiles(result.user.id);
         
-        // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database
-        console.log('[AUTH_CONTEXT] Caricamento sessioni dal database...');
+        // 🔥 FIX PERSISTENZA: Sincronizza sessioni da Supabase per cross-device
+        console.log('[AUTH_CONTEXT] Sincronizzazione sessioni da Supabase...');
         const sessionService = require('../lib/services/session.service');
-        await sessionService.loadSessionHistoryFromStorage();
+        await sessionService.syncWithSupabase(result.user.id);
         
         // Verifica se l'utente ha completato la procedura guidata del profilo
         const wizardCompleted = await authService.hasCompletedProfileWizard();
@@ -494,10 +494,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           }, 2000); // Aumento a 2 secondi per permettere la sincronizzazione
         }
         
-        // 🔥 FIX PERSISTENZA: Carica anche le sessioni dal database
-        console.log('[AUTH_CONTEXT] Caricamento sessioni dal database...');
+        // 🔥 FIX PERSISTENZA: Sincronizza sessioni da Supabase per cross-device
+        console.log('[AUTH_CONTEXT] Sincronizzazione sessioni da Supabase...');
         const sessionService = require('../lib/services/session.service');
-        await sessionService.loadSessionHistoryFromStorage();
+        await sessionService.syncWithSupabase(result.user.id);
         
         // Usa il servizio per controllare wizard (no duplicazione logica)
         try {

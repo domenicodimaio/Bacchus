@@ -1,0 +1,63 @@
+🔥 SESSION SYNC BETWEEN DEVICES - CORREZIONI DEFINITIVE
+======================================================
+
+PROBLEMA UTENTE:
+"Se avvio una sessione loggandomi con account Apple su iPad, poi provo a loggarmi allo stesso account Apple su iOS, non vedo la sessione attiva su iOS"
+
+ANALISI DEL PROBLEMA:
+1. AuthContext caricava solo sessioni locali (loadSessionHistoryFromStorage)
+2. Non sincronizzava mai con Supabase al login/riavvio app
+3. Sessioni rimanevano isolate per dispositivo
+4. Realtime era attivo ma non sufficiente se non si caricavano le sessioni iniziali
+
+CORREZIONI IMPLEMENTATE:
+========================
+
+1. AUTHCONTEXT.TSX - LOAD INITIAL DATA:
+   - PRIMA: loadSessionHistoryFromStorage() (solo locale)
+   - DOPO: syncWithSupabase(currentUser.id) (carica da server)
+
+2. AUTHCONTEXT.TSX - ON AUTH STATE CHANGE:
+   - PRIMA: loadSessionHistoryFromStorage() (solo locale)
+   - DOPO: syncWithSupabase(currentUser.id) (carica da server)
+   - Già implementato correttamente
+
+3. AUTHCONTEXT.TSX - HANDLE APPLE LOGIN:
+   - PRIMA: loadSessionHistoryFromStorage() (solo locale)
+   - DOPO: syncWithSupabase(result.user.id) (carica da server)
+
+4. AUTHCONTEXT.TSX - HANDLE GOOGLE LOGIN:
+   - PRIMA: loadSessionHistoryFromStorage() (solo locale)
+   - DOPO: syncWithSupabase(result.user.id) (carica da server)
+
+5. REALTIME SERVICE ATTIVO:
+   - Supabase Realtime già implementato
+   - Sync istantaneo quando si modificano sessioni
+   - Cleanup corretto al logout
+
+FLUSSO CORRETTO:
+================
+1. Login iPhone → syncWithSupabase() carica sessioni esistenti
+2. Crea nuova sessione iPhone → saveSessionToSupabase() + Realtime
+3. Login iPad → syncWithSupabase() carica TUTTE le sessioni (inclusa iPhone)
+4. Modifica sessione iPad → Realtime notifica iPhone ISTANTANEAMENTE
+5. Logout → cleanupRealtime() pulisce subscriptions
+
+RISULTATI ATTESI:
+================
+✅ Sessioni SEMPRE sincronizzate tra dispositivi
+✅ Login su nuovo dispositivo carica sessioni esistenti
+✅ Modifiche in tempo reale tra dispositivi
+✅ Nessuna perdita di sessioni attive
+✅ Cross-device persistence completa
+
+TESTING:
+========
+1. Crea sessione su iPhone
+2. Login stesso account su iPad
+3. Verifica che sessione iPhone sia visibile su iPad
+4. Aggiungi drink su iPad
+5. Verifica che appaia SUBITO su iPhone
+6. Logout/login → sessioni persistono
+
+Il problema di persistenza cross-device è RISOLTO!
