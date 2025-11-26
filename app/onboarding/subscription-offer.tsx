@@ -435,24 +435,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   planContainer: {
-    paddingHorizontal: Platform.isPad ? 40 : 24, // Più padding laterale su iPad
-    marginBottom: Platform.isPad ? 32 : 24, // Più spazio su iPad
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   planCard: {
-    padding: Platform.isPad ? 24 : 20, // Più padding su iPad
+    padding: 20,
     borderRadius: 12,
-    marginBottom: Platform.isPad ? 20 : 16, // Più spazio tra card su iPad
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: Platform.isPad ? 140 : 120, // Più altezza su iPad
+    minHeight: 120,
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: Platform.isPad ? 18 : 16, // Font più grande su iPad
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: Platform.isPad ? 12 : 8, // Più spazio su iPad
+    marginBottom: 8,
   },
   priceContainer: {
     flexDirection: 'row',

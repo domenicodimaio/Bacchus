@@ -26,30 +26,56 @@ export const getDefaultLanguage = (): string => {
     
     if (Platform.OS === 'ios') {
       // iOS: usa NativeModules per ottenere la locale
-      console.log('🌐 DEBUG: Platform.OS:', Platform.OS);
-      console.log('🌐 DEBUG: Platform.isPad:', Platform.isPad);
-      console.log('🌐 DEBUG: NativeModules.SettingsManager:', NativeModules.SettingsManager);
-      console.log('🌐 DEBUG: settings:', NativeModules.SettingsManager?.settings);
+      console.log('🌐 DEBUG: NativeModules.SettingsManager:', JSON.stringify(NativeModules.SettingsManager?.settings));
       
-      // 🔥 FIX IPAD: Prova PRIMA con NativeModules che è più affidabile
-      deviceLocale = NativeModules.SettingsManager?.settings?.AppleLocale || 
-                   NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-                   NativeModules.SettingsManager?.settings?.AppleLocales?.[0] ||
-                   NativeModules.SettingsManager?.settings?.locale ||
-                   'en';
-      console.log('🌐 NativeModules locale rilevata:', deviceLocale);
-      
-      // Se NativeModules non ha funzionato o ha restituito 'en', prova con Intl API
-      if (deviceLocale === 'en' && typeof Intl !== 'undefined') {
-        try {
-          const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
-          console.log('🌐 Intl locale come fallback:', intlLocale);
-          if (intlLocale && intlLocale.startsWith('it')) {
-            deviceLocale = intlLocale;
-            console.log('🌐 Usando Intl locale italiana:', deviceLocale);
+      // 🔥 FIX IPAD: Prova TUTTE le fonti possibili in ordine di priorità
+      const sources = [
+        // 1. Intl API (più affidabile su iPad)
+        () => {
+          if (typeof Intl !== 'undefined') {
+            const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
+            console.log('🌐 [1] Intl locale:', intlLocale);
+            return intlLocale;
           }
-        } catch (intlError) {
-          console.log('🌐 Intl non disponibile:', intlError);
+          return null;
+        },
+        // 2. AppleLocale
+        () => {
+          const locale = NativeModules.SettingsManager?.settings?.AppleLocale;
+          console.log('🌐 [2] AppleLocale:', locale);
+          return locale;
+        },
+        // 3. AppleLanguages array
+        () => {
+          const locale = NativeModules.SettingsManager?.settings?.AppleLanguages?.[0];
+          console.log('🌐 [3] AppleLanguages[0]:', locale);
+          return locale;
+        },
+        // 4. AppleLocales array
+        () => {
+          const locale = NativeModules.SettingsManager?.settings?.AppleLocales?.[0];
+          console.log('🌐 [4] AppleLocales[0]:', locale);
+          return locale;
+        },
+        // 5. locale generico
+        () => {
+          const locale = NativeModules.SettingsManager?.settings?.locale;
+          console.log('🌐 [5] locale:', locale);
+          return locale;
+        }
+      ];
+      
+      // Prova ogni fonte fino a trovare una locale valida
+      for (const source of sources) {
+        try {
+          const locale = source();
+          if (locale && locale !== 'en-US' && locale !== 'en') {
+            deviceLocale = locale;
+            console.log('🌐 ✅ Locale trovata:', deviceLocale);
+            break;
+          }
+        } catch (err) {
+          console.log('🌐 ⚠️ Errore fonte locale:', err);
         }
       }
     } else {
@@ -57,7 +83,7 @@ export const getDefaultLanguage = (): string => {
       deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en';
     }
     
-    console.log('🌐 Device locale rilevata:', deviceLocale);
+    console.log('🌐 Device locale finale:', deviceLocale);
     
     // Estrai il codice lingua (es: "it-IT" -> "it", "en-US" -> "en")
     const languageCode = deviceLocale.split('-')[0].toLowerCase();
@@ -83,19 +109,33 @@ export const getDefaultLanguage = (): string => {
  */
 export const initializeLanguage = async (): Promise<string> => {
   try {
-    // Controlla se l'utente ha già selezionato una lingua
+    // 🔥 FIX IPAD: Controlla SEMPRE la lingua del dispositivo, non usare solo cache
+    const deviceLang = getDefaultLanguage();
+    console.log('🌐 Lingua dispositivo rilevata:', deviceLang);
+    
+    // Controlla se l'utente ha già selezionato una lingua manualmente
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    console.log('🌐 Lingua salvata in cache:', savedLanguage);
+    
+    // Se la lingua del dispositivo è cambiata rispetto al cache, aggiorna
+    if (savedLanguage && savedLanguage !== deviceLang) {
+      console.log('🌐 ⚠️ Lingua dispositivo cambiata da', savedLanguage, 'a', deviceLang);
+      console.log('🌐 Aggiornamento lingua a:', deviceLang);
+      await setLanguage(deviceLang);
+      return deviceLang;
+    }
     
     if (savedLanguage) {
-      // Usa la lingua salvata
+      // Usa la lingua salvata se non è cambiata
+      console.log('🌐 Usando lingua salvata:', savedLanguage);
       await setLanguage(savedLanguage);
       return savedLanguage;
     }
     
     // Altrimenti imposta la lingua in base alla regione
-    const defaultLang = getDefaultLanguage();
-    await setLanguage(defaultLang);
-    return defaultLang;
+    console.log('🌐 Nessuna lingua salvata, usando lingua dispositivo:', deviceLang);
+    await setLanguage(deviceLang);
+    return deviceLang;
   } catch (error) {
     console.error('Error initializing language:', error);
     // In caso di errore, default a inglese

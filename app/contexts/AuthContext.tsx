@@ -154,26 +154,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     // Avvia il caricamento
     loadInitialData();
     
-    // 🔥 FIX SYNC: Sincronizzazione periodica sessioni per cross-device
-    const syncInterval = setInterval(async () => {
-      try {
-        const currentUser = await authService.getCurrentUser();
-        if (currentUser) {
-          console.log('[AUTH_CONTEXT] 🔄 Sincronizzazione periodica sessioni...');
-          const sessionService = require('../lib/services/session.service');
-          await sessionService.syncWithSupabase(currentUser.id);
-          console.log('[AUTH_CONTEXT] ✅ Sincronizzazione periodica completata');
-        }
-      } catch (error) {
-        console.warn('[AUTH_CONTEXT] ⚠️ Errore sincronizzazione periodica:', error);
-      }
-    }, 30000); // Ogni 30 secondi
-    
-    // Cleanup interval
-    return () => {
-      clearInterval(syncInterval);
-    };
-    
     // Listener auth semplificato
     const { data: authListener } = authService.onAuthStateChange(async (event, session) => {
       console.log('🚨 DEBUG_APPLE: onAuthStateChange evento:', event);
@@ -193,44 +173,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           console.log('[AUTH_CONTEXT] Ricaricamento profili dopo login...');
           await loadUserProfiles(currentUser.id);
           
-          // 🔥 FIX LINGUA IPAD: Forza refresh lingua dopo login
-          console.log('[AUTH_CONTEXT] Refresh lingua dopo login...');
-          try {
-            const languageService = require('../lib/services/language.service');
-            const detectedLanguage = languageService.getDefaultLanguage();
-            console.log('[AUTH_CONTEXT] Lingua rilevata dopo login:', detectedLanguage);
-            
-            // Forza l'aggiornamento di i18n
-            const i18n = require('../i18n').default;
-            if (i18n && i18n.changeLanguage) {
-              await i18n.changeLanguage(detectedLanguage);
-              console.log('[AUTH_CONTEXT] ✅ Lingua aggiornata a:', detectedLanguage);
-            }
-          } catch (langError) {
-            console.warn('[AUTH_CONTEXT] ⚠️ Errore refresh lingua:', langError);
-          }
-          
           // 🔥 FIX PERSISTENZA CROSS-DEVICE: Sincronizza sessioni da Supabase per caricare sessioni da altri dispositivi
-          console.log('[AUTH_CONTEXT] 🔄 INIZIO Sincronizzazione sessioni da Supabase per cross-device...');
-          console.log('[AUTH_CONTEXT] 📱 Device info:', { isPad: Platform.isPad, OS: Platform.OS });
+          console.log('[AUTH_CONTEXT] Sincronizzazione sessioni da Supabase per cross-device...');
           const sessionService = require('../lib/services/session.service');
           try {
-            console.log('[AUTH_CONTEXT] 📡 Chiamando syncWithSupabase per utente:', currentUser.id);
-            const syncResult = await sessionService.syncWithSupabase(currentUser.id);
-            console.log('[AUTH_CONTEXT] 📡 Risultato syncWithSupabase:', syncResult);
-            
-            if (syncResult) {
-              console.log('[AUTH_CONTEXT] ✅ Sincronizzazione sessioni cross-device COMPLETATA');
-              
-              // Forza anche il refresh della sessione attiva
-              console.log('[AUTH_CONTEXT] 🔄 Refresh sessione attiva dopo sync...');
-              const activeSession = sessionService.getActiveSession();
-              console.log('[AUTH_CONTEXT] 📊 Sessione attiva dopo sync:', activeSession ? 'TROVATA' : 'NESSUNA');
-            } else {
-              console.warn('[AUTH_CONTEXT] ⚠️ syncWithSupabase ha restituito false');
-            }
+            await sessionService.syncWithSupabase(currentUser.id);
+            console.log('[AUTH_CONTEXT] ✅ Sincronizzazione sessioni cross-device completata');
           } catch (syncError) {
-            console.error('[AUTH_CONTEXT] ❌ ERRORE sincronizzazione sessioni cross-device:', syncError);
+            console.warn('[AUTH_CONTEXT] ⚠️ Errore sincronizzazione sessioni cross-device:', syncError);
             // Fallback: carica almeno le sessioni locali
             await sessionService.loadSessionHistoryFromStorage();
           }

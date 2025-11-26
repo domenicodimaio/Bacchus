@@ -1277,14 +1277,13 @@ const styles = StyleSheet.create({
   },
   dashboardButton: {
     flexDirection: 'row',
-    height: Platform.isPad ? 56 : 50, // Più alto su iPad
-    borderRadius: Platform.isPad ? 28 : 25, // Proporzionale all'altezza
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Platform.isPad ? 24 : 20, // Più padding su iPad
+    paddingHorizontal: 20,
     alignSelf: 'center',
-    minWidth: Platform.isPad ? 240 : 200, // Più largo su iPad
-    marginBottom: Platform.isPad ? 40 : 20, // Più spazio dal bordo su iPad
+    minWidth: 200,
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
