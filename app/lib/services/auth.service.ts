@@ -397,6 +397,16 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
       // Non bloccare il login per errori di sincronizzazione
     }
     
+    // 🔥 FIX REALTIME: Inizializza Supabase Realtime per sync istantaneo
+    console.log('[AUTH] 🔴 Inizializzazione Supabase Realtime...');
+    try {
+      const realtimeService = await import('./realtime.service');
+      await realtimeService.initRealtimeForUser(data.user.id);
+      console.log('[AUTH] ✅ Realtime attivo - sync istantaneo abilitato');
+    } catch (realtimeError) {
+      console.warn('[AUTH] ⚠️ Errore inizializzazione Realtime:', realtimeError);
+    }
+    
     // 🔥 FIX PERSISTENZA PREMIUM: Inizializza servizio acquisti e FORZA refresh immediato
     console.log('[AUTH] 🛒 Inizializzazione servizio acquisti per account in-app...');
     try {
@@ -712,6 +722,16 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               console.warn('🍎 AUTH: ⚠️ Errore sincronizzazione sessioni:', syncError);
             }
             
+            // 🔥 FIX REALTIME: Inizializza Supabase Realtime per sync istantaneo
+            console.log('🍎 AUTH: 🔴 Inizializzazione Supabase Realtime...');
+            try {
+              const realtimeService = await import('./realtime.service');
+              await realtimeService.initRealtimeForUser(data.user.id);
+              console.log('🍎 AUTH: ✅ Realtime attivo - sync istantaneo abilitato');
+            } catch (realtimeError) {
+              console.warn('🍎 AUTH: ⚠️ Errore inizializzazione Realtime:', realtimeError);
+            }
+            
             // 🔥 FIX PREMIUM LENTA: Forza refresh immediato RevenueCat per Apple Sign In
             console.log('🍎 AUTH: 🛒 Inizializzazione servizio acquisti...');
             try {
@@ -924,6 +944,16 @@ export const signOut = async (): Promise<AuthResponse> => {
       global.__PREVENT_ALL_REDIRECTS__ = false;
       global.__BLOCK_ALL_SCREENS__ = false;
       global.__SHOWING_SUBSCRIPTION_SCREEN__ = false;
+    }
+    
+    // 🔥 FIX REALTIME: Cleanup Realtime subscriptions PRIMA del logout
+    console.log('AUTH: Cleanup Realtime subscriptions...');
+    try {
+      const realtimeService = await import('./realtime.service');
+      await realtimeService.cleanupRealtime();
+      console.log('AUTH: ✅ Realtime subscriptions pulite');
+    } catch (realtimeError) {
+      console.warn('AUTH: ⚠️ Errore cleanup Realtime:', realtimeError);
     }
     
     // 2. Effettua il logout da Supabase IMMEDIATAMENTE

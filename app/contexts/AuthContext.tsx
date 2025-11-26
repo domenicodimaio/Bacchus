@@ -122,6 +122,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             await sessionService.loadSessionHistoryFromStorage();
           }
           
+          // 🔥 FIX REALTIME: Inizializza Supabase Realtime all'avvio
+          console.log('[AUTH_CONTEXT] 🔴 Inizializzazione Supabase Realtime all\'avvio...');
+          try {
+            const realtimeService = require('../lib/services/realtime.service');
+            await realtimeService.initRealtimeForUser(currentUser.id);
+            console.log('[AUTH_CONTEXT] ✅ Realtime attivo all\'avvio');
+          } catch (realtimeError) {
+            console.warn('[AUTH_CONTEXT] ⚠️ Errore inizializzazione Realtime all\'avvio:', realtimeError);
+          }
+          
           // Controllo wizard semplificato
           try {
             const wizardCompleted = await authService.hasCompletedProfileWizard();
@@ -183,6 +193,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             console.warn('[AUTH_CONTEXT] ⚠️ Errore sincronizzazione sessioni cross-device:', syncError);
             // Fallback: carica almeno le sessioni locali
             await sessionService.loadSessionHistoryFromStorage();
+          }
+          
+          // 🔥 FIX REALTIME: Inizializza Supabase Realtime per sync istantaneo
+          console.log('[AUTH_CONTEXT] 🔴 Inizializzazione Supabase Realtime...');
+          try {
+            const realtimeService = require('../lib/services/realtime.service');
+            await realtimeService.initRealtimeForUser(currentUser.id);
+            console.log('[AUTH_CONTEXT] ✅ Realtime attivo - sync istantaneo abilitato');
+          } catch (realtimeError) {
+            console.warn('[AUTH_CONTEXT] ⚠️ Errore inizializzazione Realtime:', realtimeError);
           }
           
           // 🔥 FIX APPLE LOGIN: Controllo wizard COMPLETO per Apple Login

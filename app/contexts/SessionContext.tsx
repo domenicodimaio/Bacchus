@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState } from 'react-native';
 import { BAC_LIMITS, APP_CONSTANTS } from '../constants/theme';
 import { METABOLISM_RATE } from '../constants/bac';
 import { useActiveProfiles } from './ProfileContext';
@@ -280,55 +279,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
   
-  // 🔥 FIX SYNC CROSS-DEVICE: Polling MENO frequente per sincronizzare sessioni
-  useEffect(() => {
-    const setupSessionSync = async () => {
-      const authService = require('../lib/services/auth.service');
-      const sessionService = require('../lib/services/session.service');
-      
-      // Polling ogni 30 secondi (meno aggressivo) SOLO quando app in foreground
-      const syncInterval = setInterval(async () => {
-        try {
-          // Check se app è in foreground
-          if (AppState.currentState !== 'active') {
-            console.log('🔄 SESSION SYNC: App in background, skip sync');
-            return;
-          }
-          
-          const currentUser = await authService.getCurrentUser();
-          if (currentUser) {
-            console.log('🔄 SESSION SYNC: Polling sync da altri dispositivi...');
-            
-            // Sync SOLO sessioni, NON profili (per evitare conflitti)
-            const activeSessionBefore = sessionService.getActiveSession(false);
-            await sessionService.syncWithSupabase(currentUser.id);
-            const activeSessionAfter = sessionService.getActiveSession(false);
-            
-            // Aggiorna UI solo se sessione è cambiata
-            if (activeSessionBefore?.id !== activeSessionAfter?.id || 
-                activeSessionBefore?.drinks?.length !== activeSessionAfter?.drinks?.length) {
-              console.log('✅ SESSION SYNC: Sessione cambiata, aggiornamento UI');
-            }
-          }
-        } catch (error) {
-          console.error('❌ SESSION SYNC: Errore polling:', error);
-        }
-      }, 30000); // Ogni 30 secondi invece di 10
-      
-      return () => {
-        clearInterval(syncInterval);
-      };
-    };
-    
-    let cleanup: (() => void) | undefined;
-    setupSessionSync().then(c => {
-      cleanup = c;
-    });
-    
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, []);
+  // 🔥 POLLING RIMOSSO: Ora usa Supabase Realtime per sync istantaneo
+  // Il polling è stato sostituito da realtime.service.ts che riceve eventi in tempo reale
 
   // Effetto per gestire il cambio di profilo
   useEffect(() => {
