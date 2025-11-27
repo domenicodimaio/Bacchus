@@ -2030,11 +2030,15 @@ export async function addDrink(drink: Drink): Promise<boolean> {
     // Se l'utente è autenticato, sincronizza con Supabase
     if (_currentUserId) {
       try {
+        console.log('🔥 SYNC DRINK: Salvando drink su Supabase per sync cross-device...');
         await saveSessionToSupabase(activeSession, true);
+        console.log('✅ SYNC DRINK: Drink salvato su Supabase - altri dispositivi dovrebbero ricevere update');
       } catch (supabaseError) {
-        console.error('Errore durante il salvataggio su Supabase:', supabaseError);
+        console.error('❌ SYNC DRINK: Errore durante il salvataggio su Supabase:', supabaseError);
         // Continua comunque, poiché il salvataggio locale è riuscito
       }
+    } else {
+      console.warn('⚠️ SYNC DRINK: _currentUserId non impostato - nessuna sincronizzazione cross-device');
     }
     
     // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
@@ -2067,11 +2071,14 @@ export async function addFood(food: FoodRecord): Promise<boolean> {
     // 🔥 FIX SYNC: Sincronizza con Supabase come per addDrink
     if (_currentUserId) {
       try {
+        console.log('🔥 SYNC FOOD: Salvando cibo su Supabase per sync cross-device...');
         await saveSessionToSupabase(activeSession, true);
-        console.log('✅ SESSION SYNC: Cibo salvato su Supabase');
+        console.log('✅ SYNC FOOD: Cibo salvato su Supabase - altri dispositivi dovrebbero ricevere update');
       } catch (supabaseError) {
-        console.error('❌ SESSION SYNC: Errore salvataggio cibo su Supabase:', supabaseError);
+        console.error('❌ SYNC FOOD: Errore salvataggio cibo su Supabase:', supabaseError);
       }
+    } else {
+      console.warn('⚠️ SYNC FOOD: _currentUserId non impostato - nessuna sincronizzazione cross-device');
     }
     
     // 🔧 LIVE ACTIVITIES DISABILITATE per build stabile
@@ -2130,6 +2137,28 @@ export async function removeFood(foodId: string): Promise<boolean> {
     return false;
   }
 }
+
+// 🔥 SISTEMA NOTIFICA UI PER REALTIME UPDATES
+let sessionUpdateListeners: ((session: Session | null) => void)[] = [];
+
+export const addSessionUpdateListener = (listener: (session: Session | null) => void) => {
+  sessionUpdateListeners.push(listener);
+};
+
+export const removeSessionUpdateListener = (listener: (session: Session | null) => void) => {
+  sessionUpdateListeners = sessionUpdateListeners.filter(l => l !== listener);
+};
+
+export const notifySessionUpdate = () => {
+  console.log('🔔 REALTIME: Notificando UI di update sessione...');
+  sessionUpdateListeners.forEach(listener => {
+    try {
+      listener(activeSession);
+    } catch (error) {
+      console.error('Errore notifica listener:', error);
+    }
+  });
+};
 
 // Recupera l'ultima sessione conosciuta da AsyncStorage come fallback
 export async function getLastKnownSession(): Promise<Session | null> {

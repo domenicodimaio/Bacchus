@@ -293,7 +293,12 @@ export default function SubscriptionOfferScreen() {
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })}
+              {isIPad ? 
+                // iPad: Testo più corto per evitare overlap
+                t('subscriptionShort', { ns: 'purchases', defaultValue: '1 mese' }) :
+                // iPhone: Testo completo
+                t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })
+              }
             </Text>
             
             {selectedPlan === 'monthly' && (
@@ -327,7 +332,12 @@ export default function SubscriptionOfferScreen() {
               </View>
             </View>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })}
+              {isIPad ? 
+                // iPad: Testo MOLTO più corto per evitare overlap
+                t('yearlySubscriptionShort', { ns: 'purchases', defaultValue: '€' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese' }) :
+                // iPhone: Testo completo
+                t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })
+              }
             </Text>
             
             {selectedPlan === 'yearly' && (
@@ -455,20 +465,21 @@ const styles = StyleSheet.create({
     marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
   },
   planCard: {
-    padding: isIPad ? 16 : 20, // iPad: ridotto per scaling
+    padding: isIPad ? 12 : 20, // iPad: MOLTO ridotto per evitare overlap
     borderRadius: 12,
-    marginBottom: isIPad ? 12 : 16, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 8 : 16, // iPad: ridotto per scaling
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 100 : 120, // iPad: ridotto per fit
+    minHeight: isIPad ? 80 : 120, // iPad: MOLTO ridotto per fit
+    maxHeight: isIPad ? 90 : 'auto', // iPad: limita altezza per evitare overlap
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: isIPad ? 12 : 16, // iPad: MOLTO ridotto per evitare overlap
     fontWeight: 'bold',
-    marginBottom: isIPad ? 6 : 8, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 4 : 8, // iPad: ridotto per scaling
   },
   priceContainer: {
     flexDirection: 'row', // Stesso layout per tutti
@@ -483,15 +494,17 @@ const styles = StyleSheet.create({
     marginRight: 6, // Stesso margin per tutti
   },
   planPrice: {
-    fontSize: isIPad ? 13 : 15, // iPad: ridotto per fit
+    fontSize: isIPad ? 11 : 15, // iPad: MOLTO ridotto per evitare overlap
     fontWeight: '600',
-    marginBottom: isIPad ? 4 : 4, // Stesso spacing
+    marginBottom: isIPad ? 2 : 4, // iPad: ridotto per scaling
   },
   planDetails: {
-    fontSize: isIPad ? 10 : 10, // iPad: stesso size per consistenza
-    marginTop: isIPad ? 4 : 6, // iPad: ridotto per scaling
+    fontSize: isIPad ? 8 : 10, // iPad: MOLTO più piccolo per evitare overlap
+    marginTop: isIPad ? 2 : 6, // iPad: ridotto per scaling
     textAlign: 'center', // Stesso allineamento per tutti
-    lineHeight: isIPad ? 12 : 14, // iPad: ridotto per fit
+    lineHeight: isIPad ? 10 : 14, // iPad: ridotto per fit
+    maxHeight: isIPad ? 20 : 'auto', // iPad: limita altezza per evitare overlap
+    overflow: 'hidden', // iPad: taglia testo se troppo lungo
   },
   discountBadge: {
     marginLeft: 10, // Stesso margin per tutti

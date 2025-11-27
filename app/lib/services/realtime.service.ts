@@ -51,6 +51,9 @@ export const initRealtimeForUser = async (userId: string): Promise<void> => {
               // Forza sync completo per ottenere tutti i dettagli
               await sessionService.syncWithSupabase(userId);
               console.log('✅ REALTIME: Sessione sincronizzata');
+              
+              // Notifica la UI dell'update
+              sessionService.notifySessionUpdate();
             }
           }
           
@@ -58,6 +61,9 @@ export const initRealtimeForUser = async (userId: string): Promise<void> => {
           if (payload.eventType === 'DELETE') {
             console.log('🔴 REALTIME: Sessione eliminata da altro dispositivo');
             await sessionService.syncWithSupabase(userId);
+            
+            // Notifica la UI dell'update
+            sessionService.notifySessionUpdate();
           }
         }
       )

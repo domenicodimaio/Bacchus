@@ -15,7 +15,8 @@ import {
   Animated,
   Easing,
   Dimensions,
-  Linking
+  Linking,
+  ScrollView
 } from 'react-native';
 
 // 🔥 RILEVAMENTO IPAD: Usa Platform.isPad nativo (più affidabile)
@@ -455,7 +456,13 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <View style={[styles.innerContainer]}>
+        <ScrollView 
+          contentContainerStyle={[styles.scrollContainer]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          scrollEnabled={true} // Permetti scroll per vedere tutto il contenuto
+        >
+          <View style={[styles.innerContainer]}>
             {/* Logo */}
             <View 
               style={styles.logoContainer}
@@ -665,6 +672,7 @@ export default function LoginScreen() {
               </Link>
             </Animated.View>
           </View>
+        </ScrollView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -680,10 +688,15 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'space-between',
   },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
   innerContainer: {
     flex: 1,
     alignItems: 'center',
-    padding: 16,
     justifyContent: 'space-between', // Torna al layout originale
   },
   logoContainer: {
