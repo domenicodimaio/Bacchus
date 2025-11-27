@@ -153,13 +153,22 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔥 FIX RACE CONDITION: Se c'è un utente, imposta prima l'utente per RevenueCat
       if (user?.id) {
         console.log('🎯 INIT: Impostando utente per RevenueCat...');
-        await purchaseService.setUserForPurchases(user.id);
-        console.log('🎯 INIT: Aspettando sincronizzazione RevenueCat...');
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 🔥 FIX IPAD: Aspetta 5 secondi per iPad
+        console.log('🎯 INIT: Device info - Platform:', Platform.OS, 'isIPad:', Platform.isPad);
         
-        // 🔥 FIX IPAD: Forza un refresh aggiuntivo per assicurarsi che funzioni su iPad
-        console.log('🎯 INIT: Refresh aggiuntivo per iPad...');
-        await purchaseService.refreshCustomerInfo();
+        await purchaseService.setUserForPurchases(user.id);
+        
+        // 🔥 FIX: Aspetta sincronizzazione ma con timeout UGUALE per tutti i dispositivi
+        console.log('🎯 INIT: Aspettando sincronizzazione RevenueCat...');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Stesso timeout per tutti
+        
+        // 🔥 FIX: Verifica che RevenueCat sia sincronizzato correttamente
+        console.log('🎯 INIT: Verifica sincronizzazione RevenueCat...');
+        const customerInfo = await purchaseService.refreshCustomerInfo();
+        console.log('🎯 INIT: CustomerInfo dopo refresh:', {
+          originalAppUserId: customerInfo?.originalAppUserId,
+          hasActiveEntitlements: !!customerInfo?.entitlements?.active,
+          activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {})
+        });
       }
       
       // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per stato premium reale
