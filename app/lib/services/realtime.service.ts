@@ -86,13 +86,16 @@ export const initRealtimeForUser = async (userId: string): Promise<void> => {
         async (payload) => {
           console.log('🔴 REALTIME PROFILE: Profilo aggiornato da altro dispositivo');
           
-          // Aggiorna profili SENZA fare logout
-          // Solo scarica i nuovi dati senza reset
+          // Aggiorna profili SENZA fare logout usando syncProfiles
           try {
-            const profiles = await profileService.getProfiles(true);
-            console.log('✅ REALTIME PROFILE: Profili aggiornati:', profiles.length);
+            console.log('🔄 REALTIME PROFILE: Sincronizzazione profili...');
+            await profileService.syncProfiles();
+            console.log('✅ REALTIME PROFILE: Profili sincronizzati');
+            
+            // Notifica la UI dell'update
+            profileService.notifyProfileUpdate();
           } catch (error) {
-            console.error('❌ REALTIME PROFILE: Errore aggiornamento:', error);
+            console.error('❌ REALTIME PROFILE: Errore sincronizzazione:', error);
           }
         }
       )

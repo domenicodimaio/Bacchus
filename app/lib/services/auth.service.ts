@@ -769,13 +769,29 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               console.warn('🍎 AUTH: ⚠️ Errore inizializzazione servizio acquisti:', purchaseError);
             }
             
-            // 🔥 FIX: Salva APPLE_USER_DATA con chiave specifica per utente
+            // 🔥 FIX CROSS-DEVICE: Salva APPLE_USER_DATA con ENTRAMBE le chiavi per condivisione cross-device
             if (appleUserData) {
+              // 1. Salva con chiave utente interno (per compatibilità)
               const userSpecificAppleKey = `APPLE_USER_DATA_${data.user.id}`;
               await AsyncStorage.setItem(userSpecificAppleKey, JSON.stringify(appleUserData));
+              
+              // 2. 🔥 NUOVO: Salva anche con Apple ID per condivisione cross-device
+              if (appleUserData.appleId) {
+                const appleIdSpecificKey = `APPLE_USER_DATA_APPLE_${appleUserData.appleId}`;
+                await AsyncStorage.setItem(appleIdSpecificKey, JSON.stringify({
+                  ...appleUserData,
+                  internalUserId: data.user.id, // Salva anche l'ID interno per riferimento
+                  deviceType: Platform.isPad ? 'iPad' : 'iPhone',
+                  savedAt: new Date().toISOString()
+                }));
+                console.log('🍎 APPLE CROSS-DEVICE: Salvato anche con Apple ID per condivisione');
+                console.log('🍎 APPLE CROSS-DEVICE: Chiave Apple ID:', appleIdSpecificKey);
+              }
+              
               console.log('🍎 APPLE: ===== SALVATAGGIO DATI APPLE =====');
               console.log('🍎 APPLE: User ID:', data.user.id);
-              console.log('🍎 APPLE: Chiave specifica:', userSpecificAppleKey);
+              console.log('🍎 APPLE: Chiave utente:', userSpecificAppleKey);
+              console.log('🍎 APPLE: Apple ID:', appleUserData.appleId);
               console.log('🍎 APPLE: Dati salvati:', appleUserData);
               console.log('🍎 APPLE: ===== FINE SALVATAGGIO =====');
             }

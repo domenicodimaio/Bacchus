@@ -291,10 +291,10 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           let isPremium = await purchaseService.isPremium();
           console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium}`);
           
-          // Se non è premium, riprova dopo un breve delay
+          // Se non è premium, riprova con delay MOLTO ridotti
           if (!isPremium) {
-            console.log('🎯 USER LOGIN: Non premium al primo tentativo, riprovo (500ms)...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('🎯 USER LOGIN: Non premium al primo tentativo, riprovo (100ms)...');
+            await new Promise(resolve => setTimeout(resolve, 100)); // Ridotto da 500ms a 100ms
             
             console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 2/3)...');
             await purchaseService.refreshCustomerInfo(); // Refresh di nuovo
@@ -303,8 +303,8 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             
             // Ultimo tentativo se ancora non premium
             if (!isPremium) {
-              console.log('🎯 USER LOGIN: Ancora non premium, ultimo tentativo (1s)...');
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              console.log('🎯 USER LOGIN: Ancora non premium, ultimo tentativo (200ms)...');
+              await new Promise(resolve => setTimeout(resolve, 200)); // Ridotto da 1000ms a 200ms
               
               console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 3/3)...');
               await purchaseService.refreshCustomerInfo(); // Refresh finale

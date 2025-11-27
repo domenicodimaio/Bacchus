@@ -674,8 +674,11 @@ export const updateProfile = async (profileId: string, updates: Partial<UserProf
       
       // 🔥 FIX SYNC PROFILI: Notifica altri dispositivi tramite Realtime
       // Il Realtime service dovrebbe già essere attivo e notificare automaticamente
-      // Ma forziamo una sincronizzazione per essere sicuri
-      console.log('🔄 PROFILE: Forzando sincronizzazione cross-device...');
+      // Ma forziamo anche una notifica locale immediata
+      console.log('🔄 PROFILE: Forzando notifica UI immediata...');
+      notifyProfileUpdate();
+      
+      // E sincronizzazione cross-device
       setTimeout(() => {
         // Usa setTimeout per non bloccare il salvataggio
         syncProfiles(500); // Sincronizza dopo 500ms
@@ -1097,4 +1100,26 @@ export default {
   loadProfilesFromSupabase,
   syncProfiles,
   hasProfiles
+};
+
+// 🔥 SISTEMA NOTIFICA UI PER REALTIME PROFILE UPDATES
+let profileUpdateListeners: (() => void)[] = [];
+
+export const addProfileUpdateListener = (listener: () => void) => {
+  profileUpdateListeners.push(listener);
+};
+
+export const removeProfileUpdateListener = (listener: () => void) => {
+  profileUpdateListeners = profileUpdateListeners.filter(l => l !== listener);
+};
+
+export const notifyProfileUpdate = () => {
+  console.log('🔔 REALTIME PROFILE: Notificando UI di update profili...');
+  profileUpdateListeners.forEach(listener => {
+    try {
+      listener();
+    } catch (error) {
+      console.error('Errore notifica profile listener:', error);
+    }
+  });
 }; 

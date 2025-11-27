@@ -1790,7 +1790,7 @@ export async function ensureSessionIntegrity(): Promise<boolean> {
         console.log('Riparazione: la sessione attiva ha un profilo mancante o non valido');
         
         // Importiamo direttamente per evitare dipendenze circolari
-        const profileService = require('./profile.service').default;
+        const profileService = require('./profile.service');
         
         // Ottieni i profili disponibili
         const profiles = currentUserId 
@@ -1931,7 +1931,7 @@ export async function getOrCreateSessionWithFirstProfile(): Promise<Session | nu
     await ensureSessionIntegrity();
     
     // Importa direttamente le funzioni dal servizio dei profili
-    const profileService = require('./profile.service').default;
+    const profileService = require('./profile.service');
     
     // Ottieni l'utente corrente
     const currentUser = await getCurrentUser();

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProductType, PRODUCT_IDS, Entitlement, FREE_LIMITS } from '../../types/purchases';
 import Constants from 'expo-constants';
@@ -135,7 +135,12 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
     console.log(`🎯 PURCHASE_SERVICE: Platform info:`, {
       OS: Platform.OS,
       isPad: Platform.isPad,
-      isPhone: !Platform.isPad
+      isPhone: !Platform.isPad,
+      deviceInfo: {
+        width: Dimensions.get('window').width,
+        height: Dimensions.get('window').height,
+        minDimension: Math.min(Dimensions.get('window').width, Dimensions.get('window').height)
+      }
     });
     
     // 🔥 FIX PREMIUM PERSISTENCE: Controlla se l'utente usa Apple Sign In
@@ -146,8 +151,47 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
       const appleUserDataKey = `APPLE_USER_DATA_${userId}`;
       console.log(`🔍 PURCHASE_SERVICE: Cercando Apple User Data con chiave: ${appleUserDataKey}`);
       
-      const appleUserData = await AsyncStorage.getItem(appleUserDataKey);
-      console.log(`🔍 PURCHASE_SERVICE: Apple User Data trovato:`, !!appleUserData);
+      let appleUserData = await AsyncStorage.getItem(appleUserDataKey);
+      console.log(`🔍 PURCHASE_SERVICE: Apple User Data trovato con chiave utente:`, !!appleUserData);
+      
+      // 🔥 FIX CROSS-DEVICE: Se non trovato con chiave utente, cerca con tutte le chiavi Apple ID
+      if (!appleUserData) {
+        console.log(`🔍 PURCHASE_SERVICE: Cercando Apple User Data con chiavi Apple ID...`);
+        
+        // Ottieni tutte le chiavi AsyncStorage
+        const allKeys = await AsyncStorage.getAllKeys();
+        const appleIdKeys = allKeys.filter(key => key.startsWith('APPLE_USER_DATA_APPLE_'));
+        
+        console.log(`🔍 PURCHASE_SERVICE: Trovate ${appleIdKeys.length} chiavi Apple ID:`, appleIdKeys);
+        
+        // Cerca tra tutte le chiavi Apple ID
+        for (const appleIdKey of appleIdKeys) {
+          try {
+            const appleIdData = await AsyncStorage.getItem(appleIdKey);
+            if (appleIdData) {
+              const parsedData = JSON.parse(appleIdData);
+              console.log(`🔍 PURCHASE_SERVICE: Trovato Apple User Data con chiave ${appleIdKey}:`, {
+                hasAppleId: !!parsedData.appleId,
+                deviceType: parsedData.deviceType,
+                savedAt: parsedData.savedAt
+              });
+              
+              // Usa questo Apple User Data
+              appleUserData = JSON.stringify({
+                appleId: parsedData.appleId,
+                name: parsedData.name,
+                email: parsedData.email,
+                fromApple: parsedData.fromApple
+              });
+              
+              console.log(`✅ PURCHASE_SERVICE: Usando Apple User Data cross-device da ${parsedData.deviceType}`);
+              break;
+            }
+          } catch (parseError) {
+            console.warn(`⚠️ PURCHASE_SERVICE: Errore parsing chiave ${appleIdKey}:`, parseError);
+          }
+        }
+      }
       
       if (appleUserData) {
         const appleData = JSON.parse(appleUserData);
@@ -184,8 +228,8 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
           await Purchases.logOut();
           console.log('🔄 RevenueCat: Logout completato per cambio utente');
           
-          // 🔥 FIX ISOLAMENTO PREMIUM: Aspetta che il logout sia completato
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // 🔥 FIX VELOCITÀ: Ridotto tempo logout per velocità
+          await new Promise(resolve => setTimeout(resolve, 200)); // Ridotto da 1000ms a 200ms
         } catch (logoutError) {
           console.warn('⚠️ RevenueCat: Errore logout:', logoutError);
         }
@@ -202,9 +246,9 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         console.log(`✅ RevenueCat: Login completato per utente ${revenueCatUserId}`);
         console.log(`🔍 RevenueCat: Created=${loginResult.created}, OriginalAppUserId=${loginResult.customerInfo?.originalAppUserId}`);
         
-        // 🔥 FIX CRITICO: Aspetta che RevenueCat sia sincronizzato
+        // 🔥 FIX VELOCITÀ: Ridotto tempo sincronizzazione per velocità
         console.log('🔄 RevenueCat: Aspettando sincronizzazione...');
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Aspetta 1.5 secondi
+        await new Promise(resolve => setTimeout(resolve, 300)); // Ridotto da 1500ms a 300ms
         
         // Verifica che la sincronizzazione sia avvenuta
         try {
