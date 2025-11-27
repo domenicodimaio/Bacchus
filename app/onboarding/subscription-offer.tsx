@@ -292,12 +292,7 @@ export default function SubscriptionOfferScreen() {
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {isIPad ? 
-                // iPad: Testo più breve per evitare overflow
-                t('subscriptionLengthShort', { ns: 'purchases', defaultValue: 'Durata: 1 mese' }) :
-                // iPhone: Testo completo
-                t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })
-              }
+              {t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })}
             </Text>
             
             {selectedPlan === 'monthly' && (
@@ -331,12 +326,7 @@ export default function SubscriptionOfferScreen() {
               </View>
             </View>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {isIPad ? 
-                // iPad: Testo più breve per evitare overflow
-                t('yearlySubscriptionLengthShort', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese' }) :
-                // iPhone: Testo completo
-                t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })
-              }
+              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })}
             </Text>
             
             {selectedPlan === 'yearly' && (
@@ -441,83 +431,76 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: isIPad ? 40 : 20, // iPad: più padding per centrare meglio
-    marginBottom: isIPad ? 20 : 20, // iPad: stesso spacing
+    paddingHorizontal: isIPad ? 16 : 20, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 12 : 20, // iPad: ridotto per scaling
   },
   logo: {
-    width: isIPad ? 80 : 70, // iPad: leggermente più grande per visibilità
-    height: isIPad ? 80 : 70,
-    marginBottom: isIPad ? 15 : 10, // iPad: più spazio
+    width: isIPad ? 50 : 70, // iPad: MOLTO più piccolo per fit
+    height: isIPad ? 50 : 70,
+    marginBottom: isIPad ? 8 : 10, // iPad: ridotto per scaling
   },
   title: {
-    fontSize: isIPad ? 26 : 24, // iPad: leggermente più grande
+    fontSize: isIPad ? 20 : 24, // iPad: ridotto per fit
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: isIPad ? 10 : 6, // iPad: più spazio
+    marginBottom: isIPad ? 6 : 6, // iPad: ridotto per scaling
   },
   subtitle: {
-    fontSize: isIPad ? 18 : 16, // iPad: leggermente più grande
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
     textAlign: 'center',
   },
   planContainer: {
-    paddingHorizontal: isIPad ? 60 : 24, // iPad: più padding per centrare e dare spazio
-    marginBottom: isIPad ? 30 : 24, // iPad: più spazio
-    maxWidth: isIPad ? 600 : '100%', // iPad: larghezza massima per evitare stretch
-    alignSelf: 'center', // iPad: centra il container
+    paddingHorizontal: isIPad ? 20 : 24, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
   },
   planCard: {
-    padding: isIPad ? 24 : 20, // iPad: più padding per leggibilità
+    padding: isIPad ? 16 : 20, // iPad: ridotto per scaling
     borderRadius: 12,
-    marginBottom: isIPad ? 20 : 16, // iPad: più spazio tra le card
+    marginBottom: isIPad ? 12 : 16, // iPad: ridotto per scaling
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 140 : 120, // iPad: più altezza per contenuto
+    minHeight: isIPad ? 100 : 120, // iPad: ridotto per fit
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 18 : 16, // iPad: più grande per leggibilità
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
     fontWeight: 'bold',
-    marginBottom: isIPad ? 12 : 8, // iPad: più spazio
+    marginBottom: isIPad ? 6 : 8, // iPad: ridotto per scaling
   },
   priceContainer: {
-    flexDirection: isIPad ? 'column' : 'row', // iPad: layout verticale per evitare overlap
-    alignItems: isIPad ? 'flex-start' : 'center',
-    marginBottom: isIPad ? 8 : 4, // iPad: più spazio
-    flexWrap: 'nowrap', // Evita wrap che causa overlap
+    flexDirection: 'row', // Stesso layout per tutti
+    alignItems: 'center',
+    marginBottom: isIPad ? 4 : 4, // Stesso spacing
+    flexWrap: 'nowrap',
   },
   fullPrice: {
-    fontSize: isIPad ? 16 : 14, // iPad: più grande
+    fontSize: isIPad ? 12 : 14, // iPad: ridotto per fit
     fontWeight: '400',
     textDecorationLine: 'line-through',
-    marginRight: isIPad ? 0 : 6, // iPad: no margin right
-    marginBottom: isIPad ? 4 : 0, // iPad: margin bottom
+    marginRight: 6, // Stesso margin per tutti
   },
   planPrice: {
-    fontSize: isIPad ? 20 : 15, // iPad: molto più grande
+    fontSize: isIPad ? 13 : 15, // iPad: ridotto per fit
     fontWeight: '600',
-    marginBottom: isIPad ? 8 : 4, // iPad: più spazio
+    marginBottom: isIPad ? 4 : 4, // Stesso spacing
   },
   planDetails: {
-    fontSize: isIPad ? 14 : 10, // iPad: molto più grande per leggibilità
-    marginTop: isIPad ? 8 : 6, // iPad: più spazio
-    textAlign: 'left', // iPad: allineamento a sinistra per leggibilità
-    lineHeight: isIPad ? 18 : 14, // iPad: più line height
-    flexWrap: 'wrap', // 🔥 FIX: Permetti wrap del testo
-    flexShrink: 1, // 🔥 FIX: Permetti shrink per evitare overflow
+    fontSize: isIPad ? 10 : 10, // iPad: stesso size per consistenza
+    marginTop: isIPad ? 4 : 6, // iPad: ridotto per scaling
+    textAlign: 'center', // Stesso allineamento per tutti
+    lineHeight: isIPad ? 12 : 14, // iPad: ridotto per fit
   },
   discountBadge: {
-    marginLeft: isIPad ? 0 : 10, // iPad: no margin left
-    marginTop: isIPad ? 4 : 0, // iPad: margin top per layout verticale
-    paddingHorizontal: isIPad ? 12 : 8, // iPad: più padding
-    paddingVertical: isIPad ? 6 : 3, // iPad: più padding
+    marginLeft: 10, // Stesso margin per tutti
+    paddingHorizontal: isIPad ? 6 : 8, // iPad: ridotto per scaling
+    paddingVertical: isIPad ? 2 : 3, // iPad: ridotto per scaling
     borderRadius: 12,
-    alignSelf: isIPad ? 'flex-start' : 'auto', // iPad: allineamento a sinistra
   },
   discountText: {
     color: 'white',
-    fontSize: isIPad ? 14 : 11, // iPad: più grande
+    fontSize: isIPad ? 9 : 11, // iPad: ridotto per fit
     fontWeight: 'bold',
   },
   checkmark: {
@@ -526,26 +509,24 @@ const styles = StyleSheet.create({
     right: 16,
   },
   featuresContainer: {
-    paddingHorizontal: isIPad ? 60 : 20, // iPad: più padding per centrare
-    maxWidth: isIPad ? 600 : '100%', // iPad: larghezza massima
-    alignSelf: 'center', // iPad: centra il container
+    paddingHorizontal: isIPad ? 16 : 20, // iPad: ridotto per scaling
   },
   featuresTitle: {
-    fontSize: isIPad ? 22 : 18, // iPad: più grande
+    fontSize: isIPad ? 16 : 18, // iPad: ridotto per fit
     fontWeight: 'bold',
-    marginBottom: isIPad ? 20 : 12, // iPad: più spazio
+    marginBottom: isIPad ? 10 : 12, // iPad: ridotto per scaling
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isIPad ? 16 : 10, // iPad: più spazio tra gli item
+    marginBottom: isIPad ? 8 : 10, // iPad: ridotto per scaling
   },
   featureIcon: {
-    marginRight: isIPad ? 16 : 10, // iPad: più spazio
+    marginRight: isIPad ? 8 : 10, // iPad: ridotto per scaling
   },
   featureText: {
-    fontSize: isIPad ? 18 : 16, // iPad: più grande
-    flex: 1, // Evita overflow del testo
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    flex: 1,
   },
   legalLinksContainer: {
     paddingHorizontal: 20,
@@ -576,35 +557,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   bottomButtons: {
-    padding: isIPad ? 40 : 16, // iPad: molto più padding
+    padding: isIPad ? 12 : 16, // iPad: ridotto per scaling
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-    minHeight: isIPad ? 160 : 120, // iPad: più altezza per evitare overlap
-    maxWidth: isIPad ? 600 : '100%', // iPad: larghezza massima
-    alignSelf: 'center', // iPad: centra i bottoni
-    width: '100%', // Mantieni larghezza piena
+    minHeight: isIPad ? 100 : 120, // iPad: ridotto per fit
   },
   primaryButton: {
-    height: isIPad ? 64 : 56, // iPad: più alto per touch target
+    height: isIPad ? 44 : 56, // iPad: ridotto ma conforme Apple (44px min)
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: isIPad ? 20 : 16, // iPad: più spazio tra i pulsanti
+    marginBottom: isIPad ? 12 : 16, // iPad: ridotto per scaling
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: isIPad ? 18 : 16, // iPad: più grande
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
     fontWeight: 'bold',
   },
   secondaryButton: {
-    height: isIPad ? 56 : 50, // iPad: più alto
+    height: isIPad ? 44 : 50, // iPad: ridotto ma conforme Apple
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 44, // Touch target minimo Apple
   },
   secondaryButtonText: {
-    fontSize: isIPad ? 18 : 16, // iPad: più grande
+    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
     fontWeight: '600',
   },
 });
