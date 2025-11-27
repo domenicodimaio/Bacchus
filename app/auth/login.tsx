@@ -18,9 +18,18 @@ import {
   Linking
 } from 'react-native';
 
-// 🔥 RILEVAMENTO IPAD: Per ridimensionare SOLO su iPad
+// 🔥 RILEVAMENTO IPAD: Usa Platform.isPad nativo (più affidabile)
 const { width, height } = Dimensions.get('window');
-const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
+const isIPad = Platform.isPad; // Metodo nativo React Native
+
+// 🔥 DEBUG: Log per verificare rilevamento iPad
+console.log('🔍 LOGIN: Device detection:', {
+  platform: Platform.OS,
+  width: width,
+  height: height,
+  isIPad: isIPad,
+  isPadNative: Platform.isPad
+});
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';

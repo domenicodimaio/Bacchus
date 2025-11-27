@@ -132,22 +132,43 @@ let currentUserId: string | null = null;
 export const setUserForPurchases = async (userId: string): Promise<boolean> => {
   try {
     console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
+    console.log(`🎯 PURCHASE_SERVICE: Platform info:`, {
+      OS: Platform.OS,
+      isPad: Platform.isPad,
+      isPhone: !Platform.isPad
+    });
     
     // 🔥 FIX PREMIUM PERSISTENCE: Controlla se l'utente usa Apple Sign In
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     let revenueCatUserId = userId; // Default: usa l'ID interno dell'app
     
     try {
-      const appleUserData = await AsyncStorage.getItem(`APPLE_USER_DATA_${userId}`);
+      const appleUserDataKey = `APPLE_USER_DATA_${userId}`;
+      console.log(`🔍 PURCHASE_SERVICE: Cercando Apple User Data con chiave: ${appleUserDataKey}`);
+      
+      const appleUserData = await AsyncStorage.getItem(appleUserDataKey);
+      console.log(`🔍 PURCHASE_SERVICE: Apple User Data trovato:`, !!appleUserData);
+      
       if (appleUserData) {
         const appleData = JSON.parse(appleUserData);
+        console.log(`🔍 PURCHASE_SERVICE: Apple Data parsed:`, {
+          hasAppleId: !!appleData.appleId,
+          appleIdLength: appleData.appleId?.length,
+          keys: Object.keys(appleData)
+        });
+        
         if (appleData.appleId) {
           // 🔥 CRITICO: Per Apple Sign In, usa l'Apple ID come RevenueCat user ID
           revenueCatUserId = appleData.appleId;
           console.log(`🍎 APPLE SIGN IN: Usando Apple ID come RevenueCat user ID`);
           console.log(`   App User ID: ${userId}`);
           console.log(`   RevenueCat User ID: ${revenueCatUserId}`);
+          console.log(`   Device: ${Platform.isPad ? 'iPad' : 'iPhone'}`);
+        } else {
+          console.warn(`⚠️ PURCHASE_SERVICE: Apple User Data presente ma senza appleId!`);
         }
+      } else {
+        console.log(`🔍 PURCHASE_SERVICE: Nessun Apple User Data trovato - utente email/password`);
       }
     } catch (appleCheckError) {
       console.warn('⚠️ Errore controllo Apple Sign In, uso ID interno:', appleCheckError);

@@ -13,9 +13,9 @@ import {
   Dimensions,
 } from 'react-native';
 
-// 🔥 RILEVAMENTO IPAD: Rileva iPad per layout adattivo
+// 🔥 RILEVAMENTO IPAD: Usa Platform.isPad nativo (più affidabile)
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isIPad = Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700;
+const isIPad = Platform.isPad; // Metodo nativo React Native
 
 // 🔥 DEBUG: Log per verificare rilevamento iPad
 console.log('🔍 SUBSCRIPTION: Device detection:', {
@@ -24,7 +24,8 @@ console.log('🔍 SUBSCRIPTION: Device detection:', {
   height: screenHeight,
   minDimension: Math.min(screenWidth, screenHeight),
   isIPad: isIPad,
-  isPad: Platform.isPad
+  isPadNative: Platform.isPad,
+  isPadCustom: Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700
 });
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';

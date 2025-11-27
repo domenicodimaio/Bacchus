@@ -27,9 +27,9 @@ import { useTranslation } from 'react-i18next';
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
 
-// 🔥 RILEVAMENTO IPAD: Considera iPad se iOS con schermo >= 700px
-const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-console.log('📱 Device detection SIGNUP:', { isIPad, width, height });
+// 🔥 RILEVAMENTO IPAD: Usa Platform.isPad nativo (più affidabile)
+const isIPad = Platform.isPad; // Metodo nativo React Native
+console.log('📱 Device detection SIGNUP:', { isIPad, isPadNative: Platform.isPad, width, height });
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
