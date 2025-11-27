@@ -397,6 +397,16 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
       // Non bloccare il login per errori di sincronizzazione
     }
     
+    // 🔥 FIX PREMIUM STATUS: Refresh immediato dello stato premium
+    console.log('[AUTH] 💎 Refresh immediato premium status...');
+    try {
+      const purchaseServiceImport = await import('./purchase.service');
+      await purchaseServiceImport.refreshCustomerInfo();
+      console.log('[AUTH] ✅ Premium status refreshed immediatamente');
+    } catch (premiumError) {
+      console.warn('[AUTH] ⚠️ Errore refresh premium status:', premiumError);
+    }
+    
     // 🔥 FIX REALTIME: Inizializza Supabase Realtime per sync istantaneo
     console.log('[AUTH] 🔴 Inizializzazione Supabase Realtime...');
     try {
@@ -720,6 +730,16 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               console.log('🍎 AUTH: ✅ Sincronizzazione sessioni completata');
             } catch (syncError) {
               console.warn('🍎 AUTH: ⚠️ Errore sincronizzazione sessioni:', syncError);
+            }
+            
+            // 🔥 FIX PREMIUM STATUS: Refresh immediato dello stato premium per Apple
+            console.log('🍎 AUTH: 💎 Refresh immediato premium status...');
+            try {
+              const purchaseServiceImport = await import('./purchase.service');
+              await purchaseServiceImport.refreshCustomerInfo();
+              console.log('🍎 AUTH: ✅ Premium status refreshed immediatamente');
+            } catch (premiumError) {
+              console.warn('🍎 AUTH: ⚠️ Errore refresh premium status:', premiumError);
             }
             
             // 🔥 FIX REALTIME: Inizializza Supabase Realtime per sync istantaneo

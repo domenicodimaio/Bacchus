@@ -479,10 +479,12 @@ function SessionScreen() {
             try {
               console.log('🔧 SESSION: Tentativo riparazione integrità sessione...');
               
-              // 🔥 FIX LOGOUT: NON chiamare syncProfiles qui perché causa logout
-              // syncProfiles() è troppo aggressivo e può causare logout automatico
-              // Invece usa solo ensureSessionIntegrity che ripara la sessione localmente
+              // 🔥 FIX PROFILO MANCANTE: Prima sincronizza i profili, poi ripara la sessione
+              console.log('🔧 SESSION: Sincronizzazione profili prima della riparazione...');
+              const profileService = require('../lib/services/profile.service');
+              await profileService.syncProfiles();
               
+              // Ora prova a riparare la sessione con i profili aggiornati
               const fixedSession = await sessionService.ensureSessionIntegrity();
               if (fixedSession) {
                 console.log('🟢 SESSION: Sessione riparata, riprovo');
