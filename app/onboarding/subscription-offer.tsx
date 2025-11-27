@@ -16,6 +16,16 @@ import {
 // 🔥 RILEVAMENTO IPAD: Rileva iPad per layout adattivo
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isIPad = Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700;
+
+// 🔥 DEBUG: Log per verificare rilevamento iPad
+console.log('🔍 SUBSCRIPTION: Device detection:', {
+  platform: Platform.OS,
+  width: screenWidth,
+  height: screenHeight,
+  minDimension: Math.min(screenWidth, screenHeight),
+  isIPad: isIPad,
+  isPad: Platform.isPad
+});
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -282,7 +292,12 @@ export default function SubscriptionOfferScreen() {
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })}
+              {isIPad ? 
+                // iPad: Testo più breve per evitare overflow
+                t('subscriptionLengthShort', { ns: 'purchases', defaultValue: 'Durata: 1 mese' }) :
+                // iPhone: Testo completo
+                t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })
+              }
             </Text>
             
             {selectedPlan === 'monthly' && (
@@ -316,7 +331,12 @@ export default function SubscriptionOfferScreen() {
               </View>
             </View>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })}
+              {isIPad ? 
+                // iPad: Testo più breve per evitare overflow
+                t('yearlySubscriptionLengthShort', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese' }) :
+                // iPhone: Testo completo
+                t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })
+              }
             </Text>
             
             {selectedPlan === 'yearly' && (
@@ -484,6 +504,8 @@ const styles = StyleSheet.create({
     marginTop: isIPad ? 8 : 6, // iPad: più spazio
     textAlign: 'left', // iPad: allineamento a sinistra per leggibilità
     lineHeight: isIPad ? 18 : 14, // iPad: più line height
+    flexWrap: 'wrap', // 🔥 FIX: Permetti wrap del testo
+    flexShrink: 1, // 🔥 FIX: Permetti shrink per evitare overflow
   },
   discountBadge: {
     marginLeft: isIPad ? 0 : 10, // iPad: no margin left
