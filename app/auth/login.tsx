@@ -40,12 +40,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import config from '../lib/config';
 import { createClient } from '@supabase/supabase-js';
 
-// Dimensioni dello schermo
-const { width, height } = Dimensions.get('window');
-
-// 🔥 RILEVAMENTO IPAD: Considera iPad se iOS con schermo >= 700px
-const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-console.log('📱 Device detection:', { isIPad, width, height });
+// Le dimensioni dello schermo sono già dichiarate sopra (riga 22)
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
