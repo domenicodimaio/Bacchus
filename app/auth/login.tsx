@@ -17,6 +17,10 @@ import {
   Dimensions,
   Linking
 } from 'react-native';
+
+// 🔥 RILEVAMENTO IPAD: Per ridimensionare SOLO su iPad
+const { width, height } = Dimensions.get('window');
+const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -707,19 +711,19 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: isIPad ? 2 : 10, // iPad: margini MOLTO ridotti
-    marginTop: isIPad ? 2 : 10,
+    marginBottom: isIPad ? 5 : 10, // iPad: ridotto ma non troppo
+    marginTop: isIPad ? 5 : 10,
   },
   logo: {
-    width: isIPad ? 100 : 150, // iPad: logo MOLTO più piccolo
-    height: isIPad ? 100 : 150,
-    marginBottom: isIPad ? 2 : 10,
+    width: isIPad ? 80 : 150, // iPad: più piccolo ma visibile
+    height: isIPad ? 80 : 150,
+    marginBottom: isIPad ? 5 : 10,
   },
   appTitle: {
-    fontSize: isIPad ? 24 : 32, // iPad: MOLTO ridotto
+    fontSize: isIPad ? 22 : 32, // iPad: ridotto ma leggibile
     fontWeight: 'bold',
-    marginBottom: isIPad ? 2 : 5,
-    letterSpacing: isIPad ? 2 : 4,
+    marginBottom: isIPad ? 3 : 5,
+    letterSpacing: isIPad ? 1 : 4,
   },
   appSubtitle: {
     fontSize: 14,
@@ -729,19 +733,19 @@ const styles = StyleSheet.create({
   loginCard: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 12 : 20, // iPad: padding MOLTO ridotto
-    marginVertical: isIPad ? 6 : 15,
+    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
+    marginVertical: isIPad ? 8 : 15,
   },
   card: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 12 : 20, // iPad: padding MOLTO ridotto
-    marginVertical: isIPad ? 6 : 15,
+    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
+    marginVertical: isIPad ? 8 : 15,
   },
   cardTitle: {
-    fontSize: isIPad ? 20 : 26, // iPad: MOLTO ridotto
+    fontSize: isIPad ? 20 : 26, // iPad: ridotto ma leggibile
     fontWeight: 'bold',
-    marginBottom: isIPad ? 2 : 5,
+    marginBottom: isIPad ? 4 : 5,
   },
   cardSubtitle: {
     fontSize: 14,
@@ -754,37 +758,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 10,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 48,
+    marginBottom: isIPad ? 12 : 16, // iPad: margine ridotto
+    paddingHorizontal: isIPad ? 12 : 16, // iPad: padding ridotto
+    height: isIPad ? 40 : 48, // iPad: altezza ridotta
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    height: 48,
-    fontSize: 16,
+    height: isIPad ? 40 : 48, // iPad: più basso
+    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
   },
   passwordVisibilityButton: {
     padding: 5,
   },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
-    marginBottom: 20,
+    marginBottom: isIPad ? 12 : 20, // iPad: margine ridotto
   },
   forgotPasswordText: {
     fontSize: 14,
   },
   loginButton: {
-    height: 48,
+    height: isIPad ? 44 : 48, // iPad: più basso ma conforme Apple
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loginButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -805,12 +809,12 @@ const styles = StyleSheet.create({
   socialButtonsContainer: {
     flexDirection: 'row',
     width: '100%',
-    marginBottom: 10,
+    marginBottom: isIPad ? 5 : 10, // iPad: margine ridotto
   },
   socialButton: {
     flex: 1,
     flexDirection: 'row',
-    height: 52, // Aumentato per migliore touch target su iPad
+    height: isIPad ? 44 : 52, // iPad: più basso ma conforme Apple
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -825,9 +829,9 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'column', // Layout verticale come richiesto
-    marginTop: isIPad ? 6 : 20, // iPad: margini MOLTO ridotti
-    marginBottom: isIPad ? 6 : 20,
-    paddingVertical: isIPad ? 3 : 10,
+    marginTop: isIPad ? 8 : 20, // iPad: margini ridotti ma non troppo
+    marginBottom: isIPad ? 8 : 20,
+    paddingVertical: isIPad ? 5 : 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
