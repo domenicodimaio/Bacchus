@@ -132,14 +132,16 @@ let currentUserId: string | null = null;
 export const setUserForPurchases = async (userId: string): Promise<boolean> => {
   try {
     console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
+    const { width, height } = Dimensions.get('window');
+    const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
     console.log(`🎯 PURCHASE_SERVICE: Platform info:`, {
       OS: Platform.OS,
-      isPad: Platform.isPad,
-      isPhone: !Platform.isPad,
+      isPad: isIPad,
+      isPhone: !isIPad,
       deviceInfo: {
-        width: Dimensions.get('window').width,
-        height: Dimensions.get('window').height,
-        minDimension: Math.min(Dimensions.get('window').width, Dimensions.get('window').height)
+        width: width,
+        height: height,
+        minDimension: Math.min(width, height)
       }
     });
     
@@ -207,7 +209,7 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
           console.log(`🍎 APPLE SIGN IN: Usando Apple ID come RevenueCat user ID`);
           console.log(`   App User ID: ${userId}`);
           console.log(`   RevenueCat User ID: ${revenueCatUserId}`);
-          console.log(`   Device: ${Platform.isPad ? 'iPad' : 'iPhone'}`);
+          console.log(`   Device: ${isIPad ? 'iPad' : 'iPhone'}`);
         } else {
           console.warn(`⚠️ PURCHASE_SERVICE: Apple User Data presente ma senza appleId!`);
         }

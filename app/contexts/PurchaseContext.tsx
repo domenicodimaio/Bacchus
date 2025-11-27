@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -153,7 +153,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔥 FIX RACE CONDITION: Se c'è un utente, imposta prima l'utente per RevenueCat
       if (user?.id) {
         console.log('🎯 INIT: Impostando utente per RevenueCat...');
-        console.log('🎯 INIT: Device info - Platform:', Platform.OS, 'isIPad:', Platform.isPad);
+        const { width, height } = Dimensions.get('window');
+        const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
+        console.log('🎯 INIT: Device info - Platform:', Platform.OS, 'isIPad:', isIPad);
         
         await purchaseService.setUserForPurchases(user.id);
         

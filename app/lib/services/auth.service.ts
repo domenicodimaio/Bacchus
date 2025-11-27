@@ -24,7 +24,7 @@ import sessionServiceDirect from './session.service';
 import { clearUserData } from './session.service';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, Dimensions } from 'react-native';
 import config from '../config';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { remoteLogger, logError, logInfo } from './logging.service';
@@ -781,7 +781,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 await AsyncStorage.setItem(appleIdSpecificKey, JSON.stringify({
                   ...appleUserData,
                   internalUserId: data.user.id, // Salva anche l'ID interno per riferimento
-                  deviceType: Platform.isPad ? 'iPad' : 'iPhone',
+                  deviceType: Platform.OS === 'ios' && Math.min(Dimensions.get('window').width, Dimensions.get('window').height) >= 700 ? 'iPad' : 'iPhone',
                   savedAt: new Date().toISOString()
                 }));
                 console.log('🍎 APPLE CROSS-DEVICE: Salvato anche con Apple ID per condivisione');

@@ -27,9 +27,9 @@ import { useTranslation } from 'react-i18next';
 // Dimensioni dello schermo
 const { width, height } = Dimensions.get('window');
 
-// 🔥 RILEVAMENTO IPAD: Usa Platform.isPad nativo (più affidabile)
-const isIPad = Platform.isPad; // Metodo nativo React Native
-console.log('📱 Device detection SIGNUP:', { isIPad, isPadNative: Platform.isPad, width, height });
+// 🔥 RILEVAMENTO IPAD: Usa detection basato su dimensioni (più compatibile)
+const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
+console.log('📱 Device detection SIGNUP:', { isIPad, isIOS: Platform.OS === 'ios', width, height });
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
