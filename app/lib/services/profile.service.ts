@@ -671,6 +671,15 @@ export const updateProfile = async (profileId: string, updates: Partial<UserProf
           console.log('Continuazione con salvataggio locale dopo errore database');
         }
       }
+      
+      // 🔥 FIX SYNC PROFILI: Notifica altri dispositivi tramite Realtime
+      // Il Realtime service dovrebbe già essere attivo e notificare automaticamente
+      // Ma forziamo una sincronizzazione per essere sicuri
+      console.log('🔄 PROFILE: Forzando sincronizzazione cross-device...');
+      setTimeout(() => {
+        // Usa setTimeout per non bloccare il salvataggio
+        syncProfiles(500); // Sincronizza dopo 500ms
+      }, 100);
     }
     
     // Aggiorna il profilo localmente

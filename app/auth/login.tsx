@@ -87,7 +87,6 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
-  const [debugTaps, setDebugTaps] = useState(0);
   const [animationsStarted, setAnimationsStarted] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
   
@@ -203,58 +202,6 @@ export default function LoginScreen() {
   }, []);
 
   // Funzione di debug per resettare tutti i dati dell'app
-  const handleDebugReset = async () => {
-    setDebugTaps(debugTaps + 1);
-    
-    // Se l'utente ha toccato il logo 7 volte, mostra l'opzione di reset
-    if (debugTaps === 6) {
-      Alert.alert(
-        'Modalità Debug',
-        'Vuoi cancellare tutti i dati persistenti dell\'app? L\'app si chiuderà dopo questa operazione.',
-        [
-          {
-            text: 'Annulla',
-            style: 'cancel',
-            onPress: () => setDebugTaps(0)
-          },
-          {
-            text: 'Reset Completo',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                setIsLoading(true);
-                setDebugInfo('Cancellazione di tutti i dati persistenti...');
-                
-                // Cancella tutti i dati da AsyncStorage
-                await AsyncStorage.clear();
-                
-                // Mostra conferma
-                Alert.alert(
-                  'Reset Completato',
-                  'Tutti i dati persistenti sono stati cancellati. Riavvia l\'app per completare l\'operazione.',
-                  [
-                    { 
-                      text: 'OK', 
-                      onPress: () => {
-                        // Qui non possiamo forzare la chiusura dell'app, ma possiamo reindirizzare
-                        // direttamente alla login invece che alla home
-                        router.replace('/auth/login');
-                      }
-                    }
-                  ]
-                );
-              } catch (error) {
-                Alert.alert('Errore', 'Si è verificato un errore durante il reset: ' + error.message);
-              } finally {
-                setIsLoading(false);
-                setDebugTaps(0);
-              }
-            }
-          }
-        ]
-      );
-    }
-  };
 
   // Funzione per la validazione dell'email
   const validateEmail = (email: string) => {
@@ -304,6 +251,15 @@ export default function LoginScreen() {
         console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
         await new Promise(resolve => setTimeout(resolve, 1500)); // Aspetta 1.5 sec
         
+        // 🔥 FIX PREMIUM: Verifica che il premium status sia caricato
+        try {
+          const purchaseService = require('../lib/services/purchase.service');
+          const isPremium = await purchaseService.isPremium();
+          console.log('✅ Premium status verificato prima redirect:', isPremium);
+        } catch (premiumCheckError) {
+          console.warn('⚠️ Errore verifica premium status:', premiumCheckError);
+        }
+        
         router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert(
@@ -333,6 +289,15 @@ export default function LoginScreen() {
         // 🔥 FIX PREMIUM: Aspetta che premium sia sincronizzato
         console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
         await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // 🔥 FIX PREMIUM: Verifica che il premium status sia caricato
+        try {
+          const purchaseService = require('../lib/services/purchase.service');
+          const isPremium = await purchaseService.isPremium();
+          console.log('✅ Premium status verificato prima redirect:', isPremium);
+        } catch (premiumCheckError) {
+          console.warn('⚠️ Errore verifica premium status:', premiumCheckError);
+        }
         
         router.replace('/(tabs)/dashboard');
       } else {
@@ -385,6 +350,15 @@ export default function LoginScreen() {
           // 🔥 FIX PREMIUM: Aspetta che premium sia sincronizzato
           console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
           await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // 🔥 FIX PREMIUM: Verifica che il premium status sia caricato
+          try {
+            const purchaseService = require('../lib/services/purchase.service');
+            const isPremium = await purchaseService.isPremium();
+            console.log('✅ Premium status verificato prima redirect:', isPremium);
+          } catch (premiumCheckError) {
+            console.warn('⚠️ Errore verifica premium status:', premiumCheckError);
+          }
           
           router.replace('/(tabs)/dashboard');
         }
@@ -474,8 +448,7 @@ export default function LoginScreen() {
         
         <View style={[styles.innerContainer]}>
             {/* Logo */}
-            <TouchableOpacity 
-              onPress={handleDebugReset}
+            <View 
               style={styles.logoContainer}
             >
               <Image
@@ -487,7 +460,7 @@ export default function LoginScreen() {
                 {t('appTagline', { defaultValue: 'Monitora. Informati. Resta al sicuro.' })}
               </Animated.Text>
               {debugInfo ? <Text style={{ color: 'white' }}>{debugInfo}</Text> : null}
-            </TouchableOpacity>
+            </View>
             
             {/* Login Card */}
             <Animated.View 

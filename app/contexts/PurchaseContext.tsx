@@ -155,7 +155,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         console.log('🎯 INIT: Impostando utente per RevenueCat...');
         await purchaseService.setUserForPurchases(user.id);
         console.log('🎯 INIT: Aspettando sincronizzazione RevenueCat...');
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Aspetta 2 secondi
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 🔥 FIX IPAD: Aspetta 5 secondi per iPad
+        
+        // 🔥 FIX IPAD: Forza un refresh aggiuntivo per assicurarsi che funzioni su iPad
+        console.log('🎯 INIT: Refresh aggiuntivo per iPad...');
+        await purchaseService.refreshCustomerInfo();
       }
       
       // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per stato premium reale
