@@ -288,6 +288,64 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     };
   }, []);
 
+  // 🔥 FIX REALTIME PROFILE: Listener per aggiornamenti profilo in tempo reale
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('[AUTH_CONTEXT] 🔴 Registrazione listener aggiornamenti profilo...');
+    const profileService = require('../lib/services/profile.service');
+    
+    // Listener che ricarica i profili quando vengono aggiornati
+    const profileUpdateListener = async () => {
+      console.log('[AUTH_CONTEXT] 🔔 Notifica aggiornamento profilo ricevuta, ricaricamento...');
+      try {
+        await loadUserProfiles(user.id);
+        console.log('[AUTH_CONTEXT] ✅ Profili ricaricati dopo aggiornamento Realtime');
+      } catch (error) {
+        console.error('[AUTH_CONTEXT] ❌ Errore ricaricamento profili dopo notifica:', error);
+      }
+    };
+
+    // Registra il listener
+    profileService.addProfileUpdateListener(profileUpdateListener);
+    console.log('[AUTH_CONTEXT] ✅ Listener aggiornamenti profilo registrato');
+
+    // Cleanup
+    return () => {
+      console.log('[AUTH_CONTEXT] 🧹 Rimozione listener aggiornamenti profilo...');
+      profileService.removeProfileUpdateListener(profileUpdateListener);
+    };
+  }, [user?.id]);
+
+  // 🔥 FIX REALTIME SESSION: Listener per aggiornamenti sessione in tempo reale
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('[AUTH_CONTEXT] 🔴 Registrazione listener aggiornamenti sessione...');
+    const sessionService = require('../lib/services/session.service');
+    
+    // Listener che sincronizza le sessioni quando vengono aggiornate
+    const sessionUpdateListener = async (session: any) => {
+      console.log('[AUTH_CONTEXT] 🔔 Notifica aggiornamento sessione ricevuta, sincronizzazione...');
+      try {
+        await sessionService.syncWithSupabase(user.id);
+        console.log('[AUTH_CONTEXT] ✅ Sessioni sincronizzate dopo aggiornamento Realtime');
+      } catch (error) {
+        console.error('[AUTH_CONTEXT] ❌ Errore sincronizzazione sessioni dopo notifica:', error);
+      }
+    };
+
+    // Registra il listener
+    sessionService.addSessionUpdateListener(sessionUpdateListener);
+    console.log('[AUTH_CONTEXT] ✅ Listener aggiornamenti sessione registrato');
+
+    // Cleanup
+    return () => {
+      console.log('[AUTH_CONTEXT] 🧹 Rimozione listener aggiornamenti sessione...');
+      sessionService.removeSessionUpdateListener(sessionUpdateListener);
+    };
+  }, [user?.id]);
+
   // 🔧 FIX CRITICO: Implementazione completa loadUserProfiles
   const loadUserProfiles = async (userId: string) => {
     try {

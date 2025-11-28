@@ -288,10 +288,20 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           console.log('🎯 USER LOGIN: Step 2 - Forzando sincronizzazione con server Apple...');
           await purchaseService.refreshCustomerInfo();
           
+          // 🔥 FIX IPAD: Extra refresh su iPad per forzare riconoscimento
+          const { width, height } = Dimensions.get('window');
+          const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
+          if (isIPad) {
+            console.log('🎯 USER LOGIN IPAD: Extra refresh per iPad...');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await purchaseService.refreshCustomerInfo();
+            console.log('🎯 USER LOGIN IPAD: Extra refresh completato');
+          }
+          
           // Step 3: Controlla stato premium MULTIPLO per essere sicuri
           console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 1/3)...');
           let isPremium = await purchaseService.isPremium();
-          console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium}`);
+          console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium} (Device: ${isIPad ? 'iPad' : 'iPhone'})`);
           
           // Se non è premium, riprova con delay MOLTO ridotti
           if (!isPremium) {
