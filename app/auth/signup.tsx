@@ -262,13 +262,23 @@ export default function SignUpScreen() {
         >
           <View style={styles.innerContainer}>
               {/* Logo */}
-              <View style={styles.logoContainer}>
+              <View style={[
+                styles.logoContainer,
+                isIPad && { marginTop: 5, marginBottom: 5 } // Override iPad
+              ]}>
                 <Image
                   source={require('../../assets/images/bacchus-logo.png')}
-                  style={styles.logo}
+                  style={[
+                    styles.logo,
+                    isIPad && { width: 80, height: 80, marginBottom: 8 } // Override iPad
+                  ]}
                   resizeMode="contain"
                 />
-                <Animated.Text style={[styles.appSubtitle, { opacity: subtitleOpacity }]}>
+                <Animated.Text style={[
+                  styles.appSubtitle, 
+                  { opacity: subtitleOpacity },
+                  isIPad && { fontSize: 13, marginBottom: 10 } // Override iPad
+                ]}>
                   {t('createAccount', { defaultValue: 'Crea il tuo account' })}
                 </Animated.Text>
               </View>
@@ -280,23 +290,36 @@ export default function SignUpScreen() {
                   { 
                     opacity: cardOpacity,
                     transform: [{ translateY: cardTranslateY }]
-                  }
+                  },
+                  isIPad && { padding: 16, marginTop: 8, marginBottom: 10 } // Override iPad
                 ]}
               >
-                <Text style={styles.cardTitle}>
+                <Text style={[
+                  styles.cardTitle,
+                  isIPad && { fontSize: 20, marginBottom: 3 } // Override iPad
+                ]}>
                   {t('signupTitle', { defaultValue: 'Registrati' })}
                 </Text>
-                <Text style={styles.cardSubtitle}>
+                <Text style={[
+                  styles.cardSubtitle,
+                  isIPad && { fontSize: 12, marginBottom: 12 } // Override iPad
+                ]}>
                   {t('signupSubtitle', { defaultValue: 'Inserisci i tuoi dati per creare un account' })}
                 </Text>
                 
                 {/* Form */}
                 <View style={styles.formContainer}>
                   {/* Email input */}
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    isIPad && { marginBottom: 10, height: 48 } // Override iPad
+                  ]}>
                     <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        isIPad && { height: 48, fontSize: 14 } // Override iPad
+                      ]}
                       placeholder={t('emailPlaceholder', { defaultValue: 'La tua email' })}
                       placeholderTextColor="#8a9bb5"
                       keyboardType="email-address"
@@ -309,11 +332,17 @@ export default function SignUpScreen() {
                   </View>
                   
                   {/* Password input */}
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    isIPad && { marginBottom: 10, height: 48 } // Override iPad
+                  ]}>
                     <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                     <TextInput
                       ref={passwordInputRef}
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        isIPad && { height: 48, fontSize: 14 } // Override iPad
+                      ]}
                       placeholder={t('passwordPlaceholder', { defaultValue: 'Crea una password' })}
                       placeholderTextColor="#8a9bb5"
                       secureTextEntry={!showPassword}
@@ -335,11 +364,17 @@ export default function SignUpScreen() {
                   </View>
                   
                   {/* Confirm Password input */}
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    isIPad && { marginBottom: 10, height: 48 } // Override iPad
+                  ]}>
                     <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                     <TextInput
                       ref={confirmPasswordInputRef}
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        isIPad && { height: 48, fontSize: 14 } // Override iPad
+                      ]}
                       placeholder={t('confirmPasswordPlaceholder', { defaultValue: 'Conferma password' })}
                       placeholderTextColor="#8a9bb5"
                       secureTextEntry={!showConfirmPassword}
@@ -362,7 +397,10 @@ export default function SignUpScreen() {
                   
                   {/* Signup button */}
                   <TouchableOpacity 
-                    style={styles.signupButton}
+                    style={[
+                      styles.signupButton,
+                      isIPad && { height: 44 } // Override iPad
+                    ]}
                     onPress={handleSignup}
                     disabled={isLoading}
                   >
@@ -381,7 +419,8 @@ export default function SignUpScreen() {
               <Animated.View 
                 style={[
                   styles.footerContainer,
-                  { opacity: footerOpacity }
+                  { opacity: footerOpacity },
+                  isIPad && { marginVertical: 8 } // Override iPad
                 ]}
               >
                 <Text style={styles.hasAccountText}>

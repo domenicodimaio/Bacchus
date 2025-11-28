@@ -294,14 +294,17 @@ export default function SubscriptionOfferScreen() {
         </View>
         
         {/* Piani di abbonamento */}
-        <View style={styles.planContainer}>
+        <View style={[
+          styles.planContainer,
+          isIPad && { paddingHorizontal: 20, marginBottom: 16 } // Override iPad
+        ]}>
           {/* Piano mensile */}
           <TouchableOpacity
             style={[
               styles.planCard,
               selectedPlan === 'monthly' && [styles.selectedCard, { borderColor: colors.primary }],
               { backgroundColor: colors.cardBackground },
-              isIPad && { padding: 12, marginBottom: 8, minHeight: 80 } // Override iPad
+              isIPad && { padding: 12, marginBottom: 8, minHeight: 80, maxHeight: 90 } // Override iPad
             ]}
             onPress={() => setSelectedPlan('monthly')}
           >
@@ -312,7 +315,11 @@ export default function SubscriptionOfferScreen() {
             ]}>
               {t('monthlySubscription', { ns: 'purchases', defaultValue: "Abbonamento mensile" })}
             </Text>
-            <Text style={[styles.planPrice, { color: colors.primary }]}>
+            <Text style={[
+              styles.planPrice, 
+              { color: colors.primary },
+              isIPad && { fontSize: 11, marginBottom: 2 } // Override iPad
+            ]}>
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
             <Text style={[
@@ -360,8 +367,15 @@ export default function SubscriptionOfferScreen() {
               ]}>
                 €{yearlyPrice}/{t('year', { ns: 'common', defaultValue: "anno" })}
               </Text>
-              <View style={[styles.discountBadge, { backgroundColor: colors.success }]}>
-                <Text style={styles.discountText}>
+              <View style={[
+                styles.discountBadge, 
+                { backgroundColor: colors.success },
+                isIPad && { paddingHorizontal: 6, paddingVertical: 2 } // Override iPad
+              ]}>
+                <Text style={[
+                  styles.discountText,
+                  isIPad && { fontSize: 9 } // Override iPad
+                ]}>
                   -{yearlyDiscount}%
                 </Text>
               </View>
@@ -384,15 +398,32 @@ export default function SubscriptionOfferScreen() {
         </View>
         
         {/* Lista Features */}
-        <View style={styles.featuresContainer}>
-          <Text style={[styles.featuresTitle, { color: colors.text }]}>
+        <View style={[
+          styles.featuresContainer,
+          isIPad && { paddingHorizontal: 16 } // Override iPad
+        ]}>
+          <Text style={[
+            styles.featuresTitle, 
+            { color: colors.text },
+            isIPad && { fontSize: 16, marginBottom: 10 } // Override iPad
+          ]}>
             {t('subscriptionBenefits', { ns: 'purchases', defaultValue: "Vantaggi dell'abbonamento" })}
           </Text>
           
           {features.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <Ionicons name={feature.icon} size={20} color={colors.primary} style={styles.featureIcon} />
-              <Text style={[styles.featureText, { color: colors.text }]}>
+            <View key={index} style={[
+              styles.featureItem,
+              isIPad && { marginBottom: 8 } // Override iPad
+            ]}>
+              <Ionicons name={feature.icon} size={20} color={colors.primary} style={[
+                styles.featureIcon,
+                isIPad && { marginRight: 8 } // Override iPad
+              ]} />
+              <Text style={[
+                styles.featureText, 
+                { color: colors.text },
+                isIPad && { fontSize: 14 } // Override iPad
+              ]}>
                 {t(feature.key, { ns: 'purchases' })}
               </Text>
             </View>
@@ -430,23 +461,41 @@ export default function SubscriptionOfferScreen() {
       </View>
       
       {/* Bottoni in basso */}
-      <View style={[styles.bottomButtons, { backgroundColor: colors.background }]}>
+      <View style={[
+        styles.bottomButtons, 
+        { backgroundColor: colors.background },
+        isIPad && { padding: 12, minHeight: 100 } // Override iPad
+      ]}>
         {/* Bottone per abbonamento */}
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+          style={[
+            styles.primaryButton, 
+            { backgroundColor: colors.primary },
+            isIPad && { height: 44, marginBottom: 12 } // Override iPad
+          ]}
           onPress={() => handleSubscribe(selectedPlan === 'yearly' ? 'annual' : 'monthly')}
         >
-          <Text style={styles.primaryButtonText}>
+          <Text style={[
+            styles.primaryButtonText,
+            isIPad && { fontSize: 14 } // Override iPad
+          ]}>
             {t('subscribeNow', { ns: 'purchases', defaultValue: "Abbonati ora" })}
           </Text>
         </TouchableOpacity>
         
         {/* Skip button */}
         <TouchableOpacity
-          style={[styles.secondaryButton]}
+          style={[
+            styles.secondaryButton,
+            isIPad && { height: 44 } // Override iPad
+          ]}
           onPress={handleClose}
         >
-          <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+          <Text style={[
+            styles.secondaryButtonText, 
+            { color: colors.textSecondary },
+            isIPad && { fontSize: 14 } // Override iPad
+          ]}>
             {t('notNow', { ns: 'common', defaultValue: "Non ora" })}
           </Text>
         </TouchableOpacity>

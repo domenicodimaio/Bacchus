@@ -16,7 +16,6 @@ import {
   Easing,
   Dimensions,
   Linking,
-  ScrollView,
   useWindowDimensions
 } from 'react-native';
 
@@ -462,23 +461,26 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <ScrollView 
-          contentContainerStyle={[styles.scrollContainer]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          scrollEnabled={true} // Permetti scroll per vedere tutto il contenuto
-        >
-          <View style={[styles.innerContainer]}>
+        <View style={[styles.innerContainer]}>
             {/* Logo */}
             <View 
-              style={styles.logoContainer}
+              style={[
+                styles.logoContainer,
+                isIPad && { marginBottom: 5, marginTop: 5 } // Override iPad
+              ]}
             >
               <Image
                 source={require('../../assets/images/bacchus-logo.png')}
-                style={styles.logo}
+                style={[
+                  styles.logo,
+                  isIPad && { width: 80, height: 80, marginBottom: 5 } // Override iPad
+                ]}
                 resizeMode="contain"
               />
-              <Animated.Text style={[styles.appSubtitle, { color: '#8a9bb5', opacity: subtitleOpacity }]}>
+              <Animated.Text style={[
+                styles.appSubtitle, 
+                { color: '#8a9bb5', opacity: subtitleOpacity }
+              ]}>
                 {t('appTagline', { defaultValue: 'Monitora. Informati. Resta al sicuro.' })}
               </Animated.Text>
               {debugInfo ? <Text style={{ color: 'white' }}>{debugInfo}</Text> : null}
@@ -499,10 +501,15 @@ export default function LoginScreen() {
                   shadowOpacity: 0.25,
                   shadowRadius: 10,
                   elevation: 5
-                }
+                },
+                isIPad && { padding: 16, marginVertical: 8 } // Override iPad
               ]}
             >
-              <Text style={[styles.cardTitle, { color: '#FFFFFF' }]}>
+              <Text style={[
+                styles.cardTitle, 
+                { color: '#FFFFFF' },
+                isIPad && { fontSize: 20, marginBottom: 4 } // Override iPad
+              ]}>
                 {t('welcomeBack', { defaultValue: 'Bentornato' })}
               </Text>
               <Text style={[styles.cardSubtitle, { color: '#8a9bb5' }]}>
@@ -510,19 +517,27 @@ export default function LoginScreen() {
               </Text>
               <View style={styles.formContainer}>
                 {/* Email input */}
-                <View style={[styles.inputContainer, { 
-                  backgroundColor: '#1e355a',  // Sfondo più chiaro
-                  borderWidth: 1,
-                  borderColor: '#2e4a7a',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 3,
-                  elevation: 2
-                }]}>
+                <View style={[
+                  styles.inputContainer, 
+                  { 
+                    backgroundColor: '#1e355a',
+                    borderWidth: 1,
+                    borderColor: '#2e4a7a',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 2
+                  },
+                  isIPad && { marginBottom: 12, paddingHorizontal: 12, height: 40 } // Override iPad
+                ]}>
                   <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, { color: '#ffffff' }]}
+                    style={[
+                      styles.input, 
+                      { color: '#ffffff' },
+                      isIPad && { height: 40, fontSize: 14 } // Override iPad
+                    ]}
                     placeholder={t('emailPlaceholder', { defaultValue: 'La tua email' })}
                     placeholderTextColor="#8a9bb5"
                     keyboardType="email-address"
@@ -536,20 +551,28 @@ export default function LoginScreen() {
                 </View>
                 
                 {/* Password input */}
-                <View style={[styles.inputContainer, { 
-                  backgroundColor: '#1e355a',  // Sfondo più chiaro
-                  borderWidth: 1,
-                  borderColor: '#2e4a7a',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 3,
-                  elevation: 2
-                }]}>
+                <View style={[
+                  styles.inputContainer, 
+                  { 
+                    backgroundColor: '#1e355a',
+                    borderWidth: 1,
+                    borderColor: '#2e4a7a',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 2
+                  },
+                  isIPad && { marginBottom: 12, paddingHorizontal: 12, height: 40 } // Override iPad
+                ]}>
                   <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                   <TextInput
                     ref={passwordInputRef}
-                    style={[styles.input, { color: '#ffffff' }]}
+                    style={[
+                      styles.input, 
+                      { color: '#ffffff' },
+                      isIPad && { height: 40, fontSize: 14 } // Override iPad
+                    ]}
                     placeholder={t('passwordPlaceholder', { defaultValue: 'La tua password' })}
                     placeholderTextColor="#8a9bb5"
                     secureTextEntry={!showPassword}
@@ -573,7 +596,10 @@ export default function LoginScreen() {
                 
                 {/* Password dimenticata */}
                 <TouchableOpacity 
-                  style={styles.forgotPasswordButton}
+                  style={[
+                    styles.forgotPasswordButton,
+                    isIPad && { marginBottom: 12 } // Override iPad
+                  ]}
                   onPress={goToForgotPassword}
                 >
                   <Text style={[styles.forgotPasswordText, { color: '#00bcd7' }]}>
@@ -583,14 +609,21 @@ export default function LoginScreen() {
                 
                 {/* Login button */}
                 <TouchableOpacity 
-                  style={[styles.loginButton, { backgroundColor: '#00bcd7' }]}
+                  style={[
+                    styles.loginButton, 
+                    { backgroundColor: '#00bcd7' },
+                    isIPad && { height: 44 } // Override iPad
+                  ]}
                   onPress={handleLogin}
                   disabled={isLoading}
                 >
                   {isLoading ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.loginButtonText}>
+                    <Text style={[
+                      styles.loginButtonText,
+                      isIPad && { fontSize: 14 } // Override iPad
+                    ]}>
                       {t('login', { defaultValue: 'ACCEDI' })}
                     </Text>
                   )}
@@ -619,18 +652,23 @@ export default function LoginScreen() {
                 { 
                   opacity: socialOpacity, 
                   transform: [{ translateY: socialTranslateY }] 
-                }
+                },
+                isIPad && { marginBottom: 5 } // Override iPad
               ]}
             >
               {/* Google login button */}
               <TouchableOpacity 
-                style={[styles.socialButton, { 
-                  backgroundColor: '#ffffff',
-                  borderWidth: 1,
-                  borderColor: '#2c3e60',
-                  marginRight: 8,
-                  flex: 1
-                }]}
+                style={[
+                  styles.socialButton, 
+                  { 
+                    backgroundColor: '#ffffff',
+                    borderWidth: 1,
+                    borderColor: '#2c3e60',
+                    marginRight: 8,
+                    flex: 1
+                  },
+                  isIPad && { height: 44 } // Override iPad
+                ]}
                 onPress={handleGoogleLogin}
                 disabled={isLoading}
               >
@@ -643,11 +681,15 @@ export default function LoginScreen() {
               {/* Apple login button */}
               {appleAuthAvailable && (
                 <TouchableOpacity 
-                  style={[styles.socialButton, { 
-                    backgroundColor: '#000000',
-                    marginLeft: 8,
-                    flex: 1
-                  }]}
+                  style={[
+                    styles.socialButton, 
+                    { 
+                      backgroundColor: '#000000',
+                      marginLeft: 8,
+                      flex: 1
+                    },
+                    isIPad && { height: 44 } // Override iPad
+                  ]}
                   onPress={handleAppleLogin}
                   disabled={isLoading}
                 >
@@ -663,7 +705,8 @@ export default function LoginScreen() {
             <Animated.View 
               style={[
                 styles.footerContainer,
-                { opacity: footerOpacity }
+                { opacity: footerOpacity },
+                isIPad && { marginTop: 8, marginBottom: 8, paddingVertical: 5 } // Override iPad
               ]}
             >
               <Text style={[styles.noAccountText, { color: '#8a9bb5' }]}>
@@ -678,7 +721,6 @@ export default function LoginScreen() {
               </Link>
             </Animated.View>
           </View>
-        </ScrollView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -688,22 +730,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
   innerContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between', // Torna al layout originale
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   logoContainer: {
     alignItems: 'center',
