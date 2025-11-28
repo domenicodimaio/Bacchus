@@ -16,21 +16,11 @@ import {
   Easing,
   Dimensions,
   Linking,
-  ScrollView
+  ScrollView,
+  useWindowDimensions
 } from 'react-native';
 
-// 🔥 RILEVAMENTO IPAD: Usa detection basato su dimensioni (più compatibile)
-const { width, height } = Dimensions.get('window');
-const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-
-// 🔥 DEBUG: Log per verificare rilevamento iPad
-console.log('🔍 LOGIN: Device detection:', {
-  platform: Platform.OS,
-  width: width,
-  height: height,
-  isIPad: isIPad,
-  isIOS: Platform.OS === 'ios'
-});
+// 🔥 NOTA: Detection iPad spostata DENTRO il componente per essere dinamica
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -62,6 +52,22 @@ export default function LoginScreen() {
   const { t } = useTranslation(['auth', 'common']);
   const { login, isAuthenticated, loginWithProvider } = useAuth();
   const params = useLocalSearchParams();
+  
+  // 🔥 DETECTION IPAD DINAMICA: Usa SCREEN dimensions per rilevare iPad anche in modalità upscaled
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const screenDimensions = Dimensions.get('screen');
+  const isIPad = Platform.OS === 'ios' && Math.min(screenDimensions.width, screenDimensions.height) >= 700;
+  
+  // 🔥 DEBUG: Log per verificare rilevamento iPad
+  console.log('🔍 LOGIN: Device detection:', {
+    platform: Platform.OS,
+    windowWidth: windowWidth,
+    windowHeight: windowHeight,
+    screenWidth: screenDimensions.width,
+    screenHeight: screenDimensions.height,
+    screenMinDimension: Math.min(screenDimensions.width, screenDimensions.height),
+    isIPad: isIPad
+  });
   
   // Controlla se stiamo arrivando dalla splash screen
   const isFromSplash = params.fromSplash === 'true';
@@ -701,19 +707,19 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: isIPad ? 5 : 10, // iPad: ridotto ma non troppo
-    marginTop: isIPad ? 5 : 10,
+    marginBottom: 10,
+    marginTop: 10,
   },
   logo: {
-    width: isIPad ? 80 : 150, // iPad: più piccolo ma visibile
-    height: isIPad ? 80 : 150,
-    marginBottom: isIPad ? 5 : 10,
+    width: 150,
+    height: 150,
+    marginBottom: 10,
   },
   appTitle: {
-    fontSize: isIPad ? 22 : 32, // iPad: ridotto ma leggibile
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 3 : 5,
-    letterSpacing: isIPad ? 1 : 4,
+    marginBottom: 5,
+    letterSpacing: 4,
   },
   appSubtitle: {
     fontSize: 14,
@@ -723,19 +729,19 @@ const styles = StyleSheet.create({
   loginCard: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
-    marginVertical: isIPad ? 8 : 15,
+    padding: 20,
+    marginVertical: 15,
   },
   card: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
-    marginVertical: isIPad ? 8 : 15,
+    padding: 20,
+    marginVertical: 15,
   },
   cardTitle: {
-    fontSize: isIPad ? 20 : 26, // iPad: ridotto ma leggibile
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 4 : 5,
+    marginBottom: 5,
   },
   cardSubtitle: {
     fontSize: 14,
@@ -748,37 +754,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 10,
-    marginBottom: isIPad ? 12 : 16, // iPad: margine ridotto
-    paddingHorizontal: isIPad ? 12 : 16, // iPad: padding ridotto
-    height: isIPad ? 40 : 48, // iPad: altezza ridotta
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    height: 48,
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    height: isIPad ? 40 : 48, // iPad: più basso
-    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
+    height: 48,
+    fontSize: 16,
   },
   passwordVisibilityButton: {
     padding: 5,
   },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
-    marginBottom: isIPad ? 12 : 20, // iPad: margine ridotto
+    marginBottom: 20,
   },
   forgotPasswordText: {
     fontSize: 14,
   },
   loginButton: {
-    height: isIPad ? 44 : 48, // iPad: più basso ma conforme Apple
+    height: 48,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loginButtonText: {
     color: '#FFFFFF',
-    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
+    fontSize: 16,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -799,16 +805,16 @@ const styles = StyleSheet.create({
   socialButtonsContainer: {
     flexDirection: 'row',
     width: '100%',
-    marginBottom: isIPad ? 5 : 10, // iPad: margine ridotto
+    marginBottom: 10,
   },
   socialButton: {
     flex: 1,
     flexDirection: 'row',
-    height: isIPad ? 44 : 52, // iPad: più basso ma conforme Apple
+    height: 52,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 44, // Touch target minimo Apple
+    minHeight: 44,
   },
   socialIcon: {
     marginRight: 8,
@@ -818,10 +824,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerContainer: {
-    flexDirection: 'column', // Layout verticale come richiesto
-    marginTop: isIPad ? 8 : 20, // iPad: margini ridotti ma non troppo
-    marginBottom: isIPad ? 8 : 20,
-    paddingVertical: isIPad ? 5 : 10,
+    flexDirection: 'column',
+    marginTop: 20,
+    marginBottom: 20,
+    paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },

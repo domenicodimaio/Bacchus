@@ -10,22 +10,10 @@ import {
   Alert,
   BackHandler,
   Linking,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 
-// 🔥 RILEVAMENTO IPAD: Usa detection basato su dimensioni (più compatibile)
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isIPad = Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700;
-
-// 🔥 DEBUG: Log per verificare rilevamento iPad
-console.log('🔍 SUBSCRIPTION: Device detection:', {
-  platform: Platform.OS,
-  width: screenWidth,
-  height: screenHeight,
-  minDimension: Math.min(screenWidth, screenHeight),
-  isIPad: isIPad,
-  isIOS: Platform.OS === 'ios'
-});
+// 🔥 NOTA: Detection iPad spostata DENTRO il componente per essere dinamica
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -66,6 +54,27 @@ export default function SubscriptionOfferScreen() {
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [skipOffered, setSkipOffered] = useState(false);
+  
+  // 🔥 DETECTION IPAD: Usa SCREEN dimensions (non window) per rilevare iPad anche in modalità upscaled
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const screenDimensions = require('react-native').Dimensions.get('screen');
+  
+  // Usa le dimensioni dello SCHERMO FISICO per rilevare iPad (più affidabile)
+  const isIPad = Platform.OS === 'ios' && Math.min(screenDimensions.width, screenDimensions.height) >= 700;
+  
+  // 🔥 DEBUG: Log per verificare rilevamento iPad
+  const screenMinDim = Math.min(screenDimensions.width, screenDimensions.height);
+  console.log('🔍 SUBSCRIPTION: Device detection:', {
+    platform: Platform.OS,
+    windowWidth: windowWidth,
+    windowHeight: windowHeight,
+    screenWidth: screenDimensions.width,
+    screenHeight: screenDimensions.height,
+    screenMinDimension: screenMinDim,
+    isIPad: isIPad,
+    threshold: 700,
+    isAboveThreshold: screenMinDim >= 700
+  });
   
   
   // Stato base
@@ -263,13 +272,23 @@ export default function SubscriptionOfferScreen() {
       
       <View style={styles.content}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[
+          styles.header,
+          isIPad && { paddingHorizontal: 16, marginBottom: 12 } // Override iPad
+        ]}>
           <Image 
             source={require('../../assets/images/bacchus-logo.png')} 
-            style={styles.logo} 
+            style={[
+              styles.logo,
+              isIPad && { width: 50, height: 50, marginBottom: 8 } // Override iPad
+            ]} 
             resizeMode="contain" 
           />
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text style={[
+            styles.title, 
+            { color: colors.text },
+            isIPad && { fontSize: 20, marginBottom: 4 } // Override iPad
+          ]}>
             {t('upgradeToExperience', { ns: 'purchases', defaultValue: "Sblocca l'esperienza completa" })}
           </Text>
         </View>
@@ -281,23 +300,27 @@ export default function SubscriptionOfferScreen() {
             style={[
               styles.planCard,
               selectedPlan === 'monthly' && [styles.selectedCard, { borderColor: colors.primary }],
-              { backgroundColor: colors.cardBackground }
+              { backgroundColor: colors.cardBackground },
+              isIPad && { padding: 12, marginBottom: 8, minHeight: 80 } // Override iPad
             ]}
             onPress={() => setSelectedPlan('monthly')}
           >
-            <Text style={[styles.planTitle, { color: colors.text }]}>
+            <Text style={[
+              styles.planTitle, 
+              { color: colors.text },
+              isIPad && { fontSize: 12, marginBottom: 4 } // Override iPad
+            ]}>
               {t('monthlySubscription', { ns: 'purchases', defaultValue: "Abbonamento mensile" })}
             </Text>
             <Text style={[styles.planPrice, { color: colors.primary }]}>
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
-            <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {isIPad ? 
-                // iPad: Testo più corto per evitare overlap
-                t('subscriptionShort', { ns: 'purchases', defaultValue: '1 mese' }) :
-                // iPhone: Testo completo
-                t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })
-              }
+            <Text style={[
+              styles.planDetails, 
+              { color: colors.textSecondary },
+              isIPad && { fontSize: 8, lineHeight: 10, marginTop: 2 } // Override iPad
+            ]}>
+              {isIPad ? '1 mese' : t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })}
             </Text>
             
             {selectedPlan === 'monthly' && (
@@ -310,18 +333,31 @@ export default function SubscriptionOfferScreen() {
             style={[
               styles.planCard,
               selectedPlan === 'yearly' && [styles.selectedCard, { borderColor: colors.primary }],
-              { backgroundColor: colors.cardBackground }
+              { backgroundColor: colors.cardBackground },
+              isIPad && { padding: 12, marginBottom: 8, minHeight: 80 } // Override iPad
             ]}
             onPress={() => setSelectedPlan('yearly')}
           >
-            <Text style={[styles.planTitle, { color: colors.text }]}>
+            <Text style={[
+              styles.planTitle, 
+              { color: colors.text },
+              isIPad && { fontSize: 12, marginBottom: 4 } // Override iPad
+            ]}>
               {t('yearlySubscription', { ns: 'purchases', defaultValue: "Abbonamento annuale" })}
             </Text>
             <View style={styles.priceContainer}>
-              <Text style={[styles.fullPrice, { color: colors.textSecondary }]}>
+              <Text style={[
+                styles.fullPrice, 
+                { color: colors.textSecondary },
+                isIPad && { fontSize: 10 } // Override iPad
+              ]}>
                 €{yearlyFullPrice}
               </Text>
-              <Text style={[styles.planPrice, { color: colors.primary }]}>
+              <Text style={[
+                styles.planPrice, 
+                { color: colors.primary },
+                isIPad && { fontSize: 11, marginBottom: 2 } // Override iPad
+              ]}>
                 €{yearlyPrice}/{t('year', { ns: 'common', defaultValue: "anno" })}
               </Text>
               <View style={[styles.discountBadge, { backgroundColor: colors.success }]}>
@@ -330,12 +366,14 @@ export default function SubscriptionOfferScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {isIPad ? 
-                // iPad: Testo MOLTO più corto per evitare overlap
-                t('yearlySubscriptionShort', { ns: 'purchases', defaultValue: '€' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese' }) :
-                // iPhone: Testo completo
-                t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })
+            <Text style={[
+              styles.planDetails, 
+              { color: colors.textSecondary },
+              isIPad && { fontSize: 8, lineHeight: 10, marginTop: 2 } // Override iPad
+            ]}>
+              {isIPad 
+                ? '€' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese'
+                : t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })
               }
             </Text>
             
@@ -418,6 +456,7 @@ export default function SubscriptionOfferScreen() {
 }
 
 // Stili per il componente
+// 🔥 STILI FISSI: Funzionano bene su iPhone, override inline per iPad nel JSX
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -441,79 +480,76 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: isIPad ? 16 : 20, // iPad: ridotto per scaling
-    marginBottom: isIPad ? 12 : 20, // iPad: ridotto per scaling
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   logo: {
-    width: isIPad ? 50 : 70, // iPad: MOLTO più piccolo per fit
-    height: isIPad ? 50 : 70,
-    marginBottom: isIPad ? 8 : 10, // iPad: ridotto per scaling
+    width: 70,
+    height: 70,
+    marginBottom: 10,
   },
   title: {
-    fontSize: isIPad ? 20 : 24, // iPad: ridotto per fit
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: isIPad ? 6 : 6, // iPad: ridotto per scaling
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     textAlign: 'center',
   },
   planContainer: {
-    paddingHorizontal: isIPad ? 20 : 24, // iPad: ridotto per scaling
-    marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   planCard: {
-    padding: isIPad ? 12 : 20, // iPad: MOLTO ridotto per evitare overlap
+    padding: 20,
     borderRadius: 12,
-    marginBottom: isIPad ? 8 : 16, // iPad: ridotto per scaling
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 80 : 120, // iPad: MOLTO ridotto per fit
-    maxHeight: isIPad ? 90 : 'auto', // iPad: limita altezza per evitare overlap
+    minHeight: 120,
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 12 : 16, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 4 : 8, // iPad: ridotto per scaling
+    marginBottom: 8,
   },
   priceContainer: {
-    flexDirection: 'row', // Stesso layout per tutti
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isIPad ? 4 : 4, // Stesso spacing
+    marginBottom: 4,
     flexWrap: 'nowrap',
   },
   fullPrice: {
-    fontSize: isIPad ? 12 : 14, // iPad: ridotto per fit
+    fontSize: 14,
     fontWeight: '400',
     textDecorationLine: 'line-through',
-    marginRight: 6, // Stesso margin per tutti
+    marginRight: 6,
   },
   planPrice: {
-    fontSize: isIPad ? 11 : 15, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: isIPad ? 2 : 4, // iPad: ridotto per scaling
+    marginBottom: 4,
   },
   planDetails: {
-    fontSize: isIPad ? 8 : 10, // iPad: MOLTO più piccolo per evitare overlap
-    marginTop: isIPad ? 2 : 6, // iPad: ridotto per scaling
-    textAlign: 'center', // Stesso allineamento per tutti
-    lineHeight: isIPad ? 10 : 14, // iPad: ridotto per fit
-    maxHeight: isIPad ? 20 : 'auto', // iPad: limita altezza per evitare overlap
-    overflow: 'hidden', // iPad: taglia testo se troppo lungo
+    fontSize: 10,
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   discountBadge: {
-    marginLeft: 10, // Stesso margin per tutti
-    paddingHorizontal: isIPad ? 6 : 8, // iPad: ridotto per scaling
-    paddingVertical: isIPad ? 2 : 3, // iPad: ridotto per scaling
+    marginLeft: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 12,
   },
   discountText: {
     color: 'white',
-    fontSize: isIPad ? 9 : 11, // iPad: ridotto per fit
+    fontSize: 11,
     fontWeight: 'bold',
   },
   checkmark: {
@@ -522,23 +558,23 @@ const styles = StyleSheet.create({
     right: 16,
   },
   featuresContainer: {
-    paddingHorizontal: isIPad ? 16 : 20, // iPad: ridotto per scaling
+    paddingHorizontal: 20,
   },
   featuresTitle: {
-    fontSize: isIPad ? 16 : 18, // iPad: ridotto per fit
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 10 : 12, // iPad: ridotto per scaling
+    marginBottom: 12,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isIPad ? 8 : 10, // iPad: ridotto per scaling
+    marginBottom: 10,
   },
   featureIcon: {
-    marginRight: isIPad ? 8 : 10, // iPad: ridotto per scaling
+    marginRight: 10,
   },
   featureText: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     flex: 1,
   },
   legalLinksContainer: {
@@ -570,32 +606,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   bottomButtons: {
-    padding: isIPad ? 12 : 16, // iPad: ridotto per scaling
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-    minHeight: isIPad ? 100 : 120, // iPad: ridotto per fit
+    minHeight: 120,
   },
   primaryButton: {
-    height: isIPad ? 44 : 56, // iPad: ridotto ma conforme Apple (44px min)
+    height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: isIPad ? 12 : 16, // iPad: ridotto per scaling
+    marginBottom: 16,
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     fontWeight: 'bold',
   },
   secondaryButton: {
-    height: isIPad ? 44 : 50, // iPad: ridotto ma conforme Apple
+    height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 44, // Touch target minimo Apple
+    minHeight: 44,
   },
   secondaryButtonText: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     fontWeight: '600',
   },
 });

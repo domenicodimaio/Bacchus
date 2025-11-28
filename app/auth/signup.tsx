@@ -24,12 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
-// Dimensioni dello schermo
-const { width, height } = Dimensions.get('window');
-
-// 🔥 RILEVAMENTO IPAD: Usa detection basato su dimensioni (più compatibile)
-const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-console.log('📱 Device detection SIGNUP:', { isIPad, isIOS: Platform.OS === 'ios', width, height });
+// 🔥 NOTA: Detection iPad spostata DENTRO il componente per essere dinamica
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
@@ -37,6 +32,19 @@ const BACKGROUND_COLOR = '#0c2348';
 export default function SignUpScreen() {
   const { signup } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
+  
+  // 🔥 DETECTION IPAD DINAMICA: Usa SCREEN dimensions per rilevare iPad anche in modalità upscaled
+  const screenDimensions = Dimensions.get('screen');
+  const isIPad = Platform.OS === 'ios' && Math.min(screenDimensions.width, screenDimensions.height) >= 700;
+  
+  // 🔥 DEBUG: Log per verificare rilevamento iPad
+  console.log('🔍 SIGNUP: Device detection:', {
+    platform: Platform.OS,
+    screenWidth: screenDimensions.width,
+    screenHeight: screenDimensions.height,
+    screenMinDimension: Math.min(screenDimensions.width, screenDimensions.height),
+    isIPad: isIPad
+  });
   
   // Stato
   const [email, setEmail] = useState('');
@@ -406,27 +414,27 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: isIPad ? 5 : 20, // iPad: MOLTO ridotto
-    marginBottom: isIPad ? 5 : 20,
+    marginTop: 20,
+    marginBottom: 20,
   },
   logo: {
-    width: isIPad ? 80 : 120, // iPad: ridotto ma visibile
-    height: isIPad ? 80 : 120,
-    marginBottom: isIPad ? 8 : 10,
+    width: 120,
+    height: 120,
+    marginBottom: 10,
   },
   appSubtitle: {
-    fontSize: isIPad ? 13 : 16, // iPad: ridotto
+    fontSize: 16,
     color: '#8a9bb5',
     textAlign: 'center',
-    marginBottom: isIPad ? 10 : 20,
+    marginBottom: 20,
   },
   signupCard: {
     width: '100%',
     backgroundColor: '#162a4e',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
-    marginTop: isIPad ? 8 : 10,
-    marginBottom: isIPad ? 10 : 20,
+    padding: 20,
+    marginTop: 10,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#254175',
     shadowColor: '#000',
@@ -436,15 +444,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardTitle: {
-    fontSize: isIPad ? 20 : 26, // iPad: MOLTO ridotto
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: isIPad ? 3 : 5,
+    marginBottom: 5,
   },
   cardSubtitle: {
-    fontSize: isIPad ? 12 : 14, // iPad: ridotto
+    fontSize: 14,
     color: '#8a9bb5',
-    marginBottom: isIPad ? 12 : 20,
+    marginBottom: 20,
   },
   formContainer: {
     width: '100%',
@@ -454,7 +462,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1e355a',
     borderRadius: 10,
-    marginBottom: isIPad ? 10 : 16, // iPad: ridotto
+    marginBottom: 16,
     paddingHorizontal: 16,
     height: 48,
     borderWidth: 1,
@@ -470,21 +478,21 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: isIPad ? 40 : 48, // iPad: più basso
-    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
+    height: 48,
+    fontSize: 16,
     color: '#ffffff',
   },
   passwordVisibilityButton: {
     padding: 5,
   },
   signupButton: {
-    height: isIPad ? 44 : 52, // iPad: più basso ma conforme Apple
+    height: 52,
     backgroundColor: '#00bcd7',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    minHeight: 44, // Touch target minimo Apple
+    minHeight: 44,
   },
   signupButtonText: {
     color: '#FFFFFF',
@@ -493,8 +501,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   footerContainer: {
-    flexDirection: 'column', // Layout verticale come login
-    marginVertical: isIPad ? 8 : 20, // iPad: MOLTO ridotto
+    flexDirection: 'column',
+    marginVertical: 20,
     paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
