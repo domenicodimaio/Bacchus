@@ -52,21 +52,18 @@ export default function LoginScreen() {
   const { login, isAuthenticated, loginWithProvider } = useAuth();
   const params = useLocalSearchParams();
   
-  // 🔥 DETECTION IPAD DINAMICA: Usa SCREEN dimensions per rilevare iPad anche in modalità upscaled
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const screenDimensions = Dimensions.get('screen');
-  const isIPad = Platform.OS === 'ios' && Math.min(screenDimensions.width, screenDimensions.height) >= 700;
+  // 🔥 DETECTION IPAD: Usa funzione robusta da deviceUtils
+  const { isIPad: isIPadFn } = require('../lib/utils/deviceUtils');
+  const isIPad = isIPadFn();
   
-  // 🔥 DEBUG: Log per verificare rilevamento iPad
-  console.log('🔍 LOGIN: Device detection:', {
-    platform: Platform.OS,
-    windowWidth: windowWidth,
-    windowHeight: windowHeight,
-    screenWidth: screenDimensions.width,
-    screenHeight: screenDimensions.height,
-    screenMinDimension: Math.min(screenDimensions.width, screenDimensions.height),
-    isIPad: isIPad
-  });
+  // 🔥 TEST VISIBILE: Mostra Alert se iPad rilevato (TEMPORANEO PER DEBUG)
+  useEffect(() => {
+    if (isIPad) {
+      console.log('🔥🔥🔥 IPAD RILEVATO! 🔥🔥🔥');
+      // Alert temporaneo per verificare che la detection funzioni
+      // Alert.alert('iPad Rilevato', `L'app ha rilevato che stai usando un iPad. Gli stili iPad verranno applicati.`);
+    }
+  }, [isIPad]);
   
   // Controlla se stiamo arrivando dalla splash screen
   const isFromSplash = params.fromSplash === 'true';

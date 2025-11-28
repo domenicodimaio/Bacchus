@@ -55,26 +55,11 @@ export default function SubscriptionOfferScreen() {
   const [restoring, setRestoring] = useState(false);
   const [skipOffered, setSkipOffered] = useState(false);
   
-  // 🔥 DETECTION IPAD: Usa SCREEN dimensions (non window) per rilevare iPad anche in modalità upscaled
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const screenDimensions = require('react-native').Dimensions.get('screen');
+  // 🔥 DETECTION IPAD: Usa funzione robusta da deviceUtils
+  const { isIPad: isIPadFn } = require('../lib/utils/deviceUtils');
+  const isIPad = isIPadFn();
   
-  // Usa le dimensioni dello SCHERMO FISICO per rilevare iPad (più affidabile)
-  const isIPad = Platform.OS === 'ios' && Math.min(screenDimensions.width, screenDimensions.height) >= 700;
-  
-  // 🔥 DEBUG: Log per verificare rilevamento iPad
-  const screenMinDim = Math.min(screenDimensions.width, screenDimensions.height);
-  console.log('🔍 SUBSCRIPTION: Device detection:', {
-    platform: Platform.OS,
-    windowWidth: windowWidth,
-    windowHeight: windowHeight,
-    screenWidth: screenDimensions.width,
-    screenHeight: screenDimensions.height,
-    screenMinDimension: screenMinDim,
-    isIPad: isIPad,
-    threshold: 700,
-    isAboveThreshold: screenMinDim >= 700
-  });
+  // 🔥 DEBUG: Log per verificare rilevamento iPad (la funzione isIPad già logga internamente)
   
   
   // Stato base

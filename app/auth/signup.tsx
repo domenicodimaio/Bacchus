@@ -33,18 +33,9 @@ export default function SignUpScreen() {
   const { signup } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
   
-  // 🔥 DETECTION IPAD DINAMICA: Usa SCREEN dimensions per rilevare iPad anche in modalità upscaled
-  const screenDimensions = Dimensions.get('screen');
-  const isIPad = Platform.OS === 'ios' && Math.min(screenDimensions.width, screenDimensions.height) >= 700;
-  
-  // 🔥 DEBUG: Log per verificare rilevamento iPad
-  console.log('🔍 SIGNUP: Device detection:', {
-    platform: Platform.OS,
-    screenWidth: screenDimensions.width,
-    screenHeight: screenDimensions.height,
-    screenMinDimension: Math.min(screenDimensions.width, screenDimensions.height),
-    isIPad: isIPad
-  });
+  // 🔥 DETECTION IPAD: Usa funzione robusta da deviceUtils
+  const { isIPad: isIPadFn } = require('../lib/utils/deviceUtils');
+  const isIPad = isIPadFn();
   
   // Stato
   const [email, setEmail] = useState('');
