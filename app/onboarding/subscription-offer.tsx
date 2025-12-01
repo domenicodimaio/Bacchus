@@ -470,21 +470,20 @@ const styles = StyleSheet.create({
     marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
   },
   planCard: {
-    padding: isIPad ? 12 : 20, // iPad: MOLTO ridotto per evitare overlap
+    padding: isIPad ? 14 : 20,
     borderRadius: 12,
-    marginBottom: isIPad ? 8 : 16, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 10 : 16,
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 80 : 120, // iPad: MOLTO ridotto per fit
-    maxHeight: isIPad ? 90 : 'auto', // iPad: limita altezza per evitare overlap
+    minHeight: isIPad ? 100 : 120, // iPad: aumentato per evitare overlap
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 12 : 16, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: isIPad ? 14 : 16,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 4 : 8, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 6 : 8,
   },
   priceContainer: {
     flexDirection: 'row', // Stesso layout per tutti
@@ -493,23 +492,21 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
   },
   fullPrice: {
-    fontSize: isIPad ? 12 : 14, // iPad: ridotto per fit
+    fontSize: isIPad ? 13 : 14,
     fontWeight: '400',
     textDecorationLine: 'line-through',
-    marginRight: 6, // Stesso margin per tutti
+    marginRight: 6,
   },
   planPrice: {
-    fontSize: isIPad ? 11 : 15, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: isIPad ? 13 : 15,
     fontWeight: '600',
-    marginBottom: isIPad ? 2 : 4, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 4 : 4,
   },
   planDetails: {
-    fontSize: isIPad ? 8 : 10, // iPad: MOLTO più piccolo per evitare overlap
-    marginTop: isIPad ? 2 : 6, // iPad: ridotto per scaling
-    textAlign: 'center', // Stesso allineamento per tutti
-    lineHeight: isIPad ? 10 : 14, // iPad: ridotto per fit
-    maxHeight: isIPad ? 20 : 'auto', // iPad: limita altezza per evitare overlap
-    overflow: 'hidden', // iPad: taglia testo se troppo lungo
+    fontSize: isIPad ? 10 : 10,
+    marginTop: isIPad ? 4 : 6,
+    textAlign: 'center',
+    lineHeight: isIPad ? 14 : 14,
   },
   discountBadge: {
     marginLeft: 10, // Stesso margin per tutti
@@ -519,7 +516,7 @@ const styles = StyleSheet.create({
   },
   discountText: {
     color: 'white',
-    fontSize: isIPad ? 9 : 11, // iPad: ridotto per fit
+    fontSize: isIPad ? 10 : 11,
     fontWeight: 'bold',
   },
   checkmark: {
