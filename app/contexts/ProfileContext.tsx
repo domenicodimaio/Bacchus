@@ -109,11 +109,11 @@ export const ActiveProfilesProvider: React.FC<{ children: React.ReactNode }> = (
     };
     
     // Registra il callback
-    profileService.registerProfileUpdateCallback(handleProfileUpdate);
+    profileService.addProfileUpdateListener(handleProfileUpdate);
     
-    // Cleanup: non c'è un metodo di unregister, ma il callback verrà sovrascritto
+    // Cleanup
     return () => {
-      // No cleanup needed per ora
+      profileService.removeProfileUpdateListener(handleProfileUpdate);
     };
   }, [currentProfileId]);
 
