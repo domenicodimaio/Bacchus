@@ -81,41 +81,34 @@ export const ActiveProfilesProvider: React.FC<{ children: React.ReactNode }> = (
   
   // 🔥 REALTIME SYNC: Sottoscrizione agli update di profilo da Realtime
   useEffect(() => {
-    const profileService = require('../lib/services/profile.service');
-    
-    // Callback per aggiornare la UI quando arriva un update Realtime
-    const handleProfileUpdate = async () => {
-      console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime');
+    try {
+      const profileService = require('../lib/services/profile.service');
       
-      try {
-        // Ricarica i profili dal servizio
-        const updatedProfiles = await profileService.getProfiles(false);
+      // Callback per aggiornare la UI quando arriva un update Realtime
+      const handleProfileUpdate = () => {
+        console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime');
         
-        if (updatedProfiles && updatedProfiles.length > 0) {
-          console.log('✅ ProfileContext: Aggiornando profili dalla Realtime');
-          setActiveProfiles(updatedProfiles);
-          
-          // Aggiorna anche il profilo corrente se presente
-          if (currentProfileId) {
-            const updatedCurrentProfile = updatedProfiles.find((p: any) => p.id === currentProfileId);
-            if (updatedCurrentProfile) {
-              setUserProfileState(updatedCurrentProfile);
-            }
-          }
+        // Non fare nulla qui - lascia che AuthContext gestisca la sincronizzazione
+        // Questo evita conflitti e loop infiniti
+        console.log('✅ ProfileContext: Update ricevuto, AuthContext gestirà la sincronizzazione');
+      };
+      
+      // Registra il callback
+      profileService.addProfileUpdateListener(handleProfileUpdate);
+      
+      // Cleanup
+      return () => {
+        try {
+          profileService.removeProfileUpdateListener(handleProfileUpdate);
+        } catch (error) {
+          console.error('❌ ProfileContext: Errore cleanup listener:', error);
         }
-      } catch (error) {
-        console.error('❌ ProfileContext: Errore aggiornamento profilo da Realtime:', error);
-      }
-    };
-    
-    // Registra il callback
-    profileService.addProfileUpdateListener(handleProfileUpdate);
-    
-    // Cleanup
-    return () => {
-      profileService.removeProfileUpdateListener(handleProfileUpdate);
-    };
-  }, [currentProfileId]);
+      };
+    } catch (error) {
+      console.error('❌ ProfileContext: Errore setup Realtime listener:', error);
+      return () => {}; // Noop cleanup
+    }
+  }, []);
 
   // Funzioni BASE (senza operazioni database complesse)
   const setUserProfile = async (profile: any) => {
