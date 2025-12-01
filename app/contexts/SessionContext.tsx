@@ -281,6 +281,46 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   // 🔥 POLLING RIMOSSO: Ora usa Supabase Realtime per sync istantaneo
   // Il polling è stato sostituito da realtime.service.ts che riceve eventi in tempo reale
+  
+  // 🔥 REALTIME SYNC: Sottoscrizione agli update di sessione da Realtime
+  useEffect(() => {
+    const sessionService = require('../lib/services/session.service');
+    
+    // Callback per aggiornare la UI quando arriva un update Realtime
+    const handleSessionUpdate = async (updatedSession: Session | null) => {
+      console.log('🔔 SessionContext: Ricevuto update sessione da Realtime');
+      
+      try {
+        // Ricarica la sessione attiva dal servizio
+        const activeSessionFromService = sessionService.getActiveSession();
+        
+        if (activeSessionFromService) {
+          console.log('✅ SessionContext: Aggiornando sessione attiva dalla Realtime');
+          
+          // Aggiorna la sessione nell'array delle sessioni attive
+          setActiveSessions(prev => {
+            const filtered = prev.filter(s => s.id !== activeSessionFromService.id);
+            return [...filtered, activeSessionFromService];
+          });
+          
+          // Se è la sessione corrente, aggiorna anche i dati BAC
+          if (currentSessionId === activeSessionFromService.id) {
+            await refreshBacData();
+          }
+        }
+      } catch (error) {
+        console.error('❌ SessionContext: Errore aggiornamento sessione da Realtime:', error);
+      }
+    };
+    
+    // Registra il callback
+    sessionService.addSessionUpdateListener(handleSessionUpdate);
+    
+    // Cleanup
+    return () => {
+      sessionService.removeSessionUpdateListener(handleSessionUpdate);
+    };
+  }, [currentSessionId]);
 
   // Effetto per gestire il cambio di profilo
   useEffect(() => {
