@@ -15,8 +15,7 @@ import {
   Animated,
   Easing,
   Dimensions,
-  Linking,
-  ScrollView
+  Linking
 } from 'react-native';
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -461,17 +460,16 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <ScrollView 
-          contentContainerStyle={[styles.scrollContainer]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          scrollEnabled={true} // Permetti scroll per vedere tutto il contenuto
+        {/* 🔥 NO SCROLLVIEW - Layout flex che scala tutto proporzionalmente */}
+        <KeyboardAvoidingView 
+          style={styles.innerContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
-          <View style={[styles.innerContainer]}>
-            {/* Logo */}
-            <View 
-              style={styles.logoContainer}
-            >
+          {/* Logo */}
+          <View 
+            style={styles.logoContainer}
+          >
               <Image
                 source={require('../../assets/images/bacchus-logo.png')}
                 style={styles.logo}
@@ -676,8 +674,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </Animated.View>
-          </View>
-        </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -687,32 +684,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
   innerContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between', // Torna al layout originale
+    justifyContent: 'space-between',
+    paddingHorizontal: isIPad ? 16 : 20,
+    paddingTop: isIPad ? 10 : 20,
+    paddingBottom: isIPad ? 10 : 20,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: isIPad ? 5 : 10, // iPad: ridotto ma non troppo
-    marginTop: isIPad ? 5 : 10,
+    marginBottom: isIPad ? 2 : 10,
+    marginTop: isIPad ? 2 : 10,
   },
   logo: {
-    width: isIPad ? 80 : 150, // iPad: più piccolo ma visibile
-    height: isIPad ? 80 : 150,
-    marginBottom: isIPad ? 5 : 10,
+    width: isIPad ? 60 : 150, // iPad: più piccolo per far stare tutto
+    height: isIPad ? 60 : 150,
+    marginBottom: isIPad ? 2 : 10,
   },
   appTitle: {
     fontSize: isIPad ? 22 : 32, // iPad: ridotto ma leggibile
@@ -734,17 +722,17 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
-    marginVertical: isIPad ? 8 : 15,
+    padding: isIPad ? 12 : 20,
+    marginVertical: isIPad ? 4 : 15,
   },
   cardTitle: {
-    fontSize: isIPad ? 20 : 26, // iPad: ridotto ma leggibile
+    fontSize: isIPad ? 18 : 26,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 4 : 5,
+    marginBottom: isIPad ? 2 : 5,
   },
   cardSubtitle: {
-    fontSize: 14,
-    marginBottom: 20,
+    fontSize: isIPad ? 12 : 14,
+    marginBottom: isIPad ? 10 : 20,
   },
   formContainer: {
     width: '100%',
@@ -753,27 +741,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 10,
-    marginBottom: isIPad ? 12 : 16, // iPad: margine ridotto
-    paddingHorizontal: isIPad ? 12 : 16, // iPad: padding ridotto
-    height: isIPad ? 40 : 48, // iPad: altezza ridotta
+    marginBottom: isIPad ? 8 : 16,
+    paddingHorizontal: isIPad ? 10 : 16,
+    height: isIPad ? 38 : 48,
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    height: isIPad ? 40 : 48, // iPad: più basso
-    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
+    height: isIPad ? 38 : 48,
+    fontSize: isIPad ? 13 : 16,
   },
   passwordVisibilityButton: {
     padding: 5,
   },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
-    marginBottom: isIPad ? 12 : 20, // iPad: margine ridotto
+    marginBottom: isIPad ? 8 : 20,
   },
   forgotPasswordText: {
-    fontSize: 14,
+    fontSize: isIPad ? 12 : 14,
   },
   loginButton: {
     height: isIPad ? 44 : 48, // iPad: più basso ma conforme Apple
@@ -791,7 +779,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginVertical: 10,
+    marginVertical: isIPad ? 5 : 10,
   },
   dividerLine: {
     flex: 1,
@@ -804,7 +792,7 @@ const styles = StyleSheet.create({
   socialButtonsContainer: {
     flexDirection: 'row',
     width: '100%',
-    marginBottom: isIPad ? 5 : 10, // iPad: margine ridotto
+    marginBottom: isIPad ? 3 : 10,
   },
   socialButton: {
     flex: 1,
@@ -823,10 +811,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerContainer: {
-    flexDirection: 'column', // Layout verticale come richiesto
-    marginTop: isIPad ? 8 : 20, // iPad: margini ridotti ma non troppo
-    marginBottom: isIPad ? 8 : 20,
-    paddingVertical: isIPad ? 5 : 10,
+    flexDirection: 'column',
+    marginTop: isIPad ? 4 : 20,
+    marginBottom: isIPad ? 4 : 20,
+    paddingVertical: isIPad ? 2 : 10,
     justifyContent: 'center',
     alignItems: 'center',
   },

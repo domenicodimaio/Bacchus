@@ -414,32 +414,34 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     alignItems: 'center',
-    padding: 16,
-    justifyContent: 'flex-start',
+    paddingHorizontal: isIPad ? 16 : 20,
+    paddingTop: isIPad ? 10 : 20,
+    paddingBottom: isIPad ? 10 : 20,
+    justifyContent: 'space-between',
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: isIPad ? 5 : 20, // iPad: MOLTO ridotto
-    marginBottom: isIPad ? 5 : 20,
+    marginTop: isIPad ? 2 : 20,
+    marginBottom: isIPad ? 2 : 20,
   },
   logo: {
-    width: isIPad ? 80 : 120, // iPad: ridotto ma visibile
-    height: isIPad ? 80 : 120,
-    marginBottom: isIPad ? 8 : 10,
+    width: isIPad ? 60 : 120,
+    height: isIPad ? 60 : 120,
+    marginBottom: isIPad ? 2 : 10,
   },
   appSubtitle: {
-    fontSize: isIPad ? 13 : 16, // iPad: ridotto
+    fontSize: isIPad ? 12 : 16,
     color: '#8a9bb5',
     textAlign: 'center',
-    marginBottom: isIPad ? 10 : 20,
+    marginBottom: isIPad ? 5 : 20,
   },
   signupCard: {
     width: '100%',
     backgroundColor: '#162a4e',
     borderRadius: 15,
-    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
-    marginTop: isIPad ? 8 : 10,
-    marginBottom: isIPad ? 10 : 20,
+    padding: isIPad ? 12 : 20,
+    marginTop: isIPad ? 4 : 10,
+    marginBottom: isIPad ? 4 : 20,
     borderWidth: 1,
     borderColor: '#254175',
     shadowColor: '#000',
@@ -449,15 +451,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardTitle: {
-    fontSize: isIPad ? 20 : 26, // iPad: MOLTO ridotto
+    fontSize: isIPad ? 18 : 26,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: isIPad ? 3 : 5,
+    marginBottom: isIPad ? 2 : 5,
   },
   cardSubtitle: {
-    fontSize: isIPad ? 12 : 14, // iPad: ridotto
+    fontSize: isIPad ? 11 : 14,
     color: '#8a9bb5',
-    marginBottom: isIPad ? 12 : 20,
+    marginBottom: isIPad ? 8 : 20,
   },
   formContainer: {
     width: '100%',
@@ -467,9 +469,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1e355a',
     borderRadius: 10,
-    marginBottom: isIPad ? 10 : 16, // iPad: ridotto
-    paddingHorizontal: 16,
-    height: 48,
+    marginBottom: isIPad ? 6 : 16,
+    paddingHorizontal: isIPad ? 10 : 16,
+    height: isIPad ? 38 : 48,
     borderWidth: 1,
     borderColor: '#2e4a7a',
     shadowColor: '#000',
@@ -483,21 +485,21 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: isIPad ? 40 : 48, // iPad: più basso
-    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
+    height: isIPad ? 38 : 48,
+    fontSize: isIPad ? 13 : 16,
     color: '#ffffff',
   },
   passwordVisibilityButton: {
     padding: 5,
   },
   signupButton: {
-    height: isIPad ? 44 : 52, // iPad: più basso ma conforme Apple
+    height: isIPad ? 44 : 52,
     backgroundColor: '#00bcd7',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    minHeight: 44, // Touch target minimo Apple
+    marginTop: isIPad ? 6 : 10,
+    minHeight: 44,
   },
   signupButtonText: {
     color: '#FFFFFF',
@@ -506,9 +508,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   footerContainer: {
-    flexDirection: 'column', // Layout verticale come login
-    marginVertical: isIPad ? 8 : 20, // iPad: MOLTO ridotto
-    paddingVertical: 10,
+    flexDirection: 'column',
+    marginVertical: isIPad ? 4 : 20,
+    paddingVertical: isIPad ? 2 : 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
