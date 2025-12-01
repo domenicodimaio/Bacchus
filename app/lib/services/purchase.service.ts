@@ -4,6 +4,7 @@ import { ProductType, PRODUCT_IDS, Entitlement, FREE_LIMITS } from '../../types/
 import Constants from 'expo-constants';
 import * as authService from './auth.service';
 import supabase from '../supabase/client';
+import { isIPad as checkIsIPad } from '../utils/deviceUtils';
 
 // 🚨 DEBUG ESTREMO: Questo log DEVE apparire sempre
 console.log('🚨🚨🚨 PURCHASE.SERVICE.TS CARICATO! 🚨🚨🚨');
@@ -132,8 +133,8 @@ let currentUserId: string | null = null;
 export const setUserForPurchases = async (userId: string): Promise<boolean> => {
   try {
     console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
+    const isIPad = checkIsIPad();
     const { width, height } = Dimensions.get('window');
-    const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
     console.log(`🎯 PURCHASE_SERVICE: Platform info:`, {
       OS: Platform.OS,
       isPad: isIPad,
@@ -141,7 +142,8 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
       deviceInfo: {
         width: width,
         height: height,
-        minDimension: Math.min(width, height)
+        minDimension: Math.min(width, height),
+        aspectRatio: Math.max(width, height) / Math.min(width, height)
       }
     });
     
@@ -252,19 +254,6 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         console.log('🔄 RevenueCat: Aspettando sincronizzazione...');
         await new Promise(resolve => setTimeout(resolve, 300)); // Ridotto da 1500ms a 300ms
         
-        // 🔥 FIX IPAD: Forza refresh più aggressivo su iPad
-        if (isIPad) {
-          console.log('🔄 RevenueCat IPAD: Refresh più aggressivo per iPad...');
-          try {
-            await Purchases.getCustomerInfo(); // Force refresh
-            await new Promise(resolve => setTimeout(resolve, 200)); // Extra delay per iPad
-            await Purchases.getCustomerInfo(); // Second refresh
-            console.log('✅ RevenueCat IPAD: Refresh completato');
-          } catch (ipadRefreshError) {
-            console.warn('⚠️ RevenueCat IPAD: Errore refresh:', ipadRefreshError);
-          }
-        }
-        
         // Verifica che la sincronizzazione sia avvenuta
         try {
           const customerInfo = await Purchases.getCustomerInfo();
@@ -272,8 +261,7 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
           console.log(`✅ RevenueCat: Sincronizzazione completata per ${userId}`, {
             originalAppUserId: customerInfo?.originalAppUserId,
             hasEntitlements: !!customerInfo?.entitlements?.active,
-            activeEntitlements: activeEntitlements,
-            device: isIPad ? 'iPad' : 'iPhone'
+            activeEntitlements: activeEntitlements
           });
           
           // 🔍 Verifica coerenza user ID (ora dovrebbero corrispondere sempre)
@@ -281,7 +269,6 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
             console.warn(`⚠️ SYNC: RevenueCat user ID mismatch dopo login`);
             console.warn(`   Expected: ${revenueCatUserId}`);
             console.warn(`   Got: ${customerInfo?.originalAppUserId}`);
-            console.warn(`   Device: ${isIPad ? 'iPad' : 'iPhone'}`);
             console.warn(`   Questo potrebbe indicare un problema di sincronizzazione`);
           } else {
             console.log(`✅ SYNC: RevenueCat user ID corrispondente: ${revenueCatUserId}`);
@@ -631,20 +618,8 @@ export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean>
     console.log(`🔍 PREMIUM_CHECK: Ottenendo customerInfo da RevenueCat...`);
     const customerInfo = await getCustomerInfo();
     
-    // 🔥 DEBUG IPAD: Log dettagliato per debug
-    const { width, height } = Dimensions.get('window');
-    const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-    console.log(`🔍 PREMIUM_CHECK: Device info:`, {
-      device: isIPad ? 'iPad' : 'iPhone',
-      currentUserId: currentUserId,
-      originalAppUserId: customerInfo?.originalAppUserId,
-      hasEntitlements: !!customerInfo?.entitlements?.active,
-      activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {}),
-      allEntitlements: customerInfo?.entitlements
-    });
-    
     if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) {
-      console.log(`🔍 PREMIUM_CHECK: Nessuna entitlement attiva trovata (Device: ${isIPad ? 'iPad' : 'iPhone'})`);
+      console.log(`🔍 PREMIUM_CHECK: Nessuna entitlement attiva trovata`);
       return false;
     }
     

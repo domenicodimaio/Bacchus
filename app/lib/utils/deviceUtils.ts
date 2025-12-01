@@ -20,49 +20,21 @@ export interface DeviceInfo {
 
 /**
  * Rileva se il dispositivo è un iPad
- * Usa sia SCREEN che WINDOW per rilevare correttamente anche quando l'app iPhone è upscalata
  */
 export const isIPad = (): boolean => {
   if (Platform.OS !== 'ios') return false;
   
-  // Usa SCREEN dimensions (dimensioni fisiche dello schermo) - più affidabile per iPad
-  const screen = Dimensions.get('screen');
-  const screenMin = Math.min(screen.width, screen.height);
-  const screenMax = Math.max(screen.width, screen.height);
-  const screenAspectRatio = screenMax / screenMin;
+  const { width, height } = Dimensions.get('window');
+  const aspectRatio = Math.max(width, height) / Math.min(width, height);
   
-  // Usa anche WINDOW dimensions come fallback
-  const window = Dimensions.get('window');
-  const windowMin = Math.min(window.width, window.height);
-  const windowMax = Math.max(window.width, window.height);
-  const windowAspectRatio = windowMax / windowMin;
+  // iPad ha tipicamente aspect ratio più vicino a 4:3 (1.33) rispetto agli iPhone (2:1 o più)
+  // e dimensioni dello schermo più grandi
+  const minDimension = Math.min(width, height);
+  const maxDimension = Math.max(width, height);
   
-  // 🔥 DETECTION ROBUSTA:
-  // 1. iPad ha almeno 650px nella dimensione più piccola dello SCREEN (soglia più bassa per catturare tutti gli iPad)
-  // 2. Aspect ratio dello SCREEN è tipicamente < 1.8 (4:3 invece di 2:1)
-  // 3. Se screen non funziona, prova con window
-  // 4. iPhone Pro Max ha circa 428px, quindi 650px cattura tutti gli iPad
-  const isScreenIPad = screenMin >= 650 && screenAspectRatio < 1.8;
-  const isWindowIPad = windowMin >= 650 && windowAspectRatio < 1.8;
-  
-  // Log dettagliato per debug
-  const result = isScreenIPad || isWindowIPad;
-  console.log('🔍 DEVICE UTILS: iPad detection:', {
-    platform: Platform.OS,
-    screenWidth: screen.width,
-    screenHeight: screen.height,
-    screenMin,
-    screenAspectRatio: screenAspectRatio.toFixed(2),
-    windowWidth: window.width,
-    windowHeight: window.height,
-    windowMin,
-    windowAspectRatio: windowAspectRatio.toFixed(2),
-    isScreenIPad,
-    isWindowIPad,
-    isIPad: result
-  });
-  
-  return result;
+  // iPad Mini ha almeno 768px nella dimensione più piccola
+  // iPhone Pro Max ha circa 428px nella dimensione più piccola
+  return minDimension >= 700 && aspectRatio < 1.8;
 };
 
 /**

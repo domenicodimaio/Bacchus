@@ -23,8 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-
-// 🔥 NOTA: Detection iPad spostata DENTRO il componente per essere dinamica
+import { isIPad as checkIsIPad, getDeviceInfo } from '../lib/utils/deviceUtils';
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
@@ -33,9 +32,24 @@ export default function SignUpScreen() {
   const { signup } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
   
-  // 🔥 DETECTION IPAD: Usa funzione robusta da deviceUtils
-  const { isIPad: isIPadFn } = require('../lib/utils/deviceUtils');
-  const isIPad = isIPadFn();
+  // 🔥 RILEVAMENTO IPAD: Usa funzione affidabile da deviceUtils
+  const deviceInfo = getDeviceInfo();
+  const isIPad = deviceInfo.isIPad;
+  const { width, height } = Dimensions.get('window');
+  
+  // 🔥 DEBUG: Log dettagliato per verificare rilevamento iPad
+  console.log('🔍 SIGNUP: Device detection COMPLETO:', {
+    platform: Platform.OS,
+    width: width,
+    height: height,
+    minDimension: Math.min(width, height),
+    maxDimension: Math.max(width, height),
+    aspectRatio: Math.max(width, height) / Math.min(width, height),
+    isIPad: isIPad,
+    deviceType: deviceInfo.deviceType,
+    orientation: deviceInfo.orientation,
+    isLargeScreen: deviceInfo.isLargeScreen
+  });
   
   // Stato
   const [email, setEmail] = useState('');
@@ -250,26 +264,16 @@ export default function SignUpScreen() {
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
-        >
-          <View style={styles.innerContainer}>
+          >
+            <View style={styles.innerContainer}>
               {/* Logo */}
-              <View style={[
-                styles.logoContainer,
-                isIPad && { marginTop: 5, marginBottom: 5 } // Override iPad
-              ]}>
+              <View style={styles.logoContainer}>
                 <Image
                   source={require('../../assets/images/bacchus-logo.png')}
-                  style={[
-                    styles.logo,
-                    isIPad && { width: 80, height: 80, marginBottom: 8 } // Override iPad
-                  ]}
+                  style={styles.logo}
                   resizeMode="contain"
                 />
-                <Animated.Text style={[
-                  styles.appSubtitle, 
-                  { opacity: subtitleOpacity },
-                  isIPad && { fontSize: 13, marginBottom: 10 } // Override iPad
-                ]}>
+                <Animated.Text style={[styles.appSubtitle, { opacity: subtitleOpacity }]}>
                   {t('createAccount', { defaultValue: 'Crea il tuo account' })}
                 </Animated.Text>
               </View>
@@ -281,36 +285,23 @@ export default function SignUpScreen() {
                   { 
                     opacity: cardOpacity,
                     transform: [{ translateY: cardTranslateY }]
-                  },
-                  isIPad && { padding: 16, marginTop: 8, marginBottom: 10 } // Override iPad
+                  }
                 ]}
               >
-                <Text style={[
-                  styles.cardTitle,
-                  isIPad && { fontSize: 20, marginBottom: 3 } // Override iPad
-                ]}>
+                <Text style={styles.cardTitle}>
                   {t('signupTitle', { defaultValue: 'Registrati' })}
                 </Text>
-                <Text style={[
-                  styles.cardSubtitle,
-                  isIPad && { fontSize: 12, marginBottom: 12 } // Override iPad
-                ]}>
+                <Text style={styles.cardSubtitle}>
                   {t('signupSubtitle', { defaultValue: 'Inserisci i tuoi dati per creare un account' })}
                 </Text>
                 
                 {/* Form */}
                 <View style={styles.formContainer}>
                   {/* Email input */}
-                  <View style={[
-                    styles.inputContainer,
-                    isIPad && { marginBottom: 10, height: 48 } // Override iPad
-                  ]}>
+                  <View style={styles.inputContainer}>
                     <Ionicons name="mail-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                     <TextInput
-                      style={[
-                        styles.input,
-                        isIPad && { height: 48, fontSize: 14 } // Override iPad
-                      ]}
+                      style={styles.input}
                       placeholder={t('emailPlaceholder', { defaultValue: 'La tua email' })}
                       placeholderTextColor="#8a9bb5"
                       keyboardType="email-address"
@@ -323,17 +314,11 @@ export default function SignUpScreen() {
                   </View>
                   
                   {/* Password input */}
-                  <View style={[
-                    styles.inputContainer,
-                    isIPad && { marginBottom: 10, height: 48 } // Override iPad
-                  ]}>
+                  <View style={styles.inputContainer}>
                     <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                     <TextInput
                       ref={passwordInputRef}
-                      style={[
-                        styles.input,
-                        isIPad && { height: 48, fontSize: 14 } // Override iPad
-                      ]}
+                      style={styles.input}
                       placeholder={t('passwordPlaceholder', { defaultValue: 'Crea una password' })}
                       placeholderTextColor="#8a9bb5"
                       secureTextEntry={!showPassword}
@@ -355,17 +340,11 @@ export default function SignUpScreen() {
                   </View>
                   
                   {/* Confirm Password input */}
-                  <View style={[
-                    styles.inputContainer,
-                    isIPad && { marginBottom: 10, height: 48 } // Override iPad
-                  ]}>
+                  <View style={styles.inputContainer}>
                     <Ionicons name="lock-closed-outline" size={22} color="#00bcd7" style={styles.inputIcon} />
                     <TextInput
                       ref={confirmPasswordInputRef}
-                      style={[
-                        styles.input,
-                        isIPad && { height: 48, fontSize: 14 } // Override iPad
-                      ]}
+                      style={styles.input}
                       placeholder={t('confirmPasswordPlaceholder', { defaultValue: 'Conferma password' })}
                       placeholderTextColor="#8a9bb5"
                       secureTextEntry={!showConfirmPassword}
@@ -388,10 +367,7 @@ export default function SignUpScreen() {
                   
                   {/* Signup button */}
                   <TouchableOpacity 
-                    style={[
-                      styles.signupButton,
-                      isIPad && { height: 44 } // Override iPad
-                    ]}
+                    style={styles.signupButton}
                     onPress={handleSignup}
                     disabled={isLoading}
                   >
@@ -410,8 +386,7 @@ export default function SignUpScreen() {
               <Animated.View 
                 style={[
                   styles.footerContainer,
-                  { opacity: footerOpacity },
-                  isIPad && { marginVertical: 8 } // Override iPad
+                  { opacity: footerOpacity }
                 ]}
               >
                 <Text style={styles.hasAccountText}>
@@ -425,7 +400,7 @@ export default function SignUpScreen() {
                   </TouchableOpacity>
                 </Link>
               </Animated.View>
-          </View>
+            </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -444,27 +419,27 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: isIPad ? 5 : 20, // iPad: MOLTO ridotto
+    marginBottom: isIPad ? 5 : 20,
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 10,
+    width: isIPad ? 80 : 120, // iPad: ridotto ma visibile
+    height: isIPad ? 80 : 120,
+    marginBottom: isIPad ? 8 : 10,
   },
   appSubtitle: {
-    fontSize: 16,
+    fontSize: isIPad ? 13 : 16, // iPad: ridotto
     color: '#8a9bb5',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: isIPad ? 10 : 20,
   },
   signupCard: {
     width: '100%',
     backgroundColor: '#162a4e',
     borderRadius: 15,
-    padding: 20,
-    marginTop: 10,
-    marginBottom: 20,
+    padding: isIPad ? 16 : 20, // iPad: ridotto ma non troppo
+    marginTop: isIPad ? 8 : 10,
+    marginBottom: isIPad ? 10 : 20,
     borderWidth: 1,
     borderColor: '#254175',
     shadowColor: '#000',
@@ -474,15 +449,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardTitle: {
-    fontSize: 26,
+    fontSize: isIPad ? 20 : 26, // iPad: MOLTO ridotto
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 5,
+    marginBottom: isIPad ? 3 : 5,
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: isIPad ? 12 : 14, // iPad: ridotto
     color: '#8a9bb5',
-    marginBottom: 20,
+    marginBottom: isIPad ? 12 : 20,
   },
   formContainer: {
     width: '100%',
@@ -492,7 +467,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1e355a',
     borderRadius: 10,
-    marginBottom: 16,
+    marginBottom: isIPad ? 10 : 16, // iPad: ridotto
     paddingHorizontal: 16,
     height: 48,
     borderWidth: 1,
@@ -508,21 +483,21 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 48,
-    fontSize: 16,
+    height: isIPad ? 40 : 48, // iPad: più basso
+    fontSize: isIPad ? 14 : 16, // iPad: font più piccolo
     color: '#ffffff',
   },
   passwordVisibilityButton: {
     padding: 5,
   },
   signupButton: {
-    height: 52,
+    height: isIPad ? 44 : 52, // iPad: più basso ma conforme Apple
     backgroundColor: '#00bcd7',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    minHeight: 44,
+    minHeight: 44, // Touch target minimo Apple
   },
   signupButtonText: {
     color: '#FFFFFF',
@@ -531,8 +506,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   footerContainer: {
-    flexDirection: 'column',
-    marginVertical: 20,
+    flexDirection: 'column', // Layout verticale come login
+    marginVertical: isIPad ? 8 : 20, // iPad: MOLTO ridotto
     paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',

@@ -28,6 +28,7 @@ import { Linking, Platform, Dimensions } from 'react-native';
 import config from '../config';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { remoteLogger, logError, logInfo } from './logging.service';
+import { isIPad as checkIsIPad } from '../utils/deviceUtils';
 import storageService, { STORAGE_KEYS } from './storage.service';
 
 // Variabili usate per le importazioni ritardate, per evitare dipendenze cicliche
@@ -781,7 +782,7 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
                 await AsyncStorage.setItem(appleIdSpecificKey, JSON.stringify({
                   ...appleUserData,
                   internalUserId: data.user.id, // Salva anche l'ID interno per riferimento
-                  deviceType: Platform.OS === 'ios' && Math.min(Dimensions.get('window').width, Dimensions.get('window').height) >= 700 ? 'iPad' : 'iPhone',
+                  deviceType: checkIsIPad() ? 'iPad' : 'iPhone',
                   savedAt: new Date().toISOString()
                 }));
                 console.log('🍎 APPLE CROSS-DEVICE: Salvato anche con Apple ID per condivisione');

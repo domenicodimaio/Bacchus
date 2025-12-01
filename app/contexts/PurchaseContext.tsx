@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import * as purchaseService from '../lib/services/purchase.service';
 import { PremiumFeatures, PurchaseState, FREE_LIMITS } from '../types/purchases';
+import { isIPad as checkIsIPad } from '../lib/utils/deviceUtils';
 
 // 🚨 DEBUG ESTREMO: Questo log DEVE apparire sempre
 console.log('🚨🚨🚨 PURCHASE_CONTEXT.TSX CARICATO! 🚨🚨🚨');
@@ -153,9 +154,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔥 FIX RACE CONDITION: Se c'è un utente, imposta prima l'utente per RevenueCat
       if (user?.id) {
         console.log('🎯 INIT: Impostando utente per RevenueCat...');
+        const isIPad = checkIsIPad();
         const { width, height } = Dimensions.get('window');
-        const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-        console.log('🎯 INIT: Device info - Platform:', Platform.OS, 'isIPad:', isIPad);
+        console.log('🎯 INIT: Device info - Platform:', Platform.OS, 'isIPad:', isIPad, 'dimensions:', { width, height, aspectRatio: Math.max(width, height) / Math.min(width, height) });
         
         await purchaseService.setUserForPurchases(user.id);
         
@@ -288,21 +289,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           console.log('🎯 USER LOGIN: Step 2 - Forzando sincronizzazione con server Apple...');
           await purchaseService.refreshCustomerInfo();
           
-          // 🔥 FIX IPAD: Extra refresh su iPad per forzare riconoscimento
-          const { width, height } = Dimensions.get('window');
-          const isIPad = Platform.OS === 'ios' && Math.min(width, height) >= 700;
-          if (isIPad) {
-            console.log('🎯 USER LOGIN IPAD: Extra refresh per iPad...');
-            await new Promise(resolve => setTimeout(resolve, 200));
-            await purchaseService.refreshCustomerInfo();
-            console.log('🎯 USER LOGIN IPAD: Extra refresh completato');
-          }
-          
           // Step 3: Controlla stato premium MULTIPLO per essere sicuri
           console.log('🎯 USER LOGIN: Step 3 - Controllo stato premium (tentativo 1/3)...');
           let isPremium = await purchaseService.isPremium();
-          console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium} (Device: ${isIPad ? 'iPad' : 'iPhone'})`);
-          
+          console.log(`🎯 USER LOGIN: Tentativo 1 - isPremium: ${isPremium}`);
+      
           // Se non è premium, riprova con delay MOLTO ridotti
           if (!isPremium) {
             console.log('🎯 USER LOGIN: Non premium al primo tentativo, riprovo (100ms)...');
@@ -329,9 +320,9 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           let simulatePremium = 'false';
           if (!isPremium) {
             simulatePremium = await AsyncStorage.getItem(getUserSpecificKey(STORAGE_KEYS.SIMULATE_PREMIUM)) || 'false';
-            if (simulatePremium === 'true') {
+          if (simulatePremium === 'true') {
               console.log('🎯 USER LOGIN: Modalità simulazione premium attiva');
-              isPremium = true;
+            isPremium = true;
             }
           } else {
             console.log('🎯 USER LOGIN: ✅ ABBONAMENTO ATTIVO TROVATO SU REVENUECAT!');

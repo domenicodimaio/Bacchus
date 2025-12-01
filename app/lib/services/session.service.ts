@@ -418,17 +418,11 @@ export async function initSessionService(userId?: string): Promise<void> {
   try {
     console.log('[SESSION_SERVICE] Inizializzazione con ricaricamento cronologia...');
     
-    // 🔥 FIX CRITICO: Imposta _currentUserId per abilitare sync Supabase
+    // 🔥 FIX BUG 1: Ricarica la cronologia dopo il login
     if (userId) {
-      _currentUserId = userId;
-      console.log(`[SESSION_SERVICE] ✅ _currentUserId impostato: ${userId}`);
-      
       console.log(`[SESSION_SERVICE] Ricaricamento cronologia per utente ${userId}...`);
       await loadSessionHistoryFromStorage();
       console.log(`[SESSION_SERVICE] ✅ Cronologia ricaricata: ${sessionHistory.length} sessioni`);
-    } else {
-      _currentUserId = null;
-      console.log('[SESSION_SERVICE] ⚠️ Nessun userId fornito, sync Supabase disabilitato');
     }
     
     _initialized = true;
@@ -825,63 +819,45 @@ export async function syncWithSupabase(userId: string): Promise<boolean> {
     // Trova la sessione attiva su Supabase
     const activeSessionFromSupabase = supabaseSessions.find(s => s.is_active);
     
-    // 🔥 FIX CROSS-DEVICE: Gestisci correttamente la sincronizzazione bidirezionale
-    if (activeSessionFromSupabase) {
-      const supabaseUpdatedAt = new Date(activeSessionFromSupabase.updated_at || 0).getTime();
-      const localUpdatedAt = activeSession ? new Date(activeSession.startTime).getTime() : 0;
+    // Se c'è una sessione attiva su Supabase ma non localmente, usala
+    if (activeSessionFromSupabase && !activeSession) {
+      console.log('Using active session from Supabase');
       
-      // Se NON c'è sessione locale O se quella su Supabase è più recente, usa quella su Supabase
-      if (!activeSession || supabaseUpdatedAt > localUpdatedAt) {
-        console.log('🔄 SYNC: Sessione attiva su Supabase più recente o mancante localmente, caricamento...');
-        console.log(`   Supabase updated_at: ${activeSessionFromSupabase.updated_at}`);
-        console.log(`   Local startTime: ${activeSession?.startTime || 'N/A'}`);
-        
-        // Carica i dettagli del profilo per la sessione attiva
-        try {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', activeSessionFromSupabase.profile_id)
-            .single();
-            
-          if (profileData) {
-            // Integra i dati del profilo nella sessione
-            const completeSession = mapSupabaseSessionToLocal(activeSessionFromSupabase);
-            
-            // Aggiorna i dati del profilo se disponibili
-            completeSession.profile = {
-              ...completeSession.profile,
-              name: profileData.name || '',
-              gender: profileData.gender || 'male',
-              weightKg: profileData.weight || profileData.weightKg || 0, // DB usa 'weight'
-              age: profileData.age || 0,
-              height: profileData.height || 0,
-              drinkingFrequency: profileData.drinking_frequency || profileData.drinkingFrequency || 'occasionally',
-              emoji: profileData.emoji || '',
-              color: profileData.color || ''
-            };
-            
-            // Salva la sessione attiva localmente
-            activeSession = completeSession;
-            await saveSessionLocally(activeSession, 'active');
-            console.log('✅ SYNC: Sessione attiva da Supabase caricata e salvata localmente');
-          }
-        } catch (profileError) {
-          console.error('❌ SYNC: Errore caricamento profilo per sessione attiva:', profileError);
-          // Continua comunque con i dati di base
-          activeSession = mapSupabaseSessionToLocal(activeSessionFromSupabase);
+      // Carica i dettagli del profilo per la sessione attiva
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', activeSessionFromSupabase.profile_id)
+          .single();
+          
+        if (profileData) {
+          // Integra i dati del profilo nella sessione
+          const completeSession = mapSupabaseSessionToLocal(activeSessionFromSupabase);
+          
+          // Aggiorna i dati del profilo se disponibili
+          completeSession.profile = {
+            ...completeSession.profile,
+            name: profileData.name || '',
+            gender: profileData.gender || 'male',
+            weightKg: profileData.weightKg || 0,
+            age: profileData.age || 0,
+            height: profileData.height || 0,
+            drinkingFrequency: profileData.drinkingFrequency || 'occasionally',
+            emoji: profileData.emoji || '',
+            color: profileData.color || ''
+          };
+          
+          // Salva la sessione attiva localmente
+          activeSession = completeSession;
           await saveSessionLocally(activeSession, 'active');
-          console.log('✅ SYNC: Sessione attiva caricata senza profilo completo');
         }
-      } else {
-        // La sessione locale è più recente, salvala su Supabase
-        console.log('🔄 SYNC: Sessione locale più recente, salvataggio su Supabase...');
-        await saveSessionToSupabase(activeSession, true);
+      } catch (profileError) {
+        console.error('Error loading profile for active session:', profileError);
+        // Continua comunque con i dati di base
+        activeSession = mapSupabaseSessionToLocal(activeSessionFromSupabase);
+        await saveSessionLocally(activeSession, 'active');
       }
-    } else if (activeSession) {
-      // C'è una sessione locale ma non su Supabase, salvala
-      console.log('🔄 SYNC: Sessione locale non presente su Supabase, salvataggio...');
-      await saveSessionToSupabase(activeSession, true);
     }
     
     // Aggiorna la cronologia delle sessioni
