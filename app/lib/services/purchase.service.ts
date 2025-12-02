@@ -320,16 +320,32 @@ export const initPurchases = async () => {
       try {
         console.log('🛒 PURCHASES: Inizializzazione RevenueCat con chiave:', apiKey.substring(0, 10) + '...');
         
-        // Configura RevenueCat in modalità debug in ambiente di sviluppo
-        if (__DEV__) {
-          Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+        // Verifica che Purchases sia disponibile
+        if (!Purchases || typeof Purchases.configure !== 'function') {
+          throw new Error('RevenueCat Purchases non disponibile o non valido');
         }
         
-        // Inizializza SDK RevenueCat
-        await Purchases.configure({
+        // Configura RevenueCat in modalità debug in ambiente di sviluppo
+        if (__DEV__ && LOG_LEVEL) {
+          try {
+            Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+          } catch (logError) {
+            console.warn('⚠️ PURCHASES: Impossibile impostare log level:', logError);
+          }
+        }
+        
+        // Inizializza SDK RevenueCat con timeout
+        const configPromise = Purchases.configure({
           apiKey,
           appUserID: null, // L'ID utente sarà impostato dopo la login
         });
+        
+        // Timeout di 10 secondi per evitare hang infiniti
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('RevenueCat configure timeout')), 10000)
+        );
+        
+        await Promise.race([configPromise, timeoutPromise]);
         
         console.log('✅ PURCHASES: RevenueCat inizializzato con successo');
         
