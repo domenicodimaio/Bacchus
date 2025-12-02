@@ -284,42 +284,58 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   // 🔥 REALTIME SYNC: Sottoscrizione agli update di sessione da Realtime
   useEffect(() => {
-    const sessionService = require('../lib/services/session.service');
-    
-    // Callback per aggiornare la UI quando arriva un update Realtime
-    const handleSessionUpdate = async (updatedSession: Session | null) => {
-      console.log('🔔 SessionContext: Ricevuto update sessione da Realtime');
+    try {
+      const sessionService = require('../lib/services/session.service');
       
-      try {
-        // Ricarica la sessione attiva dal servizio
-        const activeSessionFromService = sessionService.getActiveSession();
+      // Callback per aggiornare la UI quando arriva un update Realtime
+      const handleSessionUpdate = async (updatedSession: Session | null) => {
+        console.log('🔔 SessionContext: Ricevuto update sessione da Realtime');
         
-        if (activeSessionFromService) {
-          console.log('✅ SessionContext: Aggiornando sessione attiva dalla Realtime');
+        try {
+          // Ricarica la sessione attiva dal servizio
+          const activeSessionFromService = sessionService.getActiveSession();
           
-          // Aggiorna la sessione nell'array delle sessioni attive
-          setActiveSessions(prev => {
-            const filtered = prev.filter(s => s.id !== activeSessionFromService.id);
-            return [...filtered, activeSessionFromService];
-          });
-          
-          // Se è la sessione corrente, aggiorna anche i dati BAC
-          if (currentSessionId === activeSessionFromService.id) {
-            await refreshBacData();
+          if (activeSessionFromService) {
+            console.log('✅ SessionContext: Aggiornando sessione attiva dalla Realtime');
+            
+            // Aggiorna la sessione nell'array delle sessioni attive
+            setActiveSessions(prev => {
+              const filtered = prev.filter(s => s.id !== activeSessionFromService.id);
+              return [...filtered, activeSessionFromService];
+            });
+            
+            // Se è la sessione corrente, aggiorna anche i dati BAC
+            if (currentSessionId === activeSessionFromService.id) {
+              await refreshBacData();
+            }
           }
+        } catch (error) {
+          console.error('❌ SessionContext: Errore aggiornamento sessione da Realtime:', error);
         }
-      } catch (error) {
-        console.error('❌ SessionContext: Errore aggiornamento sessione da Realtime:', error);
+      };
+      
+      // Verifica che la funzione esista prima di chiamarla
+      if (typeof sessionService.addSessionUpdateListener === 'function') {
+        sessionService.addSessionUpdateListener(handleSessionUpdate);
+        
+        // Cleanup
+        return () => {
+          try {
+            if (typeof sessionService.removeSessionUpdateListener === 'function') {
+              sessionService.removeSessionUpdateListener(handleSessionUpdate);
+            }
+          } catch (error) {
+            console.error('❌ SessionContext: Errore cleanup listener:', error);
+          }
+        };
+      } else {
+        console.warn('⚠️ SessionContext: addSessionUpdateListener non disponibile');
+        return () => {}; // Noop cleanup
       }
-    };
-    
-    // Registra il callback
-    sessionService.addSessionUpdateListener(handleSessionUpdate);
-    
-    // Cleanup
-    return () => {
-      sessionService.removeSessionUpdateListener(handleSessionUpdate);
-    };
+    } catch (error) {
+      console.error('❌ SessionContext: Errore setup Realtime listener:', error);
+      return () => {}; // Noop cleanup
+    }
   }, [currentSessionId]);
 
   // Effetto per gestire il cambio di profilo
