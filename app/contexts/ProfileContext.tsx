@@ -81,40 +81,37 @@ export const ActiveProfilesProvider: React.FC<{ children: React.ReactNode }> = (
   
   // 🔥 REALTIME SYNC: Sottoscrizione agli update di profilo da Realtime
   useEffect(() => {
-    const profileService = require('../lib/services/profile.service');
-    
-    // Callback per aggiornare la UI quando arriva un update Realtime
-    const handleProfileUpdate = async () => {
-      console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime');
+    try {
+      const profileService = require('../lib/services/profile.service');
       
-      try {
-        // Ricarica i profili dal servizio
-        const updatedProfiles = await profileService.getProfiles(false);
-        
-        if (updatedProfiles && updatedProfiles.length > 0) {
-          console.log('✅ ProfileContext: Aggiornando profili dalla Realtime');
-          setActiveProfiles(updatedProfiles);
-          
-          // Aggiorna anche il profilo corrente se presente
-          if (currentProfileId) {
-            const updatedCurrentProfile = updatedProfiles.find((p: any) => p.id === currentProfileId);
-            if (updatedCurrentProfile) {
-              setUserProfileState(updatedCurrentProfile);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ ProfileContext: Errore aggiornamento profilo da Realtime:', error);
+      // Callback per aggiornare la UI quando arriva un update Realtime
+      const handleProfileUpdate = async () => {
+        console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime (NOOP)');
+        // CRITICAL: Non facciamo nulla qui. AuthContext gestisce già la sincronizzazione.
+        // Questo previene race conditions e crash.
+      };
+      
+      // Registra il callback con il nome CORRETTO della funzione
+      if (typeof profileService.addProfileUpdateListener === 'function') {
+        profileService.addProfileUpdateListener(handleProfileUpdate);
+      } else {
+        console.warn('⚠️ ProfileContext: addProfileUpdateListener non disponibile');
       }
-    };
-    
-    // Registra il callback
-    profileService.registerProfileUpdateCallback(handleProfileUpdate);
-    
-    // Cleanup: non c'è un metodo di unregister, ma il callback verrà sovrascritto
-    return () => {
-      // No cleanup needed per ora
-    };
+      
+      // Cleanup
+      return () => {
+        try {
+          if (typeof profileService.removeProfileUpdateListener === 'function') {
+            profileService.removeProfileUpdateListener(handleProfileUpdate);
+          }
+        } catch (error) {
+          console.error('❌ ProfileContext: Errore cleanup listener:', error);
+        }
+      };
+    } catch (error) {
+      console.error('❌ ProfileContext: Errore setup Realtime listener:', error);
+      return () => {}; // Noop cleanup
+    }
   }, [currentProfileId]);
 
   // Funzioni BASE (senza operazioni database complesse)
