@@ -78,6 +78,44 @@ export const ActiveProfilesProvider: React.FC<{ children: React.ReactNode }> = (
       setUserProfileState(null);
     }
   }, [authProfiles, authActiveProfile]);
+  
+  // 🔥 REALTIME SYNC: Sottoscrizione agli update di profilo da Realtime
+  useEffect(() => {
+    const profileService = require('../lib/services/profile.service');
+    
+    // Callback per aggiornare la UI quando arriva un update Realtime
+    const handleProfileUpdate = async () => {
+      console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime');
+      
+      try {
+        // Ricarica i profili dal servizio
+        const updatedProfiles = await profileService.getProfiles(false);
+        
+        if (updatedProfiles && updatedProfiles.length > 0) {
+          console.log('✅ ProfileContext: Aggiornando profili dalla Realtime');
+          setActiveProfiles(updatedProfiles);
+          
+          // Aggiorna anche il profilo corrente se presente
+          if (currentProfileId) {
+            const updatedCurrentProfile = updatedProfiles.find((p: any) => p.id === currentProfileId);
+            if (updatedCurrentProfile) {
+              setUserProfileState(updatedCurrentProfile);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ ProfileContext: Errore aggiornamento profilo da Realtime:', error);
+      }
+    };
+    
+    // Registra il callback
+    profileService.registerProfileUpdateCallback(handleProfileUpdate);
+    
+    // Cleanup: non c'è un metodo di unregister, ma il callback verrà sovrascritto
+    return () => {
+      // No cleanup needed per ora
+    };
+  }, [currentProfileId]);
 
   // Funzioni BASE (senza operazioni database complesse)
   const setUserProfile = async (profile: any) => {
