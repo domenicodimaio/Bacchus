@@ -88,8 +88,7 @@ const validateReceiptOnServer = async (receiptData, sharedSecret = null) => {
       body: JSON.stringify({
         receiptData,
         sharedSecret
-      }),
-      timeout: 30000 // 30 secondi timeout
+      })
     });
 
     if (!response.ok) {
@@ -334,20 +333,20 @@ export const initPurchases = async () => {
           }
         }
         
-        // Inizializza SDK RevenueCat con timeout
-        const configPromise = Purchases.configure({
+        // Inizializza SDK RevenueCat (SINCRONO - non restituisce Promise!)
+        console.log('🛒 PURCHASES: Chiamando Purchases.configure...');
+        Purchases.configure({
           apiKey,
           appUserID: null, // L'ID utente sarà impostato dopo la login
         });
         
-        // Timeout di 10 secondi per evitare hang infiniti
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('RevenueCat configure timeout')), 10000)
-        );
+        console.log('✅ PURCHASES: RevenueCat configurato');
         
-        await Promise.race([configPromise, timeoutPromise]);
-        
-        console.log('✅ PURCHASES: RevenueCat inizializzato con successo');
+        // CRITICAL: Aspetta che l'SDK si inizializzi internamente prima di chiamare altre funzioni
+        // Senza questo delay, RevenueCat crasha in Signing.swift durante getOfferings()
+        console.log('⏳ PURCHASES: Aspettando inizializzazione interna SDK...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('✅ PURCHASES: SDK pronto');
         
         // Verifica che RevenueCat sia effettivamente funzionante
         try {
@@ -385,8 +384,8 @@ export const initPurchases = async () => {
         // Step 2: Caricamento prodotti con timeout
         console.log('📦 INIT: Caricamento prodotti configurati...');
         const productIds = [
-          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_MONTHLY.ios,
-          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_YEARLY.ios
+          PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
+          PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios
         ];
         
         console.log('🔍 INIT: Cercando prodotti:', productIds);
@@ -747,8 +746,8 @@ export const getProducts = async () => {
         console.warn('PURCHASES: Offerings vuote - fallback a getProducts con PRODUCT_IDS');
         try {
           const productIds: string[] = [
-            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
-            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios,
           ].filter(Boolean) as string[];
           // RevenueCat v7 richiede il type per gli abbonamenti
           const products = await Purchases.getProducts(
@@ -772,8 +771,8 @@ export const getProducts = async () => {
         // Fallback anche in caso di errore su getOfferings
         try {
           const productIds: string[] = [
-            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
-            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios,
           ].filter(Boolean) as string[];
           const products = await Purchases.getProducts(
             productIds,
