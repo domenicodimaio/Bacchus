@@ -333,20 +333,13 @@ export const initPurchases = async () => {
           }
         }
         
-        // Inizializza SDK RevenueCat (SINCRONO - non restituisce Promise!)
-        console.log('🛒 PURCHASES: Chiamando Purchases.configure...');
-        Purchases.configure({
+        // Inizializza SDK RevenueCat
+        await Purchases.configure({
           apiKey,
           appUserID: null, // L'ID utente sarà impostato dopo la login
         });
         
-        console.log('✅ PURCHASES: RevenueCat configurato');
-        
-        // CRITICAL: Aspetta che l'SDK si inizializzi internamente prima di chiamare altre funzioni
-        // Senza questo delay, RevenueCat crasha in Signing.swift durante getOfferings()
-        console.log('⏳ PURCHASES: Aspettando inizializzazione interna SDK...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('✅ PURCHASES: SDK pronto');
+        console.log('✅ PURCHASES: RevenueCat inizializzato con successo');
         
         // Verifica che RevenueCat sia effettivamente funzionante
         try {
