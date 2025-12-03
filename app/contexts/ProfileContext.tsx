@@ -86,9 +86,27 @@ export const ActiveProfilesProvider: React.FC<{ children: React.ReactNode }> = (
       
       // Callback per aggiornare la UI quando arriva un update Realtime
       const handleProfileUpdate = async () => {
-        console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime (NOOP)');
-        // CRITICAL: Non facciamo nulla qui. AuthContext gestisce già la sincronizzazione.
-        // Questo previene race conditions e crash.
+        console.log('🔔 ProfileContext: Ricevuto update profilo da Realtime');
+        
+        try {
+          // Ottieni i profili aggiornati dal service (NON forzare sync con Supabase)
+          const updatedProfiles = await profileService.getProfiles(false);
+          
+          if (updatedProfiles && updatedProfiles.length > 0) {
+            console.log('✅ ProfileContext: Aggiornando profili dalla Realtime');
+            setActiveProfiles(updatedProfiles);
+            
+            // Aggiorna il profilo corrente se esiste
+            if (currentProfileId) {
+              const updatedCurrentProfile = updatedProfiles.find((p: any) => p.id === currentProfileId);
+              if (updatedCurrentProfile) {
+                setUserProfileState(updatedCurrentProfile);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ ProfileContext: Errore aggiornamento profilo da Realtime:', error);
+        }
       };
       
       // Registra il callback con il nome CORRETTO della funzione
