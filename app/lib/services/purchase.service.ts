@@ -88,8 +88,8 @@ const validateReceiptOnServer = async (receiptData, sharedSecret = null) => {
       body: JSON.stringify({
         receiptData,
         sharedSecret
-      }),
-      timeout: 30000 // 30 secondi timeout
+      })
+      // Note: timeout non supportato in fetch standard
     });
 
     if (!response.ok) {
@@ -358,8 +358,8 @@ export const initPurchases = async () => {
         // Step 2: Caricamento prodotti con timeout
         console.log('📦 INIT: Caricamento prodotti configurati...');
         const productIds = [
-          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_MONTHLY.ios,
-          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_YEARLY.ios
+          PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
+          PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios
         ];
         
         console.log('🔍 INIT: Cercando prodotti:', productIds);
@@ -720,9 +720,9 @@ export const getProducts = async () => {
         console.warn('PURCHASES: Offerings vuote - fallback a getProducts con PRODUCT_IDS');
         try {
           const productIds: string[] = [
-            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
-            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
-          ].filter(Boolean) as string[];
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios,
+          ];
           // RevenueCat v7 richiede il type per gli abbonamenti
           const products = await Purchases.getProducts(
             productIds,
@@ -745,9 +745,9 @@ export const getProducts = async () => {
         // Fallback anche in caso di errore su getOfferings
         try {
           const productIds: string[] = [
-            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
-            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
-          ].filter(Boolean) as string[];
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
+            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios,
+          ];
           const products = await Purchases.getProducts(
             productIds,
             (Purchases as any)?.ProductType?.SUBS || 'subs'
