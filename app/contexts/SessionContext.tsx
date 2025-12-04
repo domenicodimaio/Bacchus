@@ -233,6 +233,51 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
   
+  // 🔥 FIX REALTIME SESSION SYNC: Registra listener per aggiornamenti sessioni
+  useEffect(() => {
+    console.log('[SESSION_CONTEXT] 🔔 Registrazione listener Realtime per sessioni...');
+    
+    const sessionService = require('../lib/services/session.service');
+    
+    const sessionUpdateHandler = async (session: any) => {
+      console.log('[SESSION_CONTEXT] 🔔 Sessione aggiornata da altro dispositivo, ricarico...');
+      
+      // Ricarica sessioni attive
+      const authService = require('../lib/services/auth.service');
+      const currentUser = await authService.getCurrentUser();
+      
+      if (currentUser) {
+        const activeSessions = await sessionService.loadActiveSessionsFromSupabase();
+        if (activeSessions && activeSessions.length > 0) {
+          const formattedActiveSessions = activeSessions.map(session => ({
+            id: session.id,
+            profileId: session.profile.id,
+            drinks: session.drinks.map(drink => ({
+              id: drink.id,
+              name: drink.name,
+              alcoholPercentage: drink.alcoholPercentage,
+              volumeInMl: drink.volume,
+              timestamp: drink.time
+            })),
+            startTime: session.startTime.toISOString(),
+            isActive: true
+          }));
+          
+          setActiveSessions(formattedActiveSessions);
+          console.log('[SESSION_CONTEXT] ✅ Sessioni aggiornate:', formattedActiveSessions.length);
+        }
+      }
+    };
+    
+    sessionService.addSessionUpdateListener(sessionUpdateHandler);
+    console.log('[SESSION_CONTEXT] ✅ Listener Realtime sessioni registrato');
+    
+    return () => {
+      console.log('[SESSION_CONTEXT] 🔕 Rimozione listener Realtime sessioni...');
+      sessionService.removeSessionUpdateListener(sessionUpdateHandler);
+    };
+  }, []);
+  
   // 🔥 FIX DEFINITIVO: Ricaricamento IMMEDIATO cronologia dopo eventi auth
   useEffect(() => {
     const setupAuthListener = async () => {

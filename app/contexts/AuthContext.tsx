@@ -328,6 +328,28 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
   
+  // 🔥 FIX REALTIME PROFILE SYNC: Registra listener per aggiornamenti profili
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    console.log('[AUTH_CONTEXT] 🔔 Registrazione listener Realtime per profili...');
+    
+    const { addProfileUpdateListener, removeProfileUpdateListener } = require('../lib/services/profile.service');
+    
+    const profileUpdateHandler = async () => {
+      console.log('[AUTH_CONTEXT] 🔔 Profili aggiornati da altro dispositivo, ricarico...');
+      await loadUserProfiles(user.id);
+    };
+    
+    addProfileUpdateListener(profileUpdateHandler);
+    console.log('[AUTH_CONTEXT] ✅ Listener Realtime profili registrato');
+    
+    return () => {
+      console.log('[AUTH_CONTEXT] 🔕 Rimozione listener Realtime profili...');
+      removeProfileUpdateListener(profileUpdateHandler);
+    };
+  }, [user?.id]);
+  
   // Funzione per aggiornare la sessione corrente
   const updateCurrentSession = async () => {
     try {
