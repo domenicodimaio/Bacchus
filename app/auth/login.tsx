@@ -456,7 +456,7 @@ export default function LoginScreen() {
           contentContainerStyle={[styles.scrollContainer]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          scrollEnabled={true} // Permetti scroll per vedere tutto il contenuto
+          scrollEnabled={!isIPad} // 🔥 NON scrollabile su iPad, scrollabile su iPhone
         >
           <View style={[styles.innerContainer]}>
             {/* Logo */}
