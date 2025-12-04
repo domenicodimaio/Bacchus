@@ -239,9 +239,10 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         console.log(`✅ RevenueCat: Login completato per utente ${revenueCatUserId}`);
         console.log(`🔍 RevenueCat: Created=${loginResult.created}, OriginalAppUserId=${loginResult.customerInfo?.originalAppUserId}`);
         
-        // 🔥 FIX VELOCITÀ: Ridotto tempo sincronizzazione per velocità
-        console.log('🔄 RevenueCat: Aspettando sincronizzazione...');
-        await new Promise(resolve => setTimeout(resolve, 300)); // Ridotto da 1500ms a 300ms
+        // 🔥 FIX IPAD: Timeout più lungo su iPad per sincronizzazione RevenueCat
+        const syncTimeout = deviceInfo.isIPad ? 2000 : 500; // 2s iPad, 500ms iPhone
+        console.log(`🔄 RevenueCat: Aspettando sincronizzazione (${syncTimeout}ms su ${deviceInfo.isIPad ? 'iPad' : 'iPhone'})...`);
+        await new Promise(resolve => setTimeout(resolve, syncTimeout));
         
         // Verifica che la sincronizzazione sia avvenuta
         try {
