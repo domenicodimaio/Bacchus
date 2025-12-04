@@ -819,9 +819,10 @@ export async function syncWithSupabase(userId: string): Promise<boolean> {
     // Trova la sessione attiva su Supabase
     const activeSessionFromSupabase = supabaseSessions.find(s => s.is_active);
     
-    // Se c'è una sessione attiva su Supabase ma non localmente, usala
-    if (activeSessionFromSupabase && !activeSession) {
-      console.log('Using active session from Supabase');
+    // 🔥 FIX SYNC REALTIME: Se c'è una sessione attiva su Supabase, AGGIORNA SEMPRE quella locale
+    // Non solo se non esiste, ma anche se esiste già (per ricevere drinks/food da altri dispositivi)
+    if (activeSessionFromSupabase) {
+      console.log('🔄 SYNC: Aggiornamento sessione attiva da Supabase (ID:', activeSessionFromSupabase.id, ')');
       
       // Carica i dettagli del profilo per la sessione attiva
       try {
@@ -848,16 +849,24 @@ export async function syncWithSupabase(userId: string): Promise<boolean> {
             color: profileData.color || ''
           };
           
-          // Salva la sessione attiva localmente
+          // 🔥 AGGIORNA SEMPRE la sessione attiva localmente (non solo se non esiste)
           activeSession = completeSession;
           await saveSessionLocally(activeSession, 'active');
+          
+          console.log('✅ SYNC: Sessione attiva aggiornata -', completeSession.drinks.length, 'drinks,', completeSession.foods?.length || 0, 'foods');
         }
       } catch (profileError) {
         console.error('Error loading profile for active session:', profileError);
         // Continua comunque con i dati di base
         activeSession = mapSupabaseSessionToLocal(activeSessionFromSupabase);
         await saveSessionLocally(activeSession, 'active');
+        
+        console.log('✅ SYNC: Sessione attiva aggiornata (senza profilo) -', activeSession.drinks.length, 'drinks');
       }
+    } else if (activeSession) {
+      // 🔥 Se NON c'è sessione attiva su Supabase ma c'è localmente, chiudi quella locale
+      console.log('⚠️ SYNC: Nessuna sessione attiva su Supabase, ma c\'è localmente - potrebbe essere stata chiusa da altro dispositivo');
+      // Non chiuderla automaticamente per evitare perdita dati, ma logga il warning
     }
     
     // Aggiorna la cronologia delle sessioni
