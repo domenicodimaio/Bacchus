@@ -25,20 +25,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { isIPad as detectIPad, getDeviceInfo } from '../lib/utils/deviceDetection';
 
-// Dimensioni dello schermo
-const { width, height } = Dimensions.get('window');
-
-// 🔥 RILEVAMENTO IPAD: Usa utility centralizzata con expo-device (più affidabile)
-const isIPad = detectIPad();
-const deviceInfo = getDeviceInfo();
-console.log('📱 Device detection SIGNUP:', deviceInfo);
-
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
 
 export default function SignUpScreen() {
   const { signup } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
+  
+  // 🔥 RILEVAMENTO IPAD: Deve essere DENTRO il componente per funzionare correttamente
+  const { width, height } = Dimensions.get('window');
+  const isIPad = detectIPad();
+  const deviceInfo = getDeviceInfo();
+  
+  // Log device info per debug
+  console.log('📱 SIGNUP: Device detection:', deviceInfo);
+  console.log('📱 SIGNUP: isIPad =', isIPad, '| width =', width, '| height =', height);
   
   // Stato
   const [email, setEmail] = useState('');

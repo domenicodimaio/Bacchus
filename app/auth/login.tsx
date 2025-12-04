@@ -19,13 +19,6 @@ import {
   ScrollView
 } from 'react-native';
 
-// 🔥 RILEVAMENTO IPAD: Usa utility centralizzata con expo-device (più affidabile)
-const { width, height } = Dimensions.get('window');
-const isIPad = detectIPad();
-
-// 🔥 DEBUG: Log completo info dispositivo
-const deviceInfo = getDeviceInfo();
-console.log('🔍 LOGIN: Device detection:', deviceInfo);
 import { router, Link, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -58,6 +51,15 @@ export default function LoginScreen() {
   const { t } = useTranslation(['auth', 'common']);
   const { login, isAuthenticated, loginWithProvider } = useAuth();
   const params = useLocalSearchParams();
+  
+  // 🔥 RILEVAMENTO IPAD: Deve essere DENTRO il componente per funzionare correttamente
+  const { width, height } = Dimensions.get('window');
+  const isIPad = detectIPad();
+  const deviceInfo = getDeviceInfo();
+  
+  // Log device info per debug
+  console.log('🔍 LOGIN: Device detection:', deviceInfo);
+  console.log('🔍 LOGIN: isIPad =', isIPad, '| width =', width, '| height =', height);
   
   // Controlla se stiamo arrivando dalla splash screen
   const isFromSplash = params.fromSplash === 'true';

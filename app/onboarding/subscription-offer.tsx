@@ -13,13 +13,6 @@ import {
   Dimensions,
 } from 'react-native';
 
-// 🔥 RILEVAMENTO IPAD: Usa utility centralizzata con expo-device (più affidabile)
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isIPad = detectIPad();
-
-// 🔥 DEBUG: Log completo info dispositivo
-const deviceInfo = getDeviceInfo();
-console.log('🔍 SUBSCRIPTION: Device detection:', deviceInfo);
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { isIPad as detectIPad, getDeviceInfo } from '../lib/utils/deviceDetection';
@@ -39,6 +32,15 @@ import { usePurchase } from '../contexts/PurchaseContext';
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
   console.log("[SubscriptionOfferScreen] RENDERING - " + new Date().toISOString());
+  
+  // 🔥 RILEVAMENTO IPAD: Deve essere DENTRO il componente per funzionare correttamente
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const isIPad = detectIPad();
+  const deviceInfo = getDeviceInfo();
+  
+  // Log device info per debug
+  console.log('🔍 SUBSCRIPTION: Device detection:', deviceInfo);
+  console.log('🔍 SUBSCRIPTION: isIPad =', isIPad, '| width =', screenWidth, '| height =', screenHeight);
   
   // Parametri basici
   const params = useLocalSearchParams();
