@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import * as purchaseService from '../lib/services/purchase.service';
 import { PremiumFeatures, PurchaseState, FREE_LIMITS } from '../types/purchases';
-import { isIPad as checkIsIPad } from '../lib/utils/deviceUtils';
+import { isIPad as detectIPad, getDeviceInfo } from '../lib/utils/deviceDetection';
 
 // 🚨 DEBUG ESTREMO: Questo log DEVE apparire sempre
 console.log('🚨🚨🚨 PURCHASE_CONTEXT.TSX CARICATO! 🚨🚨🚨');
@@ -154,9 +154,8 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       // 🔥 FIX RACE CONDITION: Se c'è un utente, imposta prima l'utente per RevenueCat
       if (user?.id) {
         console.log('🎯 INIT: Impostando utente per RevenueCat...');
-        const isIPad = checkIsIPad();
-        const { width, height } = Dimensions.get('window');
-        console.log('🎯 INIT: Device info - Platform:', Platform.OS, 'isIPad:', isIPad, 'dimensions:', { width, height, aspectRatio: Math.max(width, height) / Math.min(width, height) });
+        const deviceInfo = getDeviceInfo();
+        console.log('🎯 INIT: Device info:', deviceInfo);
         
         await purchaseService.setUserForPurchases(user.id);
         

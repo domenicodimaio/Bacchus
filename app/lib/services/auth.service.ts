@@ -28,8 +28,8 @@ import { Linking, Platform, Dimensions } from 'react-native';
 import config from '../config';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { remoteLogger, logError, logInfo } from './logging.service';
-import { isIPad as checkIsIPad } from '../utils/deviceUtils';
 import storageService, { STORAGE_KEYS } from './storage.service';
+import { isIPad as detectIPad, getDeviceInfo } from '../utils/deviceDetection';
 
 // Variabili usate per le importazioni ritardate, per evitare dipendenze cicliche
 let profileService: any = null;
@@ -779,10 +779,11 @@ export const signInWithProvider = async (provider: 'google' | 'apple'): Promise<
               // 2. 🔥 NUOVO: Salva anche con Apple ID per condivisione cross-device
               if (appleUserData.appleId) {
                 const appleIdSpecificKey = `APPLE_USER_DATA_APPLE_${appleUserData.appleId}`;
+                const deviceInfo = getDeviceInfo();
                 await AsyncStorage.setItem(appleIdSpecificKey, JSON.stringify({
                   ...appleUserData,
                   internalUserId: data.user.id, // Salva anche l'ID interno per riferimento
-                  deviceType: checkIsIPad() ? 'iPad' : 'iPhone',
+                  deviceType: deviceInfo.isIPad ? 'iPad' : 'iPhone',
                   savedAt: new Date().toISOString()
                 }));
                 console.log('🍎 APPLE CROSS-DEVICE: Salvato anche con Apple ID per condivisione');

@@ -4,7 +4,7 @@ import { ProductType, PRODUCT_IDS, Entitlement, FREE_LIMITS } from '../../types/
 import Constants from 'expo-constants';
 import * as authService from './auth.service';
 import supabase from '../supabase/client';
-import { isIPad as checkIsIPad } from '../utils/deviceUtils';
+import { isIPad as detectIPad, getDeviceInfo } from '../utils/deviceDetection';
 
 // 🚨 DEBUG ESTREMO: Questo log DEVE apparire sempre
 console.log('🚨🚨🚨 PURCHASE.SERVICE.TS CARICATO! 🚨🚨🚨');
@@ -88,7 +88,8 @@ const validateReceiptOnServer = async (receiptData, sharedSecret = null) => {
       body: JSON.stringify({
         receiptData,
         sharedSecret
-      })
+      }),
+      timeout: 30000 // 30 secondi timeout
     });
 
     if (!response.ok) {
@@ -132,19 +133,8 @@ let currentUserId: string | null = null;
 export const setUserForPurchases = async (userId: string): Promise<boolean> => {
   try {
     console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
-    const isIPad = checkIsIPad();
-    const { width, height } = Dimensions.get('window');
-    console.log(`🎯 PURCHASE_SERVICE: Platform info:`, {
-      OS: Platform.OS,
-      isPad: isIPad,
-      isPhone: !isIPad,
-      deviceInfo: {
-        width: width,
-        height: height,
-        minDimension: Math.min(width, height),
-        aspectRatio: Math.max(width, height) / Math.min(width, height)
-      }
-    });
+    const deviceInfo = getDeviceInfo();
+    console.log(`🎯 PURCHASE_SERVICE: Platform info:`, deviceInfo);
     
     // 🔥 FIX PREMIUM PERSISTENCE: Controlla se l'utente usa Apple Sign In
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
@@ -210,7 +200,7 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
           console.log(`🍎 APPLE SIGN IN: Usando Apple ID come RevenueCat user ID`);
           console.log(`   App User ID: ${userId}`);
           console.log(`   RevenueCat User ID: ${revenueCatUserId}`);
-          console.log(`   Device: ${isIPad ? 'iPad' : 'iPhone'}`);
+          console.log(`   Device: ${deviceInfo.isIPad ? 'iPad' : 'iPhone'}`);
         } else {
           console.warn(`⚠️ PURCHASE_SERVICE: Apple User Data presente ma senza appleId!`);
         }
@@ -319,18 +309,9 @@ export const initPurchases = async () => {
       try {
         console.log('🛒 PURCHASES: Inizializzazione RevenueCat con chiave:', apiKey.substring(0, 10) + '...');
         
-        // Verifica che Purchases sia disponibile
-        if (!Purchases || typeof Purchases.configure !== 'function') {
-          throw new Error('RevenueCat Purchases non disponibile o non valido');
-        }
-        
         // Configura RevenueCat in modalità debug in ambiente di sviluppo
-        if (__DEV__ && LOG_LEVEL) {
-          try {
-            Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-          } catch (logError) {
-            console.warn('⚠️ PURCHASES: Impossibile impostare log level:', logError);
-          }
+        if (__DEV__) {
+          Purchases.setLogLevel(LOG_LEVEL.DEBUG);
         }
         
         // Inizializza SDK RevenueCat
@@ -377,8 +358,8 @@ export const initPurchases = async () => {
         // Step 2: Caricamento prodotti con timeout
         console.log('📦 INIT: Caricamento prodotti configurati...');
         const productIds = [
-          PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
-          PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios
+          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_MONTHLY.ios,
+          PRODUCT_IDS.PREMIUM_SUBSCRIPTION_YEARLY.ios
         ];
         
         console.log('🔍 INIT: Cercando prodotti:', productIds);
@@ -739,8 +720,8 @@ export const getProducts = async () => {
         console.warn('PURCHASES: Offerings vuote - fallback a getProducts con PRODUCT_IDS');
         try {
           const productIds: string[] = [
-            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
-            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios,
+            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
+            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
           ].filter(Boolean) as string[];
           // RevenueCat v7 richiede il type per gli abbonamenti
           const products = await Purchases.getProducts(
@@ -764,8 +745,8 @@ export const getProducts = async () => {
         // Fallback anche in caso di errore su getOfferings
         try {
           const productIds: string[] = [
-            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_MONTHLY].ios,
-            PRODUCT_IDS[ProductType.PREMIUM_SUBSCRIPTION_YEARLY].ios,
+            PRODUCT_IDS.iosMonthly || PRODUCT_IDS.monthly || 'com.bacchusapp.app.Monthly',
+            PRODUCT_IDS.iosAnnual || PRODUCT_IDS.annual || 'com.bacchusapp.app.Annual',
           ].filter(Boolean) as string[];
           const products = await Purchases.getProducts(
             productIds,

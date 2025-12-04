@@ -12,9 +12,17 @@ import {
   Linking,
   Dimensions,
 } from 'react-native';
+
+// 🔥 RILEVAMENTO IPAD: Usa utility centralizzata con expo-device (più affidabile)
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isIPad = detectIPad();
+
+// 🔥 DEBUG: Log completo info dispositivo
+const deviceInfo = getDeviceInfo();
+console.log('🔍 SUBSCRIPTION: Device detection:', deviceInfo);
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { isIPad as checkIsIPad, getDeviceInfo } from '../lib/utils/deviceUtils';
+import { isIPad as detectIPad, getDeviceInfo } from '../lib/utils/deviceDetection';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -31,25 +39,6 @@ import { usePurchase } from '../contexts/PurchaseContext';
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
   console.log("[SubscriptionOfferScreen] RENDERING - " + new Date().toISOString());
-  
-  // 🔥 RILEVAMENTO IPAD: Usa funzione affidabile da deviceUtils
-  const deviceInfo = getDeviceInfo();
-  const isIPad = deviceInfo.isIPad;
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-  
-  // 🔥 DEBUG: Log dettagliato per verificare rilevamento iPad
-  console.log('🔍 SUBSCRIPTION: Device detection COMPLETO:', {
-    platform: Platform.OS,
-    width: screenWidth,
-    height: screenHeight,
-    minDimension: Math.min(screenWidth, screenHeight),
-    maxDimension: Math.max(screenWidth, screenHeight),
-    aspectRatio: Math.max(screenWidth, screenHeight) / Math.min(screenWidth, screenHeight),
-    isIPad: isIPad,
-    deviceType: deviceInfo.deviceType,
-    orientation: deviceInfo.orientation,
-    isLargeScreen: deviceInfo.isLargeScreen
-  });
   
   // Parametri basici
   const params = useLocalSearchParams();
@@ -470,20 +459,21 @@ const styles = StyleSheet.create({
     marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
   },
   planCard: {
-    padding: isIPad ? 14 : 20,
+    padding: isIPad ? 12 : 20, // iPad: MOLTO ridotto per evitare overlap
     borderRadius: 12,
-    marginBottom: isIPad ? 10 : 16,
+    marginBottom: isIPad ? 8 : 16, // iPad: ridotto per scaling
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 100 : 120, // iPad: aumentato per evitare overlap
+    minHeight: isIPad ? 80 : 120, // iPad: MOLTO ridotto per fit
+    maxHeight: isIPad ? 90 : 'auto', // iPad: limita altezza per evitare overlap
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 14 : 16,
+    fontSize: isIPad ? 12 : 16, // iPad: MOLTO ridotto per evitare overlap
     fontWeight: 'bold',
-    marginBottom: isIPad ? 6 : 8,
+    marginBottom: isIPad ? 4 : 8, // iPad: ridotto per scaling
   },
   priceContainer: {
     flexDirection: 'row', // Stesso layout per tutti
@@ -492,21 +482,23 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
   },
   fullPrice: {
-    fontSize: isIPad ? 13 : 14,
+    fontSize: isIPad ? 12 : 14, // iPad: ridotto per fit
     fontWeight: '400',
     textDecorationLine: 'line-through',
-    marginRight: 6,
+    marginRight: 6, // Stesso margin per tutti
   },
   planPrice: {
-    fontSize: isIPad ? 13 : 15,
+    fontSize: isIPad ? 11 : 15, // iPad: MOLTO ridotto per evitare overlap
     fontWeight: '600',
-    marginBottom: isIPad ? 4 : 4,
+    marginBottom: isIPad ? 2 : 4, // iPad: ridotto per scaling
   },
   planDetails: {
-    fontSize: isIPad ? 10 : 10,
-    marginTop: isIPad ? 4 : 6,
-    textAlign: 'center',
-    lineHeight: isIPad ? 14 : 14,
+    fontSize: isIPad ? 8 : 10, // iPad: MOLTO più piccolo per evitare overlap
+    marginTop: isIPad ? 2 : 6, // iPad: ridotto per scaling
+    textAlign: 'center', // Stesso allineamento per tutti
+    lineHeight: isIPad ? 10 : 14, // iPad: ridotto per fit
+    maxHeight: isIPad ? 20 : 'auto', // iPad: limita altezza per evitare overlap
+    overflow: 'hidden', // iPad: taglia testo se troppo lungo
   },
   discountBadge: {
     marginLeft: 10, // Stesso margin per tutti
@@ -516,7 +508,7 @@ const styles = StyleSheet.create({
   },
   discountText: {
     color: 'white',
-    fontSize: isIPad ? 10 : 11,
+    fontSize: isIPad ? 9 : 11, // iPad: ridotto per fit
     fontWeight: 'bold',
   },
   checkmark: {
