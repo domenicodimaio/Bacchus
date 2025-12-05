@@ -29,18 +29,16 @@ import usePremiumFeatures from '../hooks/usePremiumFeatures';
 import { clearAllNavigationBlocks } from '../contexts/AuthContext';
 import { usePurchase } from '../contexts/PurchaseContext';
 
+// 🔥 RILEVAMENTO IPAD: Valutato UNA SOLA VOLTA a livello modulo (non ad ogni render)
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isIPad = detectIPad();
+const deviceInfo = getDeviceInfo();
+console.log('🔍 SUBSCRIPTION MODULE: Device detection:', deviceInfo);
+console.log('🔍 SUBSCRIPTION MODULE: isIPad =', isIPad, '| width =', screenWidth, '| height =', screenHeight);
+
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {
   console.log("[SubscriptionOfferScreen] RENDERING - " + new Date().toISOString());
-  
-  // 🔥 RILEVAMENTO IPAD: Deve essere DENTRO il componente per funzionare correttamente
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-  const isIPad = detectIPad();
-  const deviceInfo = getDeviceInfo();
-  
-  // Log device info per debug
-  console.log('🔍 SUBSCRIPTION: Device detection:', deviceInfo);
-  console.log('🔍 SUBSCRIPTION: isIPad =', isIPad, '| width =', screenWidth, '| height =', screenHeight);
   
   // Parametri basici
   const params = useLocalSearchParams();

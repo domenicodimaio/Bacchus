@@ -39,7 +39,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import config from '../lib/config';
 import { createClient } from '@supabase/supabase-js';
 
-// Le dimensioni dello schermo sono già dichiarate sopra (riga 22)
+// 🔥 RILEVAMENTO IPAD: Valutato UNA SOLA VOLTA a livello modulo (non ad ogni render)
+// Questo previene race conditions e deadlock durante l'inizializzazione
+const { width, height } = Dimensions.get('window');
+const isIPad = detectIPad();
+const deviceInfo = getDeviceInfo();
+console.log('🔍 LOGIN MODULE: Device detection:', deviceInfo);
+console.log('🔍 LOGIN MODULE: isIPad =', isIPad, '| width =', width, '| height =', height);
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
@@ -51,15 +57,6 @@ export default function LoginScreen() {
   const { t } = useTranslation(['auth', 'common']);
   const { login, isAuthenticated, loginWithProvider } = useAuth();
   const params = useLocalSearchParams();
-  
-  // 🔥 RILEVAMENTO IPAD: Deve essere DENTRO il componente per funzionare correttamente
-  const { width, height } = Dimensions.get('window');
-  const isIPad = detectIPad();
-  const deviceInfo = getDeviceInfo();
-  
-  // Log device info per debug
-  console.log('🔍 LOGIN: Device detection:', deviceInfo);
-  console.log('🔍 LOGIN: isIPad =', isIPad, '| width =', width, '| height =', height);
   
   // Controlla se stiamo arrivando dalla splash screen
   const isFromSplash = params.fromSplash === 'true';
