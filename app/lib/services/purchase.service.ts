@@ -411,55 +411,11 @@ const initMockMode = async () => {
   } else {
     console.log(`🔧 DEV: Mantenendo stato premium esistente: ${existingMockPremium}`);
   }
+  
+  // Verifica e reset il contatore sessioni settimanali
+  await checkAndResetWeeklySessionCount();
+  
   return true;
-    
-    // 🛒 INIZIALIZZAZIONE REVENUECAT MIGLIORATA
-    const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
-    
-    // Verifica se abbiamo chiavi API valide
-    if (apiKey === 'dummy_key' || apiKey.includes('YOUR_REVENUECAT')) {
-        console.log('🛒 PURCHASES: Chiavi API non configurate - fallback locale');
-      isRevenueCatAvailable = false;
-      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'false');
-      return true;
-    }
-    
-    try {
-      console.log('🛒 PURCHASES: Inizializzazione RevenueCat con chiave:', apiKey.substring(0, 10) + '...');
-      
-      // Configura RevenueCat in modalità debug in ambiente di sviluppo
-      if (__DEV__) {
-        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-      }
-      
-      // Inizializza SDK RevenueCat
-      await Purchases.configure({
-        apiKey,
-        appUserID: null, // L'ID utente sarà impostato dopo la login
-      });
-      
-      console.log('✅ PURCHASES: RevenueCat inizializzato con successo');
-      
-      // Verifica che RevenueCat sia effettivamente funzionante
-      try {
-        const offerings = await Purchases.getOfferings();
-        console.log('✅ PURCHASES: Offerings caricate:', Object.keys(offerings.all).length);
-      } catch (offeringsError) {
-        console.warn('⚠️ PURCHASES: Impossibile caricare offerings:', offeringsError);
-        // Non bloccare l'app, ma nota il problema
-      }
-      
-    } catch (revenueCatError) {
-      console.warn('❌ PURCHASES: Fallimento inizializzazione RevenueCat:', revenueCatError);
-      // Se RevenueCat fallisce, passiamo al fallback locale
-      isRevenueCatAvailable = false;
-      await AsyncStorage.setItem(getUserSpecificKey(STORAGE_KEYS.PREMIUM_STATUS, currentUserId), 'false');
-    }
-    
-    // Verifica e reset il contatore sessioni settimanali
-    await checkAndResetWeeklySessionCount();
-    
-    return true;
 };
 
 
