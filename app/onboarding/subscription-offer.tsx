@@ -248,6 +248,30 @@ export default function SubscriptionOfferScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
       
+      {/* 🔥 DEBUG BANNER: Mostra se è iPad */}
+      {isIPad && (
+        <View style={{
+          position: 'absolute',
+          top: 50,
+          left: 0,
+          right: 0,
+          backgroundColor: '#ff0000',
+          padding: 15,
+          zIndex: 9999,
+          alignItems: 'center'
+        }}>
+          <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold' }}>
+            🔥 IPAD RILEVATO 🔥
+          </Text>
+          <Text style={{ color: '#ffffff', fontSize: 12, marginTop: 5 }}>
+            Width: {screenWidth} | Height: {screenHeight}
+          </Text>
+          <Text style={{ color: '#ffffff', fontSize: 12 }}>
+            Device Type: {deviceInfo.deviceType}
+          </Text>
+        </View>
+      )}
+      
       {/* Bottone di chiusura */}
       <TouchableOpacity 
         onPress={handleClose}

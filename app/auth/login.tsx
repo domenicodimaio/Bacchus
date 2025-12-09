@@ -15,8 +15,7 @@ import {
   Animated,
   Easing,
   Dimensions,
-  Linking,
-  ScrollView
+  Linking
 } from 'react-native';
 
 import { router, Link, useLocalSearchParams } from 'expo-router';
@@ -451,13 +450,31 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        <ScrollView 
-          contentContainerStyle={[styles.scrollContainer]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          scrollEnabled={!isIPad} // 🔥 NON scrollabile su iPad, scrollabile su iPhone
-        >
-          <View style={[styles.innerContainer]}>
+        {/* 🔥 DEBUG BANNER: Mostra se è iPad */}
+        {isIPad && (
+          <View style={{
+            position: 'absolute',
+            top: 50,
+            left: 0,
+            right: 0,
+            backgroundColor: '#ff0000',
+            padding: 15,
+            zIndex: 9999,
+            alignItems: 'center'
+          }}>
+            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold' }}>
+              🔥 IPAD RILEVATO 🔥
+            </Text>
+            <Text style={{ color: '#ffffff', fontSize: 12, marginTop: 5 }}>
+              Width: {width} | Height: {height}
+            </Text>
+            <Text style={{ color: '#ffffff', fontSize: 12 }}>
+              Device Type: {deviceInfo.deviceType}
+            </Text>
+          </View>
+        )}
+        
+        <View style={[styles.innerContainer]}>
             {/* Logo */}
             <View 
               style={styles.logoContainer}
@@ -667,7 +684,6 @@ export default function LoginScreen() {
               </Link>
             </Animated.View>
           </View>
-        </ScrollView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -677,22 +693,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
   innerContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between', // Torna al layout originale
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   logoContainer: {
     alignItems: 'center',
