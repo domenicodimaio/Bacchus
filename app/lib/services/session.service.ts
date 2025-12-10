@@ -418,8 +418,11 @@ export async function initSessionService(userId?: string): Promise<void> {
   try {
     console.log('[SESSION_SERVICE] Inizializzazione con ricaricamento cronologia...');
     
-    // 🔥 FIX BUG 1: Ricarica la cronologia dopo il login
+    // 🔥 FIX SYNC: Imposta _currentUserId per abilitare sync cross-device
     if (userId) {
+      _currentUserId = userId;
+      console.log(`[SESSION_SERVICE] 🔥 _currentUserId impostato: ${userId}`);
+      
       console.log(`[SESSION_SERVICE] Ricaricamento cronologia per utente ${userId}...`);
       await loadSessionHistoryFromStorage();
       console.log(`[SESSION_SERVICE] ✅ Cronologia ricaricata: ${sessionHistory.length} sessioni`);
@@ -781,6 +784,10 @@ export async function syncWithSupabase(userId: string): Promise<boolean> {
       console.error('Invalid user ID for syncing with Supabase');
       return false;
     }
+    
+    // 🔥 FIX SYNC: Imposta _currentUserId per abilitare sync cross-device
+    _currentUserId = userId;
+    console.log('🔥 SYNC: _currentUserId impostato:', userId);
     
     // Se c'è una sessione attiva, salvala su Supabase
     if (activeSession) {
