@@ -248,31 +248,6 @@ export default function SubscriptionOfferScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
       
-      {/* 🔥 DEBUG BANNER: Mostra SEMPRE per debug */}
-      <View style={{
-        position: 'absolute',
-        top: 50,
-        left: 0,
-        right: 0,
-        backgroundColor: isIPad ? '#00ff00' : '#ff0000',
-        padding: 15,
-        zIndex: 9999,
-        alignItems: 'center'
-      }}>
-        <Text style={{ color: '#000000', fontSize: 14, fontWeight: 'bold' }}>
-          {isIPad ? '✅ IPAD RILEVATO' : '❌ NON IPAD'}
-        </Text>
-        <Text style={{ color: '#000000', fontSize: 10, marginTop: 3 }}>
-          {screenWidth}x{screenHeight} | Type: {deviceInfo.deviceTypeName}
-        </Text>
-        <Text style={{ color: '#000000', fontSize: 10 }}>
-          Model: {deviceInfo.modelName || 'N/A'}
-        </Text>
-        <Text style={{ color: '#000000', fontSize: 10 }}>
-          Platform.isPad: {String(deviceInfo.platformIsPad)}
-        </Text>
-      </View>
-      
       {/* Bottone di chiusura */}
       <TouchableOpacity 
         onPress={handleClose}
@@ -484,21 +459,21 @@ const styles = StyleSheet.create({
     marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
   },
   planCard: {
-    padding: isIPad ? 12 : 20, // iPad: MOLTO ridotto per evitare overlap
+    padding: isIPad ? 10 : 20, // iPad: MOLTO ridotto per evitare overlap
     borderRadius: 12,
-    marginBottom: isIPad ? 8 : 16, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 6 : 16, // iPad: ridotto per scaling
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 80 : 120, // iPad: MOLTO ridotto per fit
-    maxHeight: isIPad ? 90 : 'auto', // iPad: limita altezza per evitare overlap
+    minHeight: isIPad ? 70 : 120, // iPad: MOLTO ridotto per fit
+    justifyContent: 'center', // Centra contenuto verticalmente
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 12 : 16, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: isIPad ? 11 : 16, // iPad: MOLTO ridotto per evitare overlap
     fontWeight: 'bold',
-    marginBottom: isIPad ? 4 : 8, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 3 : 8, // iPad: ridotto per scaling
   },
   priceContainer: {
     flexDirection: 'row', // Stesso layout per tutti
@@ -507,23 +482,22 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
   },
   fullPrice: {
-    fontSize: isIPad ? 12 : 14, // iPad: ridotto per fit
+    fontSize: isIPad ? 10 : 14, // iPad: ridotto per fit
     fontWeight: '400',
     textDecorationLine: 'line-through',
     marginRight: 6, // Stesso margin per tutti
   },
   planPrice: {
-    fontSize: isIPad ? 11 : 15, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: isIPad ? 10 : 15, // iPad: MOLTO ridotto per evitare overlap
     fontWeight: '600',
-    marginBottom: isIPad ? 2 : 4, // iPad: ridotto per scaling
+    marginBottom: isIPad ? 1 : 4, // iPad: ridotto per scaling
   },
   planDetails: {
-    fontSize: isIPad ? 8 : 10, // iPad: MOLTO più piccolo per evitare overlap
-    marginTop: isIPad ? 2 : 6, // iPad: ridotto per scaling
+    fontSize: isIPad ? 7 : 10, // iPad: MOLTO più piccolo per evitare overlap
+    marginTop: isIPad ? 1 : 6, // iPad: ridotto per scaling
     textAlign: 'center', // Stesso allineamento per tutti
-    lineHeight: isIPad ? 10 : 14, // iPad: ridotto per fit
-    maxHeight: isIPad ? 20 : 'auto', // iPad: limita altezza per evitare overlap
-    overflow: 'hidden', // iPad: taglia testo se troppo lungo
+    lineHeight: isIPad ? 9 : 14, // iPad: ridotto per fit
+    numberOfLines: isIPad ? 1 : undefined, // iPad: massimo 1 riga
   },
   discountBadge: {
     marginLeft: 10, // Stesso margin per tutti

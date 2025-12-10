@@ -450,31 +450,6 @@ export default function LoginScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}>
         <StatusBar style="light" />
         
-        {/* 🔥 DEBUG BANNER: Mostra SEMPRE per debug */}
-        <View style={{
-          position: 'absolute',
-          top: 50,
-          left: 0,
-          right: 0,
-          backgroundColor: isIPad ? '#00ff00' : '#ff0000',
-          padding: 15,
-          zIndex: 9999,
-          alignItems: 'center'
-        }}>
-          <Text style={{ color: '#000000', fontSize: 14, fontWeight: 'bold' }}>
-            {isIPad ? '✅ IPAD RILEVATO' : '❌ NON IPAD'}
-          </Text>
-          <Text style={{ color: '#000000', fontSize: 10, marginTop: 3 }}>
-            {width}x{height} | Type: {deviceInfo.deviceTypeName}
-          </Text>
-          <Text style={{ color: '#000000', fontSize: 10 }}>
-            Model: {deviceInfo.modelName || 'N/A'}
-          </Text>
-          <Text style={{ color: '#000000', fontSize: 10 }}>
-            Platform.isPad: {String(deviceInfo.platformIsPad)}
-          </Text>
-        </View>
-        
         <View style={[styles.innerContainer]}>
             {/* Logo */}
             <View 
