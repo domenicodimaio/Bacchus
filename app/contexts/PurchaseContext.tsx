@@ -303,17 +303,19 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           
           // Step 3: Controlla stato premium MULTIPLO per essere sicuri
           const deviceInfo = getDeviceInfo();
-          const maxRetries = deviceInfo.isIPad ? 5 : 3; // Più tentativi su iPad
+          const maxRetries = deviceInfo.isIPad ? 8 : 5; // Più tentativi (8 su iPad, 5 su iPhone)
           console.log(`🎯 USER LOGIN: Step 3 - Controllo stato premium (max ${maxRetries} tentativi su ${deviceInfo.isIPad ? 'iPad' : 'iPhone'})...`);
           
           let isPremium = await purchaseService.isPremium();
           console.log(`🎯 USER LOGIN: Tentativo 1/${maxRetries} - isPremium: ${isPremium}`);
       
-          // Se non è premium, riprova con delay
+          // Se non è premium, riprova con delay INCREMENTALE
           let retryCount = 1;
           while (!isPremium && retryCount < maxRetries) {
             retryCount++;
-            const delay = deviceInfo.isIPad ? 500 : 100; // Delay più lungo su iPad
+            // Delay incrementale: inizia da 300ms e aumenta progressivamente
+            const baseDelay = deviceInfo.isIPad ? 500 : 300;
+            const delay = baseDelay * retryCount; // 300ms, 600ms, 900ms, 1200ms...
             console.log(`🎯 USER LOGIN: Non premium, tentativo ${retryCount}/${maxRetries} dopo ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             
