@@ -287,12 +287,7 @@ export default function SubscriptionOfferScreen() {
               €{monthlyPrice}/{t('month', { ns: 'common', defaultValue: "mese" })}
             </Text>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {isIPad ? 
-                // iPad: Testo più corto per evitare overlap
-                t('subscriptionShort', { ns: 'purchases', defaultValue: '1 mese' }) :
-                // iPhone: Testo completo
-                t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })
-              }
+              {t('subscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 mese • Rinnovo automatico' })}
             </Text>
             
             {selectedPlan === 'monthly' && (
@@ -326,12 +321,7 @@ export default function SubscriptionOfferScreen() {
               </View>
             </View>
             <Text style={[styles.planDetails, { color: colors.textSecondary }]}>
-              {isIPad ? 
-                // iPad: Testo MOLTO più corto per evitare overlap
-                t('yearlySubscriptionShort', { ns: 'purchases', defaultValue: '€' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese' }) :
-                // iPhone: Testo completo
-                t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })
-              }
+              {t('yearlySubscriptionLength', { ns: 'purchases', defaultValue: 'Durata: 1 anno • €' + (parseFloat(yearlyPrice)/12).toFixed(2) + '/mese • Rinnovo automatico' })}
             </Text>
             
             {selectedPlan === 'yearly' && (
@@ -436,78 +426,76 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: isIPad ? 16 : 20, // iPad: ridotto per scaling
-    marginBottom: isIPad ? 12 : 20, // iPad: ridotto per scaling
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   logo: {
-    width: isIPad ? 50 : 70, // iPad: MOLTO più piccolo per fit
-    height: isIPad ? 50 : 70,
-    marginBottom: isIPad ? 8 : 10, // iPad: ridotto per scaling
+    width: 70,
+    height: 70,
+    marginBottom: 10,
   },
   title: {
-    fontSize: isIPad ? 20 : 24, // iPad: ridotto per fit
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: isIPad ? 6 : 6, // iPad: ridotto per scaling
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     textAlign: 'center',
   },
   planContainer: {
-    paddingHorizontal: isIPad ? 20 : 24, // iPad: ridotto per scaling
-    marginBottom: isIPad ? 16 : 24, // iPad: ridotto per scaling
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   planCard: {
-    padding: isIPad ? 10 : 20, // iPad: MOLTO ridotto per evitare overlap
+    padding: 20,
     borderRadius: 12,
-    marginBottom: isIPad ? 6 : 16, // iPad: ridotto per scaling
+    marginBottom: 16,
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: isIPad ? 70 : 120, // iPad: MOLTO ridotto per fit
-    justifyContent: 'center', // Centra contenuto verticalmente
+    minHeight: 120,
   },
   selectedCard: {
     borderWidth: 2,
   },
   planTitle: {
-    fontSize: isIPad ? 11 : 16, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 3 : 8, // iPad: ridotto per scaling
+    marginBottom: 8,
   },
   priceContainer: {
-    flexDirection: 'row', // Stesso layout per tutti
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isIPad ? 4 : 4, // Stesso spacing
+    marginBottom: 4,
     flexWrap: 'nowrap',
   },
   fullPrice: {
-    fontSize: isIPad ? 10 : 14, // iPad: ridotto per fit
+    fontSize: 14,
     fontWeight: '400',
     textDecorationLine: 'line-through',
-    marginRight: 6, // Stesso margin per tutti
+    marginRight: 6,
   },
   planPrice: {
-    fontSize: isIPad ? 10 : 15, // iPad: MOLTO ridotto per evitare overlap
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: isIPad ? 1 : 4, // iPad: ridotto per scaling
+    marginBottom: 4,
   },
   planDetails: {
-    fontSize: isIPad ? 7 : 10, // iPad: MOLTO più piccolo per evitare overlap
-    marginTop: isIPad ? 1 : 6, // iPad: ridotto per scaling
-    textAlign: 'center', // Stesso allineamento per tutti
-    lineHeight: isIPad ? 9 : 14, // iPad: ridotto per fit
-    numberOfLines: isIPad ? 1 : undefined, // iPad: massimo 1 riga
+    fontSize: 10,
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   discountBadge: {
-    marginLeft: 10, // Stesso margin per tutti
-    paddingHorizontal: isIPad ? 6 : 8, // iPad: ridotto per scaling
-    paddingVertical: isIPad ? 2 : 3, // iPad: ridotto per scaling
+    marginLeft: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 12,
   },
   discountText: {
     color: 'white',
-    fontSize: isIPad ? 9 : 11, // iPad: ridotto per fit
+    fontSize: 11,
     fontWeight: 'bold',
   },
   checkmark: {
