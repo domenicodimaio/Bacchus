@@ -256,7 +256,11 @@ export default function SubscriptionOfferScreen() {
         <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
       
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -375,6 +379,7 @@ export default function SubscriptionOfferScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </ScrollView>
       
       {/* Bottoni in basso */}
       <View style={[styles.bottomButtons, { backgroundColor: colors.background }]}>
@@ -409,6 +414,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
     paddingTop: 60,
     paddingBottom: 20,
   },
@@ -504,28 +511,30 @@ const styles = StyleSheet.create({
     right: 16,
   },
   featuresContainer: {
-    paddingHorizontal: isIPad ? 16 : 20, // iPad: ridotto per scaling
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
   featuresTitle: {
-    fontSize: isIPad ? 16 : 18, // iPad: ridotto per fit
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: isIPad ? 10 : 12, // iPad: ridotto per scaling
+    marginBottom: 12,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isIPad ? 8 : 10, // iPad: ridotto per scaling
+    marginBottom: 10,
   },
   featureIcon: {
-    marginRight: isIPad ? 8 : 10, // iPad: ridotto per scaling
+    marginRight: 10,
   },
   featureText: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     flex: 1,
   },
   legalLinksContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
+    marginTop: 20,
     alignItems: 'center',
   },
   legalDisclaimer: {
@@ -552,32 +561,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   bottomButtons: {
-    padding: isIPad ? 12 : 16, // iPad: ridotto per scaling
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-    minHeight: isIPad ? 100 : 120, // iPad: ridotto per fit
+    minHeight: 120,
   },
   primaryButton: {
-    height: isIPad ? 44 : 56, // iPad: ridotto ma conforme Apple (44px min)
+    height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: isIPad ? 12 : 16, // iPad: ridotto per scaling
+    marginBottom: 16,
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     fontWeight: 'bold',
   },
   secondaryButton: {
-    height: isIPad ? 44 : 50, // iPad: ridotto ma conforme Apple
+    height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 44, // Touch target minimo Apple
+    minHeight: 44,
   },
   secondaryButtonText: {
-    fontSize: isIPad ? 14 : 16, // iPad: ridotto per fit
+    fontSize: 16,
     fontWeight: '600',
   },
 });
