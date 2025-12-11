@@ -349,10 +349,9 @@ export default function SubscriptionOfferScreen() {
             </View>
           ))}
         </View>
-      </View>
-      
-      {/* Link legali richiesti da Apple */}
-      <View style={styles.legalLinksContainer}>
+        
+        {/* Link legali richiesti da Apple */}
+        <View style={styles.legalLinksContainer}>
         <Text style={[styles.legalDisclaimer, { color: colors.textSecondary }]}>
           {t('subscriptionAutoRenews', { ns: 'purchases', defaultValue: 'L\'abbonamento si rinnova automaticamente. Puoi annullare in qualsiasi momento.' })}
         </Text>
