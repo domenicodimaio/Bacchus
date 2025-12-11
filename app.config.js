@@ -18,7 +18,7 @@ export default {
     ios: {
       supportsTablet: false, // 🔄 APPLE FEEDBACK: iPhone-only ma che funzioni bene quando upscalato su iPad
       bundleIdentifier: 'com.bacchusapp.app',
-      buildNumber: '2914',
+      buildNumber: '2915',
       infoPlist: {
         UIDeviceFamily: [1], // 1 = iPhone only - ma layout responsive per upscaling iPad
         UIRequiresFullScreen: true, // iPhone app in modalità fullscreen
@@ -49,7 +49,7 @@ export default {
     },
       android: {
         package: 'com.bacchusapp.app',
-        versionCode: 2914,
+        versionCode: 2915,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#0c1620'
