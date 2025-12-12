@@ -1,0 +1,69 @@
+Subject: Re: App Review - Bacchus 1.2.3 (Build 2914) - Guideline 1.4 & 4.0
+
+Dear Apple Review Team,
+
+Thank you for your feedback on Bacchus version 1.2.3. We have addressed both issues identified in your review.
+
+
+GUIDELINE 4.0 - DESIGN (iPad UI) - RESOLVED
+
+Issue: Text overlapped in the Subscriptions screen on iPad Air (5th generation).
+
+Resolution: We have completely redesigned the subscription screen with proper iPad support:
+
+1. Fixed iPad Detection: Implemented robust device detection using multiple methods (Device.modelName, Platform.isPad, screen dimensions)
+2. Optimized Layout: 
+   - Reduced card padding and margins for better fit
+   - Changed text alignment from center to left for better readability
+   - Removed fixed heights to allow dynamic content sizing
+   - Added ScrollView to prevent content overflow
+3. Tested on Multiple iPad Models: iPad Mini, iPad Air, iPad Pro 11", iPad Pro 12.9", iPad (9th gen)
+
+The subscription screen now displays perfectly on all iPad models with no text overlap.
+
+Build: 2914 (submitted today)
+
+
+GUIDELINE 1.4 - PHYSICAL HARM (BAC Calculator)
+
+Previous Submission: We have already submitted comprehensive documentation through the App Review Request form in App Store Connect, including:
+
+1. Medical Disclaimers: Clear warnings that the app is for educational purposes only
+2. Legal Disclaimers: Explicit statements that users should never drive after drinking
+3. Scientific Documentation: Widmark formula explanation and limitations
+4. User Safety Features: 
+   - Prominent warnings before each session
+   - "Never drive" reminders throughout the app
+   - Conservative BAC calculations (erring on the side of caution)
+
+Request: Could you please provide an update on the documentation review we submitted via the App Review Request form? We want to ensure all materials have been properly reviewed.
+
+Additional Context: 
+- The app is marketed as an educational tool to help users understand alcohol's effects
+- We explicitly state it is NOT a replacement for professional breathalyzers
+- All disclaimers are prominently displayed and cannot be bypassed
+- The app encourages responsible drinking and never driving after consuming alcohol
+
+We understand Apple's concern for user safety and have designed Bacchus with this as our top priority. We believe our comprehensive disclaimers and educational approach meet the spirit of Guideline 1.4 while providing valuable information to users.
+
+
+NEXT STEPS
+
+1. Please review the updated build 2914 which resolves the iPad UI issue (Guideline 4.0)
+2. Please confirm receipt and status of our Physical Harm documentation submitted via App Review Request
+3. If additional clarifications are needed regarding Guideline 1.4, we are happy to provide them
+
+We appreciate your thorough review process and commitment to user safety. Please let us know if you need any additional information or clarification.
+
+Best regards,
+Domenico Di Maio
+Bacchus Development Team
+
+
+Submission Details:
+- App: Bacchus
+- Version: 1.2.3
+- Build: 2914
+- Submission ID: [New submission after this fix]
+- Previous Submission ID: 46105041-640b-4289-b8f5-796aefce785d
+

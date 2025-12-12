@@ -858,9 +858,14 @@ export async function syncWithSupabase(userId: string): Promise<boolean> {
           
           // 🔥 AGGIORNA SEMPRE la sessione attiva localmente (non solo se non esiste)
           activeSession = completeSession;
+          
+          // 🔥 FIX BAC CASUALE: Ricalcola BAC immediatamente dopo sync
+          console.log('🔄 SYNC: Ricalcolo BAC dopo sync da Supabase...');
+          await updateSessionBAC();
+          
           await saveSessionLocally(activeSession, 'active');
           
-          console.log('✅ SYNC: Sessione attiva aggiornata -', completeSession.drinks.length, 'drinks,', completeSession.foods?.length || 0, 'foods');
+          console.log('✅ SYNC: Sessione attiva aggiornata -', completeSession.drinks.length, 'drinks,', completeSession.foods?.length || 0, 'foods', '| BAC:', activeSession.currentBAC);
         }
       } catch (profileError) {
         console.error('Error loading profile for active session:', profileError);
