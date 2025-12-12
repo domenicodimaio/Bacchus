@@ -455,12 +455,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   planCard: {
-    padding: 20,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 2,
     borderColor: 'transparent',
-    minHeight: 120,
   },
   selectedCard: {
     borderWidth: 2,
@@ -488,10 +487,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   planDetails: {
-    fontSize: 10,
-    marginTop: 6,
-    textAlign: 'center',
-    lineHeight: 14,
+    fontSize: 11,
+    marginTop: 4,
+    textAlign: 'left',
+    lineHeight: 16,
   },
   discountBadge: {
     marginLeft: 10,
