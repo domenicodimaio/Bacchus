@@ -32,9 +32,6 @@ import { usePurchase } from '../contexts/PurchaseContext';
 // 🔥 RILEVAMENTO IPAD: Valutato UNA SOLA VOLTA a livello modulo (non ad ogni render)
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isIPad = detectIPad();
-const deviceInfo = getDeviceInfo();
-console.log('🔍 SUBSCRIPTION MODULE: Device detection:', deviceInfo);
-console.log('🔍 SUBSCRIPTION MODULE: isIPad =', isIPad, '| width =', screenWidth, '| height =', screenHeight);
 
 // Versione estremamente semplificata
 export default function SubscriptionOfferScreen() {

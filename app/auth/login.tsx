@@ -42,9 +42,6 @@ import { createClient } from '@supabase/supabase-js';
 // Questo previene race conditions e deadlock durante l'inizializzazione
 const { width, height } = Dimensions.get('window');
 const isIPad = detectIPad();
-const deviceInfo = getDeviceInfo();
-console.log('🔍 LOGIN MODULE: Device detection:', deviceInfo);
-console.log('🔍 LOGIN MODULE: isIPad =', isIPad, '| width =', width, '| height =', height);
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';

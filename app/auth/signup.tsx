@@ -28,9 +28,6 @@ import { isIPad as detectIPad, getDeviceInfo } from '../lib/utils/deviceDetectio
 // 🔥 RILEVAMENTO IPAD: Valutato UNA SOLA VOLTA a livello modulo (non ad ogni render)
 const { width, height } = Dimensions.get('window');
 const isIPad = detectIPad();
-const deviceInfo = getDeviceInfo();
-console.log('📱 SIGNUP MODULE: Device detection:', deviceInfo);
-console.log('📱 SIGNUP MODULE: isIPad =', isIPad, '| width =', width, '| height =', height);
 
 // Colore di sfondo identico alla schermata di splash
 const BACKGROUND_COLOR = '#0c2348';
