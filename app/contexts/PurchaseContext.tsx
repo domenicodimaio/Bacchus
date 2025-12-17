@@ -130,11 +130,11 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     return `${baseKey}_${user.id}`;
   };
   
-  // 🔥 FIX PREMIUM: Inizializza automaticamente all'avvio
-  useEffect(() => {
-    console.log('🔥 PURCHASE_CONTEXT: Inizializzazione automatica all\'avvio...');
-    initializePurchases();
-  }, [user]); // Dipende da user per reinizializzare quando cambia utente
+  // 🔥 FIX PREMIUM: Inizializza automaticamente all'avvio (RIMOSSO - ora preload in _layout.tsx)
+  // useEffect(() => {
+  //   console.log('🔥 PURCHASE_CONTEXT: Inizializzazione automatica all\'avvio...');
+  //   initializePurchases();
+  // }, [user]); // Dipende da user per reinizializzare quando cambia utente
   
   // Inizializza il servizio acquisti
   const initializePurchases = async (force: boolean = false) => {
@@ -159,31 +159,22 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         
         await purchaseService.setUserForPurchases(user.id);
         
-        // 🔥 FIX IPAD: Timeout più lungo su iPad per sincronizzazione RevenueCat
-        const syncTimeout = deviceInfo.isIPad ? 3000 : 2000; // 3s iPad, 2s iPhone
+        // ⚡ OTTIMIZZAZIONE: Timeout ridotto per sync più veloce
+        const syncTimeout = deviceInfo.isIPad ? 1000 : 500; // 1s iPad, 500ms iPhone (ridotto!)
         console.log(`🎯 INIT: Aspettando sincronizzazione RevenueCat (${syncTimeout}ms su ${deviceInfo.isIPad ? 'iPad' : 'iPhone'})...`);
         await new Promise(resolve => setTimeout(resolve, syncTimeout));
         
-        // 🔥 FIX IPAD: Refresh multipli su iPad per assicurare sincronizzazione
+        // 🔥 Refresh singolo (non multipli) per velocità
         console.log('🎯 INIT: Verifica sincronizzazione RevenueCat...');
         let customerInfo = await purchaseService.refreshCustomerInfo();
-        console.log('🎯 INIT: CustomerInfo dopo refresh (tentativo 1):', {
+        console.log('🎯 INIT: CustomerInfo dopo refresh:', {
           originalAppUserId: customerInfo?.originalAppUserId,
           hasActiveEntitlements: !!customerInfo?.entitlements?.active,
           activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {})
         });
         
-        // 🔥 FIX IPAD: Se iPad e non ha entitlements, riprova dopo 1s
-        if (deviceInfo.isIPad && (!customerInfo?.entitlements?.active || Object.keys(customerInfo.entitlements.active).length === 0)) {
-          console.log('🎯 INIT IPAD: Nessun entitlement trovato, secondo tentativo dopo 1s...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          customerInfo = await purchaseService.refreshCustomerInfo();
-          console.log('🎯 INIT IPAD: CustomerInfo dopo secondo refresh:', {
-            originalAppUserId: customerInfo?.originalAppUserId,
-            hasActiveEntitlements: !!customerInfo?.entitlements?.active,
-            activeEntitlements: Object.keys(customerInfo?.entitlements?.active || {})
-          });
-        }
+        // ⚡ OTTIMIZZAZIONE: Se non trova entitlements, continua comunque (non blocca)
+        // I retry successivi gestiranno il caso lento
       }
       
       // 🔥 FIX PERSISTENZA: SEMPRE controlla RevenueCat per stato premium reale
@@ -301,21 +292,19 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
           console.log('🎯 USER LOGIN: Step 2 - Forzando sincronizzazione con server Apple...');
           await purchaseService.refreshCustomerInfo();
           
-          // Step 3: Controlla stato premium MULTIPLO per essere sicuri
+          // ⚡ OTTIMIZZAZIONE: Retry ridotti per velocità (3 tentativi max invece di 8)
           const deviceInfo = getDeviceInfo();
-          const maxRetries = deviceInfo.isIPad ? 8 : 5; // Più tentativi (8 su iPad, 5 su iPhone)
-          console.log(`🎯 USER LOGIN: Step 3 - Controllo stato premium (max ${maxRetries} tentativi su ${deviceInfo.isIPad ? 'iPad' : 'iPhone'})...`);
+          const maxRetries = 3; // Ridotto da 8/5 a 3 per tutti i dispositivi
+          console.log(`🎯 USER LOGIN: Step 3 - Controllo stato premium (max ${maxRetries} tentativi veloci)...`);
           
           let isPremium = await purchaseService.isPremium();
           console.log(`🎯 USER LOGIN: Tentativo 1/${maxRetries} - isPremium: ${isPremium}`);
       
-          // Se non è premium, riprova con delay INCREMENTALE
+          // ⚡ Se non è premium, riprova con delay FISSO (non incrementale) per velocità
           let retryCount = 1;
           while (!isPremium && retryCount < maxRetries) {
             retryCount++;
-            // Delay incrementale: inizia da 300ms e aumenta progressivamente
-            const baseDelay = deviceInfo.isIPad ? 500 : 300;
-            const delay = baseDelay * retryCount; // 300ms, 600ms, 900ms, 1200ms...
+            const delay = 300; // Delay fisso 300ms per velocità
             console.log(`🎯 USER LOGIN: Non premium, tentativo ${retryCount}/${maxRetries} dopo ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             
@@ -329,8 +318,8 @@ export const PurchaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             }
           }
           
-          if (!isPremium && deviceInfo.isIPad) {
-            console.warn(`⚠️ USER LOGIN IPAD: Premium non rilevato dopo ${maxRetries} tentativi - possibile problema sincronizzazione RevenueCat`);
+          if (!isPremium) {
+            console.log(`⚠️ USER LOGIN: Premium non rilevato dopo ${maxRetries} tentativi veloci - continuo comunque`);
           }
           
           // Step 4: Controlla simulazione premium solo se non premium da RevenueCat

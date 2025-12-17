@@ -67,3 +67,59 @@ Submission Details:
 - Submission ID: [New submission after this fix]
 - Previous Submission ID: 46105041-640b-4289-b8f5-796aefce785d
 
+
+================================================================================
+APPLE APPEAL BOARD RESPONSE (December 2024)
+================================================================================
+
+Hello Domenico,
+
+Appeal Ticket: APL281971
+
+Thank you for your patience as we considered your appeal.
+
+The App Review Board determined that the original rejection feedback was valid. Your app does not comply with:
+
+Guideline 1.4 - Physical Harm
+
+Please note that these results are based on the information provided in your appeal.
+
+We have also scheduled a call with an Apple representative in order to discuss the results of your appeal. We will try to call you during your local business hours as soon as possible, but it may take 1-2 business days. Please let us know the best times to call and whether you prefer to speak in a language other than English, and we will do our best to accommodate your request.
+
+Should you wish to provide additional information about your app during the scheduled call, we may reopen your appeal for further consideration.
+
+We appreciate your efforts to comply with the App Review Guidelines and are looking forward to reviewing your revised future submissions.
+
+Best regards,
+App Review Board
+
+
+================================================================================
+MY RESPONSE TO APPEAL BOARD (December 2024)
+================================================================================
+
+Hello,
+
+Appeal Ticket: APL281971
+
+Thank you for your response and for scheduling a call to discuss my appeal.
+
+I am very grateful for this opportunity to provide additional information about the safety measures implemented in Bacchus.
+
+AVAILABILITY:
+I am available for the call at your convenience. Please feel free to contact me:
+- Monday to Friday: 9:00 AM - 7:00 PM (CET - Central European Time, Italy)
+- Saturday: 10:00 AM - 6:00 PM (CET)
+
+If possible, I would appreciate receiving a notification a few hours before the scheduled call to ensure I am available and prepared to discuss all relevant details.
+
+LANGUAGE PREFERENCE:
+I would prefer to speak in Italian, but I am also comfortable speaking in English if that is more convenient for your team.
+
+PREPARATION:
+I am preparing comprehensive documentation and screenshots demonstrating all safety disclaimers, warnings, and educational content currently implemented in the app. I look forward to discussing how we can further enhance these measures to fully comply with Guideline 1.4.
+
+Thank you again for your time and consideration.
+
+Best regards,
+Domenico

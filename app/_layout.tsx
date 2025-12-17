@@ -52,6 +52,72 @@ function NavigationHandler() {
   const segments = useSegments();
   const [hasProfileInDB, setHasProfileInDB] = useState<boolean | null>(null);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  const [dataPreloadComplete, setDataPreloadComplete] = useState(false);
+
+  // 🚀 PRELOAD DATI CRITICI: Premium status e sessione attiva PRIMA del render UI
+  useEffect(() => {
+    async function preloadCriticalData() {
+      if (!isAuthenticated || !user) {
+        setDataPreloadComplete(true);
+        return;
+      }
+      
+      console.log('[PRELOAD] 🚀 Inizio preload dati critici per UX migliore...');
+      const startTime = Date.now();
+      
+      try {
+        // Importa i servizi necessari
+        const purchaseService = await import('./lib/services/purchase.service');
+        const sessionService = await import('./lib/services/session.service');
+        
+        // ⚡ PARALLELO: Carica premium status E sessione attiva contemporaneamente
+        const [premiumResult, sessionResult] = await Promise.allSettled([
+          // 1. Precarica premium status da RevenueCat
+          (async () => {
+            console.log('[PRELOAD] 🔑 Caricamento premium status...');
+            await purchaseService.setUserForPurchases(user.id);
+            await purchaseService.refreshCustomerInfo();
+            const isPremium = await purchaseService.isPremium();
+            console.log('[PRELOAD] ✅ Premium status:', isPremium);
+            return isPremium;
+          })(),
+          
+          // 2. Precarica sessione attiva da storage/Supabase
+          (async () => {
+            console.log('[PRELOAD] 📊 Caricamento sessione attiva...');
+            await sessionService.syncWithSupabase(user.id);
+            const session = sessionService.activeSession;
+            console.log('[PRELOAD] ✅ Sessione attiva:', session ? 'Trovata' : 'Nessuna');
+            return session;
+          })()
+        ]);
+        
+        // Log risultati
+        if (premiumResult.status === 'fulfilled') {
+          console.log('[PRELOAD] ✅ Premium precaricato:', premiumResult.value);
+        } else {
+          console.warn('[PRELOAD] ⚠️ Errore precaricamento premium:', premiumResult.reason);
+        }
+        
+        if (sessionResult.status === 'fulfilled') {
+          console.log('[PRELOAD] ✅ Sessione precaricata:', sessionResult.value ? 'SI' : 'NO');
+        } else {
+          console.warn('[PRELOAD] ⚠️ Errore precaricamento sessione:', sessionResult.reason);
+        }
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`[PRELOAD] ✅ Preload completato in ${elapsed}ms`);
+        
+      } catch (error) {
+        console.error('[PRELOAD] ❌ Errore preload dati critici:', error);
+      } finally {
+        // Sempre completa il preload per non bloccare l'UI
+        setDataPreloadComplete(true);
+      }
+    }
+    
+    preloadCriticalData();
+  }, [isAuthenticated, user]);
 
   // Verifica profilo nel database quando utente è autenticato
   useEffect(() => {
@@ -94,10 +160,11 @@ function NavigationHandler() {
 
   useEffect(() => {
     // 🔧 LOGICA SEMPLIFICATA: Solo redirect essenziali
-    if (isLoading || checkingProfile) return;
+    // ⚡ BLOCCA navigazione finché preload non è completo
+    if (isLoading || checkingProfile || !dataPreloadComplete) return;
 
     const currentPath = segments.join('/');
-    console.log('[NAVIGATION] Auth:', isAuthenticated, 'Path:', currentPath);
+    console.log('[NAVIGATION] Auth:', isAuthenticated, 'Path:', currentPath, 'Preload:', dataPreloadComplete);
 
     // 🚫 NON interferire mai con onboarding/wizard
     if (currentPath.includes('onboarding') || currentPath.includes('profile-wizard')) return;
@@ -116,24 +183,25 @@ function NavigationHandler() {
       router.replace('/(tabs)/dashboard');
       return;
     }
-  }, [isLoading, isAuthenticated, segments, checkingProfile]);
+  }, [isLoading, isAuthenticated, segments, checkingProfile, dataPreloadComplete]);
 
   return null;
 }
 
 export default function RootLayout() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [showingSplash, setShowingSplash] = useState(true);
 
   // Inizializzazione minima
   useEffect(() => {
     async function prepare() {
       try {
-        console.log('[LAYOUT] Preparazione minima...');
+        console.log('[LAYOUT] Preparazione app...');
         
-        // Delay minimo
+        // Delay minimo per font loading
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        console.log('[LAYOUT] Pronto');
+        console.log('[LAYOUT] App pronta');
       } catch (e) {
         console.warn('Errore preparazione:', e);
       } finally {
@@ -144,14 +212,19 @@ export default function RootLayout() {
     prepare();
   }, []);
 
-  // Nascondi splash screen quando pronto
+  // ⚡ Nascondi splash SOLO dopo che appIsReady è true
+  // Il preload dati avviene dentro NavigationHandler
   useEffect(() => {
     if (appIsReady) {
-      SplashScreen.hideAsync().catch(e => console.warn('Errore hide splash:', e));
+      // Delay minimo per garantire UI stabile
+      setTimeout(() => {
+        setShowingSplash(false);
+        SplashScreen.hideAsync().catch(e => console.warn('Errore hide splash:', e));
+      }, 500);
     }
   }, [appIsReady]);
 
-  if (!appIsReady) {
+  if (showingSplash) {
     return (
       <View style={styles.splashContainer}>
         <ActivityIndicator size="large" color="#0066cc" />
