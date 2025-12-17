@@ -133,6 +133,8 @@ let currentUserId: string | null = null;
 export const setUserForPurchases = async (userId: string): Promise<boolean> => {
   try {
     console.log(`🎯 PURCHASE_SERVICE: Impostando utente per acquisti: ${userId}`);
+    console.log(`🔧 SANDBOX DEBUG: Device ha già purchase cache? Facciamo force refresh...`);
+    
     const deviceInfo = getDeviceInfo();
     console.log(`🎯 PURCHASE_SERVICE: Platform info:`, deviceInfo);
     
@@ -211,21 +213,32 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
       console.warn('⚠️ Errore controllo Apple Sign In, uso ID interno:', appleCheckError);
     }
     
-    // Se l'utente è cambiato, pulisci lo stato precedente
-    if (currentUserId && currentUserId !== userId) {
-      console.log(`🔄 PURCHASE_SERVICE: Utente cambiato da ${currentUserId} a ${userId}, pulizia stato`);
-      
-      // Pulisci RevenueCat se disponibile
-      if (isRevenueCatAvailable && Purchases) {
-        try {
+    // 🔥 FIX SANDBOX: SEMPRE pulisci RevenueCat cache anche se l'utente sembra lo stesso
+    // Questo risolve il problema di purchases sandbox che persistono tra account diversi
+    if (isRevenueCatAvailable && Purchases) {
+      try {
+        console.log(`🔄 SANDBOX FIX: Force logout RevenueCat per reset cache...`);
+        
+        // Prima verifica chi è loggato attualmente
+        const currentCustomerInfo = await Purchases.getCustomerInfo();
+        const currentRCUserId = currentCustomerInfo?.originalAppUserId;
+        
+        console.log(`🔍 SANDBOX: RevenueCat attualmente loggato come:`, currentRCUserId);
+        console.log(`🔍 SANDBOX: Vogliamo loggarci come:`, revenueCatUserId);
+        
+        // Se l'utente è cambiato O se siamo in sandbox, forza logout
+        if (currentRCUserId !== revenueCatUserId) {
+          console.log(`🔄 SANDBOX: User ID diverso - force logout necessario`);
           await Purchases.logOut();
-          console.log('🔄 RevenueCat: Logout completato per cambio utente');
+          console.log('✅ SANDBOX: RevenueCat logout completato');
           
-          // 🔥 FIX VELOCITÀ: Ridotto tempo logout per velocità
-          await new Promise(resolve => setTimeout(resolve, 200)); // Ridotto da 1000ms a 200ms
-        } catch (logoutError) {
-          console.warn('⚠️ RevenueCat: Errore logout:', logoutError);
+          // Delay per garantire pulizia cache
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } else {
+          console.log(`✅ SANDBOX: User ID già corretto, skip logout`);
         }
+      } catch (logoutError) {
+        console.warn('⚠️ SANDBOX: Errore logout (probabilmente primo accesso):', logoutError);
       }
     }
     
@@ -239,27 +252,48 @@ export const setUserForPurchases = async (userId: string): Promise<boolean> => {
         console.log(`✅ RevenueCat: Login completato per utente ${revenueCatUserId}`);
         console.log(`🔍 RevenueCat: Created=${loginResult.created}, OriginalAppUserId=${loginResult.customerInfo?.originalAppUserId}`);
         
-        // 🔥 FIX IPAD: Timeout più lungo su iPad per sincronizzazione RevenueCat
-        const syncTimeout = deviceInfo.isIPad ? 2000 : 500; // 2s iPad, 500ms iPhone
-        console.log(`🔄 RevenueCat: Aspettando sincronizzazione (${syncTimeout}ms su ${deviceInfo.isIPad ? 'iPad' : 'iPhone'})...`);
+        // 🔥 FIX SANDBOX: Forza sync delle purchases dopo login
+        console.log(`🔄 SANDBOX: Force sync subscriptions dopo login...`);
+        await Purchases.syncPurchases();
+        
+        // 🔥 Timeout ridotto dopo syncPurchases
+        const syncTimeout = 500; // 500ms sufficiente dopo syncPurchases
+        console.log(`🔄 RevenueCat: Aspettando ${syncTimeout}ms per sincronizzazione...`);
         await new Promise(resolve => setTimeout(resolve, syncTimeout));
         
         // Verifica che la sincronizzazione sia avvenuta
         try {
           const customerInfo = await Purchases.getCustomerInfo();
           const activeEntitlements = Object.keys(customerInfo?.entitlements?.active || {});
+          
           console.log(`✅ RevenueCat: Sincronizzazione completata per ${userId}`, {
             originalAppUserId: customerInfo?.originalAppUserId,
             hasEntitlements: !!customerInfo?.entitlements?.active,
             activeEntitlements: activeEntitlements
           });
           
-          // 🔍 Verifica coerenza user ID (ora dovrebbero corrispondere sempre)
+          // 🔍 SANDBOX DEBUG: Mostra dettagli entitlements
+          if (activeEntitlements.length > 0) {
+            console.log(`🎯 SANDBOX: Entitlements attivi trovati:`, activeEntitlements);
+            activeEntitlements.forEach(ent => {
+              const entInfo = customerInfo.entitlements.active[ent];
+              console.log(`   - ${ent}:`, {
+                productIdentifier: entInfo.productIdentifier,
+                isSandbox: entInfo.isSandbox,
+                willRenew: entInfo.willRenew,
+                periodType: entInfo.periodType
+              });
+            });
+          } else {
+            console.log(`🔍 SANDBOX: Nessun entitlement attivo per questo user`);
+          }
+          
+          // 🔍 Verifica coerenza user ID
           if (customerInfo?.originalAppUserId !== revenueCatUserId) {
-            console.warn(`⚠️ SYNC: RevenueCat user ID mismatch dopo login`);
+            console.warn(`⚠️ SANDBOX MISMATCH: RevenueCat user ID diverso dopo login!`);
             console.warn(`   Expected: ${revenueCatUserId}`);
             console.warn(`   Got: ${customerInfo?.originalAppUserId}`);
-            console.warn(`   Questo potrebbe indicare un problema di sincronizzazione`);
+            console.warn(`   ⚠️ Possibile cache sandbox - considera di testare su device pulito o app reinstallata`);
           } else {
             console.log(`✅ SYNC: RevenueCat user ID corrispondente: ${revenueCatUserId}`);
           }
