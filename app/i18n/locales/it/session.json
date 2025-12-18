@@ -207,14 +207,27 @@
     "title": "Preferiti",
     "addToFavorites": "Aggiungi ai Preferiti",
     "removeFromFavorites": "Rimuovi dai Preferiti",
-    "recentDrinks": "Bevande Recenti",
+    "recentDrinks": "Recenti",
     "popularDrinks": "Bevande Popolari",
     "noFavorites": "Nessun preferito",
     "noRecent": "Nessuna bevanda recente",
     "addedToFavorites": "Aggiunto ai preferiti!",
     "removedFromFavorites": "Rimosso dai preferiti",
-    "quickAdd": "Aggiunta rapida"
+    "quickAdd": "Aggiunta rapida",
+    "manage": "Gestisci",
+    "clearRecent": "Pulisci",
+    "clearRecentTitle": "Pulisci Cronologia",
+    "clearRecentMessage": "Vuoi eliminare tutte le bevande recenti?",
+    "recentCleared": "Cronologia pulita"
   },
+  
+  "consumptionTime": "Orario di Consumo",
+  "whenDidYouDrink": "Quando hai bevuto?",
+  "now": "Adesso",
+  "selectDrinkType": "Scegli la categoria",
+  "selectSpecificDrink": "Scegli la bevanda",
+  "selectDrinkSize": "Seleziona la dimensione",
+  "customizeDetails": "Personalizza dettagli",
   
   "drinkTypes": {
     "beer": "Birra",
