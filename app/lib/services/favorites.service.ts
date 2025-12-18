@@ -15,11 +15,11 @@ const BASE_STORAGE_KEYS = {
 /**
  * 🔐 FIX MULTI-ACCOUNT: Genera chiavi storage specifiche per utente
  * Impedisce che i preferiti di un account si vedano su altri account
+ * ⚠️ IMPORTANTE: Ogni utente DEVE essere autenticato - no guest mode
  */
 const getUserSpecificKey = (baseKey: string, userId: string | null): string => {
   if (!userId) {
-    console.warn(`⚠️ FAVORITES: userId mancante per ${baseKey}, usando chiave temporanea guest`);
-    return `${baseKey}_GUEST`;
+    throw new Error(`❌ FAVORITES: userId mancante per ${baseKey} - utente non autenticato!`);
   }
   return `${baseKey}_${userId}`;
 };

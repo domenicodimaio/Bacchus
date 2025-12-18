@@ -147,13 +147,20 @@ const getStorageKeyPrefix = (userId: string | null): string => {
 };
 
 // Recupera la chiave completa per l'active session
+// ⚠️ IMPORTANTE: Ogni utente DEVE essere autenticato - no guest mode
 const getActiveSessionKey = (userId: string | null): string => {
+  if (!userId) {
+    throw new Error('❌ SESSION: userId mancante - utente non autenticato!');
+  }
   return `${getStorageKeyPrefix(userId)}active_session`;
 };
 
 // Recupera la chiave completa per la session history
+// ⚠️ IMPORTANTE: Ogni utente DEVE essere autenticato - no guest mode
 const getSessionHistoryKey = (userId: string | null): string => {
-  if (!userId) return 'guest_session_history';
+  if (!userId) {
+    throw new Error('❌ SESSION: userId mancante - utente non autenticato!');
+  }
   return `user_${userId}_session_history`;
 };
 
@@ -450,14 +457,15 @@ async function loadSessionHistoryInBackground(userId: string | null = null): Pro
       try {
         const history = JSON.parse(historyData);
         // 🔥 FIX CRITICO: Filtro rigoroso per isolamento utenti
+        // ⚠️ IMPORTANTE: Solo utenti autenticati - no guest mode
         if (userId) {
           // Per utenti autenticati: SOLO sessioni con user_id corrispondente
           sessionHistory = history.filter(s => s.user_id === userId);
           console.log(`BACCHUS_DEBUG: Filtrate sessioni per user ${userId}: ${sessionHistory.length} sessioni valide`);
         } else {
-          // Per utenti guest: SOLO sessioni senza user_id
-          sessionHistory = history.filter(s => !s.user_id);
-          console.log(`BACCHUS_DEBUG: Filtrate sessioni guest: ${sessionHistory.length} sessioni valide`);
+          // Nessun utente autenticato = errore
+          console.error('❌ SESSION: Tentativo di caricare cronologia senza userId!');
+          sessionHistory = [];
         }
       } catch (error) {
         sessionHistory = [];
@@ -526,13 +534,14 @@ export async function loadSessionsFromLocalStorage(userId: string | null = null)
           let rawHistory = JSON.parse(historyData);
           
           // 🔒 FIX CRITICO: Filtra SOLO le sessioni che appartengono a questo utente
+          // ⚠️ IMPORTANTE: Solo utenti autenticati - no guest mode
           if (userId) {
             rawHistory = rawHistory.filter(session => session.user_id === userId);
             console.log(`📣 DIAGNOSTICA: Filtrate sessioni per user ${userId}: ${rawHistory.length} sessioni valide`);
           } else {
-            // Per utenti guest, prendi solo sessioni senza user_id
-            rawHistory = rawHistory.filter(session => !session.user_id);
-            console.log(`📣 DIAGNOSTICA: Filtrate sessioni guest: ${rawHistory.length} sessioni valide`);
+            // Nessun utente autenticato = errore
+            console.error('❌ SESSION: Tentativo di caricare cronologia senza userId!');
+            rawHistory = [];
           }
           
           // Converti le date in oggetti Date
@@ -603,7 +612,7 @@ export async function saveSessionLocally(session: Session | Session[] | null, ty
       }
       
       const key = getSessionHistoryKey(userId);
-      console.log(`BACCHUS_DEBUG: Salvando cronologia sessioni con chiave: ${key}, user_id: ${userId || 'guest'}`);
+      console.log(`BACCHUS_DEBUG: Salvando cronologia sessioni con chiave: ${key}, user_id: ${userId}`);
       const sessionsToSave = Array.isArray(session) ? session : [session];
       await AsyncStorage.setItem(key, JSON.stringify(sessionsToSave));
       sessionHistory = sessionsToSave;
