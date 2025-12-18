@@ -137,9 +137,55 @@
   },
   
   "drinkSizes": {
+    "xs": "Mini",
     "small": "Small",
     "medium": "Medium",
-    "large": "Large"
+    "large": "Large",
+    "xl": "Extra Large"
+  },
+  
+  "drinkSizeLabels": {
+    "beer": {
+      "xs": "Small Glass (200ml)",
+      "small": "Glass (250ml)",
+      "medium": "Small Bottle (330ml)",
+      "large": "Pint/Medium (500ml)",
+      "xl": "Large Bottle (660ml)"
+    },
+    "wine": {
+      "xs": "Small Glass (100ml)",
+      "small": "Glass (125ml)",
+      "medium": "Medium Glass (150ml)",
+      "large": "Large Glass (200ml)",
+      "xl": "Half Bottle (375ml)"
+    },
+    "spirits": {
+      "xs": "Small Shot (25ml)",
+      "small": "Shot (30ml)",
+      "medium": "Generous Shot (40ml)",
+      "large": "Double (60ml)",
+      "xl": "Glass (80ml)"
+    },
+    "cocktail": {
+      "xs": "Tumbler (120ml)",
+      "small": "Rocks Glass (150ml)",
+      "medium": "Standard (200ml)",
+      "large": "Highball (300ml)",
+      "xl": "Hurricane (450ml)"
+    }
+  },
+  
+  "favorites": {
+    "title": "Favorites",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "recentDrinks": "Recent Drinks",
+    "popularDrinks": "Popular Drinks",
+    "noFavorites": "No favorites",
+    "noRecent": "No recent drinks",
+    "addedToFavorites": "Added to favorites!",
+    "removedFromFavorites": "Removed from favorites",
+    "quickAdd": "Quick Add"
   },
   
   "foodTypes": {

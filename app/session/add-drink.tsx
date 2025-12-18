@@ -58,6 +58,7 @@ import { useToast } from '../components/Toast';
 import sessionService from '../lib/services/session.service';
 import AppHeader from '../components/AppHeader';
 import { Drink } from '../types/session';
+import favoritesService, { FavoriteDrink, RecentDrink } from '../lib/services/favorites.service';
 
 // Mock beverage data - would come from database
 const beverageTypes = [
@@ -324,11 +325,14 @@ const drinkPresets = [
   }
 ];
 
-// Migliorate le taglie delle bevande
+// 🍺🍷🍸 DIMENSIONI REALISTICHE DELLE BEVANDE (Italia/Europa)
+// Basate su misure standard dei locali italiani e europei
 const drinkSizes = [
+  { id: 'xs', name: 'drinkSizes.xs', multiplier: 0.6 },
   { id: 'small', name: 'drinkSizes.small', multiplier: 0.8 },
   { id: 'medium', name: 'drinkSizes.medium', multiplier: 1.0 },
   { id: 'large', name: 'drinkSizes.large', multiplier: 1.5 },
+  { id: 'xl', name: 'drinkSizes.xl', multiplier: 2.0 },
 ];
 
 // Categorizzazione migliorata per visualizzazione
@@ -339,28 +343,56 @@ const drinkCategories = [
   { id: 'spirits', name: 'spirits', translationKey: 'Spirits', defaultValue: 'Superalcolici', icon: 'glass-whiskey', color: '#9C27B0' }
 ];
 
-// Definizione di parametri specifici per ogni combinazione di bevanda e taglia
+// 🍺 BIRRA - Dimensioni reali italiane/europee
+// Basate su: bicchieri da bar (200-250ml), bottiglie piccole (330ml), 
+// pinte (400-500ml), bottiglie grandi (660ml), boccali da litro (1000ml)
+const beerSizeParams = {
+  xs: { volume: 200, percentage: 4.5, label: 'drinkSizeLabels.beer.xs' },      // Bicchiere piccolo
+  small: { volume: 250, percentage: 4.7, label: 'drinkSizeLabels.beer.small' }, // Bicchiere
+  medium: { volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.medium' }, // Bottiglia piccola
+  large: { volume: 500, percentage: 5.2, label: 'drinkSizeLabels.beer.large' },  // Pinta / Bottiglia media
+  xl: { volume: 660, percentage: 5.5, label: 'drinkSizeLabels.beer.xl' }         // Bottiglia grande
+};
+
+// 🍷 VINO - Dimensioni reali calici e bottiglie
+// Basate su: calice piccolo (100ml), calice standard (125-150ml), 
+// calice grande (175-200ml), mezza bottiglia (375ml), bottiglia (750ml)
+const wineSizeParams = {
+  xs: { volume: 100, percentage: 11.5, label: 'drinkSizeLabels.wine.xs' },      // Calice piccolo
+  small: { volume: 125, percentage: 12.0, label: 'drinkSizeLabels.wine.small' }, // Calice standard
+  medium: { volume: 150, percentage: 12.5, label: 'drinkSizeLabels.wine.medium' }, // Calice medio
+  large: { volume: 200, percentage: 13.0, label: 'drinkSizeLabels.wine.large' },  // Calice grande
+  xl: { volume: 375, percentage: 13.0, label: 'drinkSizeLabels.wine.xl' }         // Mezza bottiglia
+};
+
+// 🥃 SUPERALCOLICI - Dimensioni reali shot e bicchieri
+// Basate su: shot piccolo (25ml), shot standard (30-40ml), 
+// shot doppio (60ml), bicchiere (80ml), bicchiere grande (100ml)
+const spiritsSizeParams = {
+  xs: { volume: 25, percentage: 38.0, label: 'drinkSizeLabels.spirits.xs' },      // Shot piccolo
+  small: { volume: 30, percentage: 40.0, label: 'drinkSizeLabels.spirits.small' }, // Shot
+  medium: { volume: 40, percentage: 40.0, label: 'drinkSizeLabels.spirits.medium' }, // Shot generoso
+  large: { volume: 60, percentage: 42.0, label: 'drinkSizeLabels.spirits.large' },  // Doppio
+  xl: { volume: 80, percentage: 42.0, label: 'drinkSizeLabels.spirits.xl' }         // Bicchiere
+};
+
+// 🍸 COCKTAIL - Dimensioni reali bicchieri cocktail
+// Basate su: tumbler basso (150ml), rocks glass (200ml), 
+// highball (250-300ml), pint glass (400ml), hurricane glass (500ml)
+const cocktailSizeParams = {
+  xs: { volume: 120, percentage: 10.0, label: 'drinkSizeLabels.cocktail.xs' },      // Tumbler piccolo
+  small: { volume: 150, percentage: 12.0, label: 'drinkSizeLabels.cocktail.small' }, // Rocks glass
+  medium: { volume: 200, percentage: 15.0, label: 'drinkSizeLabels.cocktail.medium' }, // Cocktail standard
+  large: { volume: 300, percentage: 15.0, label: 'drinkSizeLabels.cocktail.large' },  // Highball
+  xl: { volume: 450, percentage: 12.0, label: 'drinkSizeLabels.cocktail.xl' }         // Hurricane
+};
+
+// Mappatura completa per tutte le categorie
 const drinkSizeParams = {
-  beer: {
-    small: { volume: 250, percentage: 4.5 },
-    medium: { volume: 330, percentage: 5.0 },
-    large: { volume: 500, percentage: 5.5 }
-  },
-  wine: {
-    small: { volume: 125, percentage: 11.5 },
-    medium: { volume: 150, percentage: 12.0 },
-    large: { volume: 250, percentage: 12.5 }
-  },
-  spirits: {
-    small: { volume: 30, percentage: 38.0 },
-    medium: { volume: 40, percentage: 40.0 },
-    large: { volume: 60, percentage: 42.0 }
-  },
-  cocktail: {
-    small: { volume: 150, percentage: 10.0 },
-    medium: { volume: 200, percentage: 12.5 },
-    large: { volume: 300, percentage: 15.0 }
-  }
+  beer: beerSizeParams,
+  wine: wineSizeParams,
+  spirits: spiritsSizeParams,
+  cocktail: cocktailSizeParams
 };
 
 // Definiamo il validation schema
@@ -427,6 +459,11 @@ export default function AddDrinkScreen() {
     []
   );
   
+  // 🌟 Stati per bevande preferite e recenti
+  const [favoriteDrinks, setFavoriteDrinks] = useState<FavoriteDrink[]>([]);
+  const [recentDrinks, setRecentDrinks] = useState<RecentDrink[]>([]);
+  const [showingFavorites, setShowingFavorites] = useState(true); // Toggle tra favoriti e recenti
+  
   // Nasconde l'header standard per usare il nostro componente AppHeader e abilita swipe back
   useEffect(() => {
     navigation.setOptions({
@@ -436,6 +473,25 @@ export default function AddDrinkScreen() {
       gestureDirection: 'horizontal',
     });
   }, [navigation]);
+  
+  // 🌟 Carica bevande preferite e recenti all'avvio
+  useEffect(() => {
+    loadFavoritesAndRecent();
+  }, []);
+  
+  const loadFavoritesAndRecent = async () => {
+    try {
+      const [favorites, recent] = await Promise.all([
+        favoritesService.getFavorites(),
+        favoritesService.getRecent()
+      ]);
+      setFavoriteDrinks(favorites);
+      setRecentDrinks(recent);
+      console.log(`📋 Caricate ${favorites.length} preferite e ${recent.length} recenti`);
+    } catch (error) {
+      console.error('❌ Errore caricamento preferiti/recenti:', error);
+    }
+  };
   
   // Avvio animazioni
   useEffect(() => {
@@ -618,6 +674,19 @@ export default function AddDrinkScreen() {
       // Salva la bevanda nella sessione
       await sessionService.addDrink(drink);
       
+      // 🌟 Salva nelle bevande recenti
+      await favoritesService.addToRecent({
+        name: drink.name || selectedDrink?.name || 'Bevanda',
+        category: selectedCategory,
+        volume: parseFloat(volume),
+        percentage: parseFloat(alcoholPercentage),
+        icon: selectedDrink?.icon,
+        iconColor: selectedDrink?.iconColor
+      });
+      
+      // Ricarica lista recenti
+      await loadFavoritesAndRecent();
+      
       console.log(`Bevanda aggiunta con successo, ID: ${drinkId}`);
       // Mostra feedback di successo
       setBacUpdated(true);
@@ -666,6 +735,113 @@ export default function AddDrinkScreen() {
     handleSaveDrink(); // Salva la bevanda corrente
   };
   
+  // 🌟 Aggiunta rapida da preferiti/recenti
+  const handleQuickAddDrink = (drink: FavoriteDrink | RecentDrink) => {
+    console.log('⚡ Quick add drink:', drink.name);
+    
+    // Imposta direttamente i valori
+    setVolume(drink.volume.toString());
+    setAlcoholPercentage(drink.percentage.toString());
+    
+    // Calcola i grammi di alcol
+    const grams = calculateAlcoholGrams(drink.volume, drink.percentage);
+    setAlcoholGrams(grams.toFixed(1));
+    
+    // Trova la categoria e imposta
+    const category = drinkCategories.find(c => c.id === drink.category);
+    if (category) {
+      setSelectedCategory(category.id);
+    }
+    
+    // Cerca di trovare la bevanda nei preset
+    const matchingDrink = drinkPresets.find(p => 
+      p.name === drink.name || 
+      (p.volume === drink.volume && p.percentage === drink.percentage)
+    );
+    
+    if (matchingDrink) {
+      setSelectedDrink(matchingDrink);
+    }
+    
+    // Salva direttamente
+    toast.showToast({ 
+      message: t('favorites.quickAdd', { ns: 'session', defaultValue: 'Aggiunta rapida!' }), 
+      type: 'info' 
+    });
+    
+    // Vai direttamente al salvataggio
+    setTimeout(() => {
+      handleSaveDrink();
+    }, 500);
+  };
+  
+  // 🌟 Toggle bevanda preferita
+  const [isFavoriteDrink, setIsFavoriteDrink] = useState(false);
+  
+  const toggleFavorite = async () => {
+    if (!selectedDrink || !volume || !alcoholPercentage) return;
+    
+    const drinkData = {
+      name: selectedDrink.name,
+      category: selectedCategory,
+      volume: parseFloat(volume),
+      percentage: parseFloat(alcoholPercentage),
+      icon: selectedDrink.icon,
+      iconColor: selectedDrink.iconColor
+    };
+    
+    if (isFavoriteDrink) {
+      // Rimuovi dai preferiti
+      const favorites = await favoritesService.getFavorites();
+      const existing = favorites.find(f => 
+        f.name === drinkData.name && 
+        f.volume === drinkData.volume && 
+        f.percentage === drinkData.percentage
+      );
+      
+      if (existing) {
+        await favoritesService.removeFromFavorites(existing.id);
+        setIsFavoriteDrink(false);
+        toast.showToast({ 
+          message: t('favorites.removedFromFavorites', { ns: 'session' }), 
+          type: 'info' 
+        });
+      }
+    } else {
+      // Aggiungi ai preferiti
+      const success = await favoritesService.addToFavorites(drinkData);
+      if (success) {
+        setIsFavoriteDrink(true);
+        toast.showToast({ 
+          message: t('favorites.addedToFavorites', { ns: 'session' }), 
+          type: 'success' 
+        });
+      }
+    }
+    
+    // Ricarica lista
+    await loadFavoritesAndRecent();
+  };
+  
+  // Controlla se la bevanda corrente è nei preferiti
+  useEffect(() => {
+    const checkIfFavorite = async () => {
+      if (!selectedDrink || !volume || !alcoholPercentage) {
+        setIsFavoriteDrink(false);
+        return;
+      }
+      
+      const isFav = await favoritesService.isFavorite(
+        selectedDrink.name,
+        parseFloat(volume),
+        parseFloat(alcoholPercentage)
+      );
+      setIsFavoriteDrink(isFav);
+    };
+    
+    checkIfFavorite();
+  }, [selectedDrink, volume, alcoholPercentage]);
+  
   // Renderizza solo lo step corrente invece di tutti gli step con animazione
   const renderCurrentStep = () => {
     switch(currentStep) {
@@ -684,6 +860,74 @@ export default function AddDrinkScreen() {
                 nowLabel={t('now', { defaultValue: 'Adesso' })}
             />
           </View>
+            
+            {/* 🌟 BEVANDE PREFERITE E RECENTI */}
+            {(showingFavorites ? favoriteDrinks : recentDrinks).length > 0 && (
+              <View style={[styles.shortcutsContainer, { backgroundColor: colors.cardBackground }]}>
+                <View style={styles.shortcutsHeader}>
+                  <TouchableOpacity 
+                    onPress={() => setShowingFavorites(true)}
+                    style={styles.shortcutsTab}
+                  >
+                    <Text style={[
+                      styles.shortcutsTabText, 
+                      { color: showingFavorites ? colors.primary : colors.textSecondary },
+                      showingFavorites && styles.shortcutsTabTextActive
+                    ]}>
+                      {t('favorites.title', { ns: 'session' })} ({favoriteDrinks.length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setShowingFavorites(false)}
+                    style={styles.shortcutsTab}
+                  >
+                    <Text style={[
+                      styles.shortcutsTabText, 
+                      { color: !showingFavorites ? colors.primary : colors.textSecondary },
+                      !showingFavorites && styles.shortcutsTabTextActive
+                    ]}>
+                      {t('favorites.recentDrinks', { ns: 'session' })} ({recentDrinks.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.shortcutsScroll}
+                >
+                  {(showingFavorites ? favoriteDrinks : recentDrinks).map((drink) => (
+                    <TouchableOpacity
+                      key={drink.id}
+                      style={[styles.shortcutItem, { backgroundColor: colors.background }]}
+                      onPress={() => handleQuickAddDrink(drink)}
+                    >
+                      <View style={[styles.shortcutIcon, { backgroundColor: drink.iconColor || colors.primary + '20' }]}>
+                        {drink.icon ? (
+                          <FontAwesome5 
+                            name={drink.icon} 
+                            size={20} 
+                            color={drink.iconColor || colors.primary} 
+                          />
+                        ) : (
+                          <MaterialCommunityIcons 
+                            name="glass-cocktail" 
+                            size={20} 
+                            color={colors.primary} 
+                          />
+                        )}
+                      </View>
+                      <Text style={[styles.shortcutName, { color: colors.text }]} numberOfLines={1}>
+                        {drink.name}
+                      </Text>
+                      <Text style={[styles.shortcutDetails, { color: colors.textSecondary }]}>
+                        {drink.volume}ml • {drink.percentage}%
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             
             <View style={styles.sectionContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -802,17 +1046,44 @@ export default function AddDrinkScreen() {
                 ]}
                 onPress={() => handleSelectSize(size)}
               >
-                <Text style={[styles.sizeButtonText, { color: colors.text }]}>
-                  {t(size.name)}
-                </Text>
-                      <Text style={[styles.sizeButtonSubtext, { color: colors.textSecondary }]}>
-                        {sizeInfo.volume} ml
+                      <Text style={[styles.sizeButtonText, { color: colors.text }]}>
+                        {t(sizeInfo.label || size.name, { defaultValue: t(size.name) })}
                       </Text>
+                      {sizeInfo.percentage && (
+                        <Text style={[styles.sizeButtonSubtext, { color: colors.textSecondary }]}>
+                          {sizeInfo.percentage}% ABV
+                        </Text>
+                      )}
               </TouchableOpacity>
                   );
                 })}
               </View>
           </View>
+          
+            {/* 🌟 Pulsante Aggiungi/Rimuovi dai Preferiti */}
+            {selectedDrink && volume && alcoholPercentage && (
+              <TouchableOpacity
+                style={[styles.favoriteButton, { 
+                  backgroundColor: isFavoriteDrink ? colors.primary + '20' : colors.cardBackground,
+                  borderColor: isFavoriteDrink ? colors.primary : colors.border
+                }]}
+                onPress={toggleFavorite}
+              >
+                <FontAwesome5 
+                  name={isFavoriteDrink ? "heart" : "heart"} 
+                  size={18} 
+                  color={isFavoriteDrink ? colors.primary : colors.textSecondary}
+                  solid={isFavoriteDrink}
+                />
+                <Text style={[styles.favoriteButtonText, { 
+                  color: isFavoriteDrink ? colors.primary : colors.text 
+                }]}>
+                  {isFavoriteDrink 
+                    ? t('favorites.removeFromFavorites', { ns: 'session' }) 
+                    : t('favorites.addToFavorites', { ns: 'session' })}
+                </Text>
+              </TouchableOpacity>
+            )}
           
             {/* Personalizzazione dettagli */}
             <View style={styles.sectionContainer}>
@@ -1491,5 +1762,107 @@ const styles = StyleSheet.create({
   resultRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  // 🌟 STILI BEVANDE PREFERITE E RECENTI
+  shortcutsContainer: {
+    marginBottom: SIZES.marginSmall,
+    marginHorizontal: -SIZES.padding, // Estendi ai bordi
+    paddingVertical: SIZES.paddingSmall,
+    borderRadius: SIZES.radius,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  shortcutsHeader: {
+    flexDirection: 'row',
+    paddingHorizontal: SIZES.padding,
+    marginBottom: SIZES.marginSmall,
+    gap: 12,
+  },
+  shortcutsTab: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  shortcutsTabText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  shortcutsTabTextActive: {
+    fontWeight: '700',
+  },
+  shortcutsScroll: {
+    paddingHorizontal: SIZES.padding,
+    paddingBottom: 4,
+  },
+  shortcutItem: {
+    width: 100,
+    marginRight: 10,
+    padding: 10,
+    borderRadius: SIZES.radius,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  shortcutIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  shortcutName: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  shortcutDetails: {
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  favoriteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: SIZES.radius,
+    marginHorizontal: SIZES.padding,
+    marginBottom: SIZES.marginSmall,
+    borderWidth: 1.5,
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  favoriteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 
