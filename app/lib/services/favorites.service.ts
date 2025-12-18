@@ -4,10 +4,39 @@ import { Drink } from '../../types/session';
 // 🎯 SERVIZIO BEVANDE PREFERITE E RECENTI
 // Gestisce lo storage locale delle bevande preferite dall'utente
 // e tiene traccia delle ultime bevande aggiunte
+// 🔐 ISOLAMENTO UTENTE: Ogni utente ha i suoi preferiti/recenti separati
 
-const STORAGE_KEYS = {
+// Chiavi base
+const BASE_STORAGE_KEYS = {
   FAVORITE_DRINKS: 'bacchus_favorite_drinks',
   RECENT_DRINKS: 'bacchus_recent_drinks',
+};
+
+/**
+ * 🔐 FIX MULTI-ACCOUNT: Genera chiavi storage specifiche per utente
+ * Impedisce che i preferiti di un account si vedano su altri account
+ */
+const getUserSpecificKey = (baseKey: string, userId: string | null): string => {
+  if (!userId) {
+    console.warn(`⚠️ FAVORITES: userId mancante per ${baseKey}, usando chiave temporanea guest`);
+    return `${baseKey}_GUEST`;
+  }
+  return `${baseKey}_${userId}`;
+};
+
+/**
+ * 🔍 Ottiene l'ID utente corrente
+ * Importiamo la funzione da session.service per coerenza
+ */
+let getCurrentUserId: () => Promise<string | null>;
+
+// Import dinamico per evitare dipendenze circolari
+const initGetCurrentUserId = async () => {
+  if (!getCurrentUserId) {
+    const sessionService = await import('./session.service');
+    getCurrentUserId = sessionService.getCurrentUserId;
+  }
+  return getCurrentUserId;
 };
 
 export interface FavoriteDrink {
@@ -35,7 +64,10 @@ const MAX_RECENT = 10;
  */
 export const addToFavorites = async (drink: Partial<FavoriteDrink>): Promise<boolean> => {
   try {
-    console.log('💖 FAVORITES: Aggiungendo bevanda ai preferiti:', drink.name);
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    console.log('💖 FAVORITES: Aggiungendo bevanda ai preferiti per utente:', userId, '- bevanda:', drink.name);
     
     const favorites = await getFavorites();
     
@@ -71,8 +103,10 @@ export const addToFavorites = async (drink: Partial<FavoriteDrink>): Promise<boo
       favorites.splice(MAX_FAVORITES);
     }
     
-    await AsyncStorage.setItem(STORAGE_KEYS.FAVORITE_DRINKS, JSON.stringify(favorites));
-    console.log(`✅ FAVORITES: Bevanda aggiunta (totale: ${favorites.length})`);
+    // 🔐 Salva con chiave specifica utente
+    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
+    await AsyncStorage.setItem(storageKey, JSON.stringify(favorites));
+    console.log(`✅ FAVORITES: Bevanda aggiunta per utente ${userId} (totale: ${favorites.length})`);
     
     return true;
   } catch (error) {
@@ -86,7 +120,10 @@ export const addToFavorites = async (drink: Partial<FavoriteDrink>): Promise<boo
  */
 export const removeFromFavorites = async (drinkId: string): Promise<boolean> => {
   try {
-    console.log('💔 FAVORITES: Rimuovendo bevanda dai preferiti:', drinkId);
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    console.log('💔 FAVORITES: Rimuovendo bevanda dai preferiti per utente:', userId, '- drinkId:', drinkId);
     
     const favorites = await getFavorites();
     const filteredFavorites = favorites.filter(f => f.id !== drinkId);
@@ -96,8 +133,10 @@ export const removeFromFavorites = async (drinkId: string): Promise<boolean> => 
       return false;
     }
     
-    await AsyncStorage.setItem(STORAGE_KEYS.FAVORITE_DRINKS, JSON.stringify(filteredFavorites));
-    console.log(`✅ FAVORITES: Bevanda rimossa (totale: ${filteredFavorites.length})`);
+    // 🔐 Salva con chiave specifica utente
+    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
+    await AsyncStorage.setItem(storageKey, JSON.stringify(filteredFavorites));
+    console.log(`✅ FAVORITES: Bevanda rimossa per utente ${userId} (totale: ${filteredFavorites.length})`);
     
     return true;
   } catch (error) {
@@ -111,11 +150,19 @@ export const removeFromFavorites = async (drinkId: string): Promise<boolean> => 
  */
 export const getFavorites = async (): Promise<FavoriteDrink[]> => {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.FAVORITE_DRINKS);
-    if (!data) return [];
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    
+    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
+    const data = await AsyncStorage.getItem(storageKey);
+    if (!data) {
+      console.log(`📋 FAVORITES: Nessun preferito per utente ${userId}`);
+      return [];
+    }
     
     const favorites: FavoriteDrink[] = JSON.parse(data);
-    console.log(`📋 FAVORITES: Caricate ${favorites.length} bevande preferite`);
+    console.log(`📋 FAVORITES: Caricate ${favorites.length} bevande preferite per utente ${userId}`);
     
     return favorites;
   } catch (error) {
@@ -146,7 +193,10 @@ export const isFavorite = async (name: string, volume: number, percentage: numbe
  */
 export const addToRecent = async (drink: Partial<FavoriteDrink>): Promise<boolean> => {
   try {
-    console.log('🕐 RECENT: Aggiornando bevande recenti:', drink.name);
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    console.log('🕐 RECENT: Aggiornando bevande recenti per utente:', userId, '- bevanda:', drink.name);
     
     const recent = await getRecent();
     
@@ -190,8 +240,10 @@ export const addToRecent = async (drink: Partial<FavoriteDrink>): Promise<boolea
       recent.splice(MAX_RECENT);
     }
     
-    await AsyncStorage.setItem(STORAGE_KEYS.RECENT_DRINKS, JSON.stringify(recent));
-    console.log(`✅ RECENT: Lista aggiornata (totale: ${recent.length})`);
+    // 🔐 Salva con chiave specifica utente
+    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+    await AsyncStorage.setItem(storageKey, JSON.stringify(recent));
+    console.log(`✅ RECENT: Lista aggiornata per utente ${userId} (totale: ${recent.length})`);
     
     return true;
   } catch (error) {
@@ -205,11 +257,19 @@ export const addToRecent = async (drink: Partial<FavoriteDrink>): Promise<boolea
  */
 export const getRecent = async (): Promise<RecentDrink[]> => {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_DRINKS);
-    if (!data) return [];
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    
+    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+    const data = await AsyncStorage.getItem(storageKey);
+    if (!data) {
+      console.log(`📋 RECENT: Nessuna bevanda recente per utente ${userId}`);
+      return [];
+    }
     
     const recent: RecentDrink[] = JSON.parse(data);
-    console.log(`📋 RECENT: Caricate ${recent.length} bevande recenti`);
+    console.log(`📋 RECENT: Caricate ${recent.length} bevande recenti per utente ${userId}`);
     
     // Ordina per ultima usata (più recente prima)
     recent.sort((a, b) => b.lastUsed - a.lastUsed);
@@ -248,14 +308,19 @@ export const getPopular = async (): Promise<RecentDrink[]> => {
  */
 export const cleanOldRecent = async (): Promise<void> => {
   try {
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    
     const recent = await getRecent();
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     
     const filteredRecent = recent.filter(r => r.lastUsed > thirtyDaysAgo);
     
     if (filteredRecent.length < recent.length) {
-      await AsyncStorage.setItem(STORAGE_KEYS.RECENT_DRINKS, JSON.stringify(filteredRecent));
-      console.log(`🧹 RECENT: Rimosse ${recent.length - filteredRecent.length} bevande vecchie`);
+      const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(filteredRecent));
+      console.log(`🧹 RECENT: Rimosse ${recent.length - filteredRecent.length} bevande vecchie per utente ${userId}`);
     }
   } catch (error) {
     console.error('❌ RECENT: Errore pulizia vecchie bevande:', error);
@@ -263,15 +328,39 @@ export const cleanOldRecent = async (): Promise<void> => {
 };
 
 /**
- * 🗑️ Pulisce tutto lo storage
+ * 🗑️ Pulisce tutto lo storage favoriti/recenti per l'utente corrente
  */
 export const clearAllFavorites = async (): Promise<void> => {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEYS.FAVORITE_DRINKS);
-    await AsyncStorage.removeItem(STORAGE_KEYS.RECENT_DRINKS);
-    console.log('🗑️ FAVORITES: Storage pulito completamente');
+    // 🔐 Ottieni user ID corrente
+    await initGetCurrentUserId();
+    const userId = await getCurrentUserId();
+    
+    const favKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
+    const recentKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+    
+    await AsyncStorage.removeItem(favKey);
+    await AsyncStorage.removeItem(recentKey);
+    console.log(`🗑️ FAVORITES: Storage pulito completamente per utente ${userId}`);
   } catch (error) {
     console.error('❌ FAVORITES: Errore pulizia storage:', error);
+  }
+};
+
+/**
+ * 🔐 Pulisce i preferiti di un utente specifico (utile per logout/cambio account)
+ * Usato internamente quando l'utente cambia
+ */
+export const clearFavoritesForUser = async (userId: string): Promise<void> => {
+  try {
+    const favKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
+    const recentKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+    
+    await AsyncStorage.removeItem(favKey);
+    await AsyncStorage.removeItem(recentKey);
+    console.log(`🗑️ FAVORITES: Storage pulito per utente specifico ${userId}`);
+  } catch (error) {
+    console.error('❌ FAVORITES: Errore pulizia storage per utente:', error);
   }
 };
 
