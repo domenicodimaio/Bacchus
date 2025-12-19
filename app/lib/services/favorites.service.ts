@@ -1,58 +1,51 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from './supabase';
 import { Drink } from '../../types/session';
 
 // 🎯 SERVIZIO BEVANDE PREFERITE E RECENTI
-// Gestisce lo storage locale delle bevande preferite dall'utente
+// Gestisce lo storage su Supabase delle bevande preferite dall'utente
 // e tiene traccia delle ultime bevande aggiunte
-// 🔐 ISOLAMENTO UTENTE: Ogni utente ha i suoi preferiti/recenti separati
-
-// Chiavi base
-const BASE_STORAGE_KEYS = {
-  FAVORITE_DRINKS: 'bacchus_favorite_drinks',
-  RECENT_DRINKS: 'bacchus_recent_drinks',
-};
+// 🔐 ISOLAMENTO UTENTE: RLS di Supabase garantisce separazione tra utenti
+// ☁️ SYNC MULTI-DISPOSITIVO: Dati sincronizzati automaticamente
 
 /**
- * 🔐 FIX MULTI-ACCOUNT: Genera chiavi storage specifiche per utente
- * Impedisce che i preferiti di un account si vedano su altri account
- * ⚠️ IMPORTANTE: Ogni utente DEVE essere autenticato - no guest mode
+ * 🔍 Ottiene l'ID utente corrente da Supabase Auth
  */
-const getUserSpecificKey = (baseKey: string, userId: string | null): string => {
-  if (!userId) {
-    throw new Error(`❌ FAVORITES: userId mancante per ${baseKey} - utente non autenticato!`);
+const getCurrentUserId = async (): Promise<string | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch (error) {
+    console.error('❌ FAVORITES: Errore ottenimento user ID:', error);
+    return null;
   }
-  return `${baseKey}_${userId}`;
-};
-
-/**
- * 🔍 Ottiene l'ID utente corrente
- * Importiamo la funzione da session.service per coerenza
- */
-let getCurrentUserId: () => Promise<string | null>;
-
-// Import dinamico per evitare dipendenze circolari
-const initGetCurrentUserId = async () => {
-  if (!getCurrentUserId) {
-    const sessionService = await import('./session.service');
-    getCurrentUserId = sessionService.getCurrentUserId;
-  }
-  return getCurrentUserId;
 };
 
 export interface FavoriteDrink {
   id: string;
+  user_id?: string;
   name: string;
   category: string;
   volume: number;
   percentage: number;
   icon?: string;
-  iconColor?: string;
-  timestamp: number; // Quando è stata aggiunta ai preferiti
+  icon_color?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface RecentDrink extends FavoriteDrink {
-  lastUsed: number; // Ultima volta che è stata usata
-  usageCount: number; // Quante volte è stata usata
+export interface RecentDrink {
+  id: string;
+  user_id?: string;
+  name: string;
+  category: string;
+  volume: number;
+  percentage: number;
+  icon?: string;
+  icon_color?: string;
+  usage_count: number;
+  last_used: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Limiti storage
@@ -60,54 +53,78 @@ const MAX_FAVORITES = 20;
 const MAX_RECENT = 10;
 
 /**
- * 🌟 Aggiunge una bevanda ai preferiti
+ * 🌟 Aggiunge una bevanda ai preferiti (Supabase)
  */
 export const addToFavorites = async (drink: Partial<FavoriteDrink>): Promise<boolean> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
+    if (!userId) {
+      console.error('❌ FAVORITES: Utente non autenticato');
+      return false;
+    }
+    
     console.log('💖 FAVORITES: Aggiungendo bevanda ai preferiti per utente:', userId, '- bevanda:', drink.name);
     
-    const favorites = await getFavorites();
-    
-    // Genera ID univoco se non presente
-    const favDrink: FavoriteDrink = {
-      id: drink.id || `fav_${Date.now()}`,
-      name: drink.name || 'Bevanda',
-      category: drink.category || 'beer',
-      volume: drink.volume || 330,
-      percentage: drink.percentage || 5.0,
-      icon: drink.icon,
-      iconColor: drink.iconColor,
-      timestamp: Date.now()
-    };
-    
     // Controlla se già presente
-    const existingIndex = favorites.findIndex(f => 
-      f.name === favDrink.name && 
-      f.volume === favDrink.volume && 
-      f.percentage === favDrink.percentage
-    );
+    const { data: existing } = await supabase
+      .from('favorite_drinks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('name', drink.name || 'Bevanda')
+      .eq('volume', drink.volume || 330)
+      .eq('percentage', drink.percentage || 5.0)
+      .single();
     
-    if (existingIndex >= 0) {
+    if (existing) {
       console.log('⚠️ FAVORITES: Bevanda già nei preferiti');
       return false;
     }
     
-    // Aggiungi all'inizio
-    favorites.unshift(favDrink);
+    // Controlla limite MAX_FAVORITES
+    const { count } = await supabase
+      .from('favorite_drinks')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
     
-    // Mantieni solo le ultime MAX_FAVORITES
-    if (favorites.length > MAX_FAVORITES) {
-      favorites.splice(MAX_FAVORITES);
+    if (count && count >= MAX_FAVORITES) {
+      // Rimuovi la più vecchia
+      const { data: oldest } = await supabase
+        .from('favorite_drinks')
+        .select('id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+      
+      if (oldest) {
+        await supabase
+          .from('favorite_drinks')
+          .delete()
+          .eq('id', oldest.id);
+      }
     }
     
-    // 🔐 Salva con chiave specifica utente
-    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(favorites));
-    console.log(`✅ FAVORITES: Bevanda aggiunta per utente ${userId} (totale: ${favorites.length})`);
+    // Inserisci nuova bevanda
+    const { data, error } = await supabase
+      .from('favorite_drinks')
+      .insert({
+        user_id: userId,
+        name: drink.name || 'Bevanda',
+        category: drink.category || 'beer',
+        volume: drink.volume || 330,
+        percentage: drink.percentage || 5.0,
+        icon: drink.icon,
+        icon_color: drink.icon_color
+      })
+      .select()
+      .single();
     
+    if (error) {
+      console.error('❌ FAVORITES: Errore inserimento:', error);
+      return false;
+    }
+    
+    console.log(`✅ FAVORITES: Bevanda aggiunta su Supabase per utente ${userId}`);
     return true;
   } catch (error) {
     console.error('❌ FAVORITES: Errore aggiunta bevanda:', error);
@@ -116,28 +133,30 @@ export const addToFavorites = async (drink: Partial<FavoriteDrink>): Promise<boo
 };
 
 /**
- * 🗑️ Rimuove una bevanda dai preferiti
+ * 🗑️ Rimuove una bevanda dai preferiti (Supabase)
  */
 export const removeFromFavorites = async (drinkId: string): Promise<boolean> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
-    console.log('💔 FAVORITES: Rimuovendo bevanda dai preferiti per utente:', userId, '- drinkId:', drinkId);
-    
-    const favorites = await getFavorites();
-    const filteredFavorites = favorites.filter(f => f.id !== drinkId);
-    
-    if (filteredFavorites.length === favorites.length) {
-      console.log('⚠️ FAVORITES: Bevanda non trovata nei preferiti');
+    if (!userId) {
+      console.error('❌ FAVORITES: Utente non autenticato');
       return false;
     }
     
-    // 🔐 Salva con chiave specifica utente
-    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(filteredFavorites));
-    console.log(`✅ FAVORITES: Bevanda rimossa per utente ${userId} (totale: ${filteredFavorites.length})`);
+    console.log('💔 FAVORITES: Rimuovendo bevanda dai preferiti per utente:', userId, '- drinkId:', drinkId);
     
+    const { error } = await supabase
+      .from('favorite_drinks')
+      .delete()
+      .eq('id', drinkId)
+      .eq('user_id', userId); // RLS check extra
+    
+    if (error) {
+      console.error('❌ FAVORITES: Errore rimozione:', error);
+      return false;
+    }
+    
+    console.log(`✅ FAVORITES: Bevanda rimossa da Supabase per utente ${userId}`);
     return true;
   } catch (error) {
     console.error('❌ FAVORITES: Errore rimozione bevanda:', error);
@@ -146,25 +165,30 @@ export const removeFromFavorites = async (drinkId: string): Promise<boolean> => 
 };
 
 /**
- * 📋 Ottiene tutte le bevande preferite
+ * 📋 Ottiene tutte le bevande preferite (Supabase)
  */
 export const getFavorites = async (): Promise<FavoriteDrink[]> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
-    
-    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
-    const data = await AsyncStorage.getItem(storageKey);
-    if (!data) {
-      console.log(`📋 FAVORITES: Nessun preferito per utente ${userId}`);
+    if (!userId) {
+      console.log('⚠️ FAVORITES: Utente non autenticato');
       return [];
     }
     
-    const favorites: FavoriteDrink[] = JSON.parse(data);
-    console.log(`📋 FAVORITES: Caricate ${favorites.length} bevande preferite per utente ${userId}`);
+    const { data, error } = await supabase
+      .from('favorite_drinks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(MAX_FAVORITES);
     
-    return favorites;
+    if (error) {
+      console.error('❌ FAVORITES: Errore caricamento:', error);
+      return [];
+    }
+    
+    console.log(`📋 FAVORITES: Caricate ${data?.length || 0} bevande preferite da Supabase per utente ${userId}`);
+    return data || [];
   } catch (error) {
     console.error('❌ FAVORITES: Errore caricamento preferiti:', error);
     return [];
@@ -172,16 +196,23 @@ export const getFavorites = async (): Promise<FavoriteDrink[]> => {
 };
 
 /**
- * ❓ Controlla se una bevanda è nei preferiti
+ * ❓ Controlla se una bevanda è nei preferiti (Supabase)
  */
 export const isFavorite = async (name: string, volume: number, percentage: number): Promise<boolean> => {
   try {
-    const favorites = await getFavorites();
-    return favorites.some(f => 
-      f.name === name && 
-      f.volume === volume && 
-      f.percentage === percentage
-    );
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+    
+    const { data } = await supabase
+      .from('favorite_drinks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('name', name)
+      .eq('volume', volume)
+      .eq('percentage', percentage)
+      .single();
+    
+    return !!data;
   } catch (error) {
     console.error('❌ FAVORITES: Errore controllo preferito:', error);
     return false;
@@ -189,62 +220,92 @@ export const isFavorite = async (name: string, volume: number, percentage: numbe
 };
 
 /**
- * ⏱️ Aggiunge/aggiorna una bevanda nelle recenti
+ * ⏱️ Aggiunge/aggiorna una bevanda nelle recenti (Supabase)
  */
 export const addToRecent = async (drink: Partial<FavoriteDrink>): Promise<boolean> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
+    if (!userId) {
+      console.error('❌ RECENT: Utente non autenticato');
+      return false;
+    }
+    
     console.log('🕐 RECENT: Aggiornando bevande recenti per utente:', userId, '- bevanda:', drink.name);
     
-    const recent = await getRecent();
-    
-    // Genera ID univoco se non presente
-    const recentDrink: RecentDrink = {
-      id: drink.id || `recent_${Date.now()}`,
-      name: drink.name || 'Bevanda',
-      category: drink.category || 'beer',
-      volume: drink.volume || 330,
-      percentage: drink.percentage || 5.0,
-      icon: drink.icon,
-      iconColor: drink.iconColor,
-      timestamp: Date.now(),
-      lastUsed: Date.now(),
-      usageCount: 1
-    };
-    
     // Controlla se già presente
-    const existingIndex = recent.findIndex(r => 
-      r.name === recentDrink.name && 
-      r.volume === recentDrink.volume && 
-      r.percentage === recentDrink.percentage
-    );
+    const { data: existing } = await supabase
+      .from('recent_drinks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('name', drink.name || 'Bevanda')
+      .eq('volume', drink.volume || 330)
+      .eq('percentage', drink.percentage || 5.0)
+      .single();
     
-    if (existingIndex >= 0) {
-      // Aggiorna contatore e sposta in cima
-      const existing = recent[existingIndex];
-      existing.lastUsed = Date.now();
-      existing.usageCount += 1;
-      recent.splice(existingIndex, 1);
-      recent.unshift(existing);
-      console.log(`🔄 RECENT: Bevanda già presente, aggiornata (count: ${existing.usageCount})`);
-    } else {
-      // Aggiungi all'inizio
-      recent.unshift(recentDrink);
-      console.log('✅ RECENT: Nuova bevanda aggiunta');
+    if (existing) {
+      // Aggiorna contatore e timestamp
+      const { error } = await supabase
+        .from('recent_drinks')
+        .update({
+          usage_count: existing.usage_count + 1,
+          last_used: new Date().toISOString()
+        })
+        .eq('id', existing.id);
+      
+      if (error) {
+        console.error('❌ RECENT: Errore aggiornamento:', error);
+        return false;
+      }
+      
+      console.log(`🔄 RECENT: Bevanda aggiornata (count: ${existing.usage_count + 1})`);
+      return true;
     }
     
-    // Mantieni solo le ultime MAX_RECENT
-    if (recent.length > MAX_RECENT) {
-      recent.splice(MAX_RECENT);
+    // Controlla limite MAX_RECENT
+    const { count } = await supabase
+      .from('recent_drinks')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    
+    if (count && count >= MAX_RECENT) {
+      // Rimuovi la meno usata recentemente
+      const { data: oldest } = await supabase
+        .from('recent_drinks')
+        .select('id')
+        .eq('user_id', userId)
+        .order('last_used', { ascending: true })
+        .limit(1)
+        .single();
+      
+      if (oldest) {
+        await supabase
+          .from('recent_drinks')
+          .delete()
+          .eq('id', oldest.id);
+      }
     }
     
-    // 🔐 Salva con chiave specifica utente
-    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(recent));
-    console.log(`✅ RECENT: Lista aggiornata per utente ${userId} (totale: ${recent.length})`);
+    // Inserisci nuova bevanda
+    const { error } = await supabase
+      .from('recent_drinks')
+      .insert({
+        user_id: userId,
+        name: drink.name || 'Bevanda',
+        category: drink.category || 'beer',
+        volume: drink.volume || 330,
+        percentage: drink.percentage || 5.0,
+        icon: drink.icon,
+        icon_color: drink.icon_color,
+        usage_count: 1,
+        last_used: new Date().toISOString()
+      });
     
+    if (error) {
+      console.error('❌ RECENT: Errore inserimento:', error);
+      return false;
+    }
+    
+    console.log(`✅ RECENT: Nuova bevanda aggiunta su Supabase`);
     return true;
   } catch (error) {
     console.error('❌ RECENT: Errore aggiornamento recenti:', error);
@@ -253,28 +314,30 @@ export const addToRecent = async (drink: Partial<FavoriteDrink>): Promise<boolea
 };
 
 /**
- * 📋 Ottiene le bevande recenti
+ * 📋 Ottiene le bevande recenti (Supabase)
  */
 export const getRecent = async (): Promise<RecentDrink[]> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
-    
-    const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
-    const data = await AsyncStorage.getItem(storageKey);
-    if (!data) {
-      console.log(`📋 RECENT: Nessuna bevanda recente per utente ${userId}`);
+    if (!userId) {
+      console.log('⚠️ RECENT: Utente non autenticato');
       return [];
     }
     
-    const recent: RecentDrink[] = JSON.parse(data);
-    console.log(`📋 RECENT: Caricate ${recent.length} bevande recenti per utente ${userId}`);
+    const { data, error } = await supabase
+      .from('recent_drinks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('last_used', { ascending: false })
+      .limit(MAX_RECENT);
     
-    // Ordina per ultima usata (più recente prima)
-    recent.sort((a, b) => b.lastUsed - a.lastUsed);
+    if (error) {
+      console.error('❌ RECENT: Errore caricamento:', error);
+      return [];
+    }
     
-    return recent;
+    console.log(`📋 RECENT: Caricate ${data?.length || 0} bevande recenti da Supabase per utente ${userId}`);
+    return data || [];
   } catch (error) {
     console.error('❌ RECENT: Errore caricamento recenti:', error);
     return [];
@@ -282,21 +345,28 @@ export const getRecent = async (): Promise<RecentDrink[]> => {
 };
 
 /**
- * 🔥 Ottiene le bevande "popolari" (più usate di recente)
+ * 🔥 Ottiene le bevande "popolari" (più usate) (Supabase)
  */
 export const getPopular = async (): Promise<RecentDrink[]> => {
   try {
-    const recent = await getRecent();
+    const userId = await getCurrentUserId();
+    if (!userId) return [];
     
-    // Filtra solo quelle usate più di una volta
-    const popular = recent.filter(r => r.usageCount > 1);
+    const { data, error } = await supabase
+      .from('recent_drinks')
+      .select('*')
+      .eq('user_id', userId)
+      .gt('usage_count', 1)
+      .order('usage_count', { ascending: false })
+      .limit(5);
     
-    // Ordina per contatore uso (più usate prima)
-    popular.sort((a, b) => b.usageCount - a.usageCount);
+    if (error) {
+      console.error('❌ POPULAR: Errore caricamento:', error);
+      return [];
+    }
     
-    console.log(`🔥 POPULAR: Trovate ${popular.length} bevande popolari`);
-    
-    return popular.slice(0, 5); // Top 5
+    console.log(`🔥 POPULAR: Trovate ${data?.length || 0} bevande popolari`);
+    return data || [];
   } catch (error) {
     console.error('❌ POPULAR: Errore caricamento popolari:', error);
     return [];
@@ -304,23 +374,26 @@ export const getPopular = async (): Promise<RecentDrink[]> => {
 };
 
 /**
- * 🧹 Pulisce le bevande vecchie dalle recenti (> 30 giorni)
+ * 🧹 Pulisce le bevande vecchie dalle recenti (> 30 giorni) (Supabase)
  */
 export const cleanOldRecent = async (): Promise<void> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
+    if (!userId) return;
     
-    const recent = await getRecent();
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const filteredRecent = recent.filter(r => r.lastUsed > thirtyDaysAgo);
+    const { error } = await supabase
+      .from('recent_drinks')
+      .delete()
+      .eq('user_id', userId)
+      .lt('last_used', thirtyDaysAgo.toISOString());
     
-    if (filteredRecent.length < recent.length) {
-      const storageKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
-      await AsyncStorage.setItem(storageKey, JSON.stringify(filteredRecent));
-      console.log(`🧹 RECENT: Rimosse ${recent.length - filteredRecent.length} bevande vecchie per utente ${userId}`);
+    if (error) {
+      console.error('❌ RECENT: Errore pulizia vecchie bevande:', error);
+    } else {
+      console.log(`🧹 RECENT: Rimosse bevande vecchie (> 30 giorni) per utente ${userId}`);
     }
   } catch (error) {
     console.error('❌ RECENT: Errore pulizia vecchie bevande:', error);
@@ -328,39 +401,48 @@ export const cleanOldRecent = async (): Promise<void> => {
 };
 
 /**
- * 🗑️ Pulisce tutto lo storage favoriti/recenti per l'utente corrente
+ * 🗑️ Pulisce tutti i preferiti per l'utente corrente (Supabase)
  */
 export const clearAllFavorites = async (): Promise<void> => {
   try {
-    // 🔐 Ottieni user ID corrente
-    await initGetCurrentUserId();
     const userId = await getCurrentUserId();
+    if (!userId) return;
     
-    const favKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
-    const recentKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+    const { error } = await supabase
+      .from('favorite_drinks')
+      .delete()
+      .eq('user_id', userId);
     
-    await AsyncStorage.removeItem(favKey);
-    await AsyncStorage.removeItem(recentKey);
-    console.log(`🗑️ FAVORITES: Storage pulito completamente per utente ${userId}`);
+    if (error) {
+      console.error('❌ FAVORITES: Errore pulizia preferiti:', error);
+    } else {
+      console.log(`🗑️ FAVORITES: Tutti i preferiti puliti per utente ${userId}`);
+    }
   } catch (error) {
-    console.error('❌ FAVORITES: Errore pulizia storage:', error);
+    console.error('❌ FAVORITES: Errore pulizia preferiti:', error);
   }
 };
 
 /**
- * 🔐 Pulisce i preferiti di un utente specifico (utile per logout/cambio account)
- * Usato internamente quando l'utente cambia
+ * 🗑️ Pulisce tutte le bevande recenti per l'utente corrente (Supabase)
  */
-export const clearFavoritesForUser = async (userId: string): Promise<void> => {
+export const clearRecentDrinks = async (): Promise<void> => {
   try {
-    const favKey = getUserSpecificKey(BASE_STORAGE_KEYS.FAVORITE_DRINKS, userId);
-    const recentKey = getUserSpecificKey(BASE_STORAGE_KEYS.RECENT_DRINKS, userId);
+    const userId = await getCurrentUserId();
+    if (!userId) return;
     
-    await AsyncStorage.removeItem(favKey);
-    await AsyncStorage.removeItem(recentKey);
-    console.log(`🗑️ FAVORITES: Storage pulito per utente specifico ${userId}`);
+    const { error } = await supabase
+      .from('recent_drinks')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('❌ RECENT: Errore pulizia recenti:', error);
+    } else {
+      console.log(`🗑️ RECENT: Tutte le bevande recenti pulite per utente ${userId}`);
+    }
   } catch (error) {
-    console.error('❌ FAVORITES: Errore pulizia storage per utente:', error);
+    console.error('❌ RECENT: Errore pulizia recenti:', error);
   }
 };
 
@@ -374,6 +456,7 @@ export default {
   getRecent,
   getPopular,
   cleanOldRecent,
-  clearAllFavorites
+  clearAllFavorites,
+  clearRecentDrinks
 };
 

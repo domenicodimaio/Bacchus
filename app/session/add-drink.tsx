@@ -834,7 +834,7 @@ export default function AddDrinkScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await favoritesService.clearAllFavorites(); // Questo pulisce solo recenti per l'utente corrente
+              await favoritesService.clearRecentDrinks();
               await loadFavoritesAndRecent();
               toast.showToast({
                 message: t('favorites.recentCleared', { ns: 'session', defaultValue: 'Cronologia pulita' }),
@@ -944,12 +944,16 @@ export default function AddDrinkScreen() {
                 {t('selectDrinkType', { defaultValue: 'Scegli la categoria' })}
               </Text>
               
-              <View style={styles.categoryGridContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryHorizontalScroll}
+              >
                 {drinkCategories.map((category) => (
                   <TouchableOpacity
                     key={category.id}
                     style={[
-                      styles.categoryGridButton,
+                      styles.categoryHorizontalButton,
                       selectedCategory === category.id && {
                         borderColor: category.color,
                         backgroundColor: `${category.color}20`,
@@ -960,15 +964,15 @@ export default function AddDrinkScreen() {
                   >
                     <FontAwesome5 
                       name={category.icon} 
-                      size={36} 
+                      size={32} 
                       color={category.color} 
                     />
-                    <Text style={[styles.categoryButtonText, { color: colors.text }]}>
+                    <Text style={[styles.categoryHorizontalText, { color: colors.text }]}>
                       {t(category.translationKey, { defaultValue: category.defaultValue })}
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             </View>
             
             {/* 🌟 BEVANDE PREFERITE */}
@@ -980,9 +984,13 @@ export default function AddDrinkScreen() {
                   </Text>
                   <TouchableOpacity 
                     style={styles.manageButton}
-                    onPress={() => {/* TODO: Open manage favorites modal */}}
+                    onPress={() => Alert.alert(
+                      t('favorites.manage', { ns: 'session', defaultValue: 'Gestisci Preferiti' }),
+                      t('favorites.manageInfo', { ns: 'session', defaultValue: 'Puoi rimuovere i preferiti dall\'elenco qui sotto tenendo premuto su una bevanda.' }),
+                      [{ text: 'OK', style: 'default' }]
+                    )}
                   >
-                    <MaterialCommunityIcons name="cog" size={20} color={colors.primary} />
+                    <MaterialCommunityIcons name="cog" size={18} color={colors.primary} />
                     <Text style={[styles.manageButtonText, { color: colors.primary }]}>
                       {t('favorites.manage', { ns: 'session', defaultValue: 'Gestisci' })}
                     </Text>
@@ -995,51 +1003,57 @@ export default function AddDrinkScreen() {
                   contentContainerStyle={styles.shortcutsScroll}
                   style={styles.shortcutsScrollView}
                 >
-                  {favoriteDrinks.map((drink) => (
-                    <TouchableOpacity
-                      key={drink.id}
-                      style={[styles.shortcutItem, { backgroundColor: colors.cardBackground }]}
-                      onPress={() => handleQuickAddDrink(drink)}
-                    >
-                      <View style={[styles.shortcutIcon, { backgroundColor: drink.iconColor || colors.primary + '20' }]}>
-                        {drink.icon ? (
+                  {favoriteDrinks.map((drink) => {
+                    // 🎨 Determina icona e colore in base alla categoria
+                    const getCategoryIcon = () => {
+                      switch(drink.category) {
+                        case 'beer': return { icon: 'beer', color: '#FFC107' };
+                        case 'wine': return { icon: 'wine-glass', color: '#E91E63' };
+                        case 'spirits': return { icon: 'glass-whiskey', color: '#FF5722' };
+                        case 'cocktail': return { icon: 'cocktail', color: '#00BCD4' };
+                        default: return { icon: 'glass-martini-alt', color: colors.primary };
+                      }
+                    };
+                    const categoryStyle = getCategoryIcon();
+                    
+                    return (
+                      <TouchableOpacity
+                        key={drink.id}
+                        style={[styles.shortcutItem, { backgroundColor: colors.cardBackground }]}
+                        onPress={() => handleQuickAddDrink(drink)}
+                      >
+                        <View style={[styles.shortcutIcon, { backgroundColor: categoryStyle.color + '20' }]}>
                           <FontAwesome5 
-                            name={drink.icon} 
-                            size={20} 
-                            color={drink.iconColor || colors.primary} 
+                            name={categoryStyle.icon} 
+                            size={22} 
+                            color={categoryStyle.color} 
                           />
-                        ) : (
-                          <MaterialCommunityIcons 
-                            name="glass-cocktail" 
-                            size={20} 
-                            color={colors.primary} 
-                          />
-                        )}
-                      </View>
-                      <Text style={[styles.shortcutName, { color: colors.text }]} numberOfLines={1}>
-                        {t(drink.name, { defaultValue: drink.name })}
-                      </Text>
-                      <Text style={[styles.shortcutDetails, { color: colors.textSecondary }]}>
-                        {drink.volume}ml • {drink.percentage}%
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        </View>
+                        <Text style={[styles.shortcutName, { color: colors.text }]} numberOfLines={1}>
+                          {t(drink.name, { defaultValue: drink.name })}
+                        </Text>
+                        <Text style={[styles.shortcutDetails, { color: colors.textSecondary }]}>
+                          {drink.volume}ml • {drink.percentage}%
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
             )}
             
             {/* 🌟 BEVANDE RECENTI */}
             {recentDrinks.length > 0 && (
-              <View style={styles.sectionContainer}>
+              <View style={[styles.sectionContainer, { marginBottom: 100 }]}>
                 <View style={styles.shortcutsHeaderRow}>
                   <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
                     {t('favorites.recentDrinks', { ns: 'session', defaultValue: 'Recenti' })} ({recentDrinks.length})
                   </Text>
                   <TouchableOpacity 
                     style={styles.manageButton}
-                    onPress={() => handleClearRecent()}
+                    onPress={handleClearRecent}
                   >
-                    <MaterialCommunityIcons name="delete-outline" size={20} color={colors.error || '#FF3B30'} />
+                    <MaterialCommunityIcons name="delete-outline" size={18} color={colors.error || '#FF3B30'} />
                     <Text style={[styles.manageButtonText, { color: colors.error || '#FF3B30' }]}>
                       {t('favorites.clearRecent', { ns: 'session', defaultValue: 'Pulisci' })}
                     </Text>
@@ -1052,35 +1066,41 @@ export default function AddDrinkScreen() {
                   contentContainerStyle={styles.shortcutsScroll}
                   style={styles.shortcutsScrollView}
                 >
-                  {recentDrinks.map((drink) => (
-                    <TouchableOpacity
-                      key={drink.id}
-                      style={[styles.shortcutItem, { backgroundColor: colors.cardBackground }]}
-                      onPress={() => handleQuickAddDrink(drink)}
-                    >
-                      <View style={[styles.shortcutIcon, { backgroundColor: drink.iconColor || colors.primary + '20' }]}>
-                        {drink.icon ? (
+                  {recentDrinks.map((drink) => {
+                    // 🎨 Determina icona e colore in base alla categoria
+                    const getCategoryIcon = () => {
+                      switch(drink.category) {
+                        case 'beer': return { icon: 'beer', color: '#FFC107' };
+                        case 'wine': return { icon: 'wine-glass', color: '#E91E63' };
+                        case 'spirits': return { icon: 'glass-whiskey', color: '#FF5722' };
+                        case 'cocktail': return { icon: 'cocktail', color: '#00BCD4' };
+                        default: return { icon: 'glass-martini-alt', color: colors.primary };
+                      }
+                    };
+                    const categoryStyle = getCategoryIcon();
+                    
+                    return (
+                      <TouchableOpacity
+                        key={drink.id}
+                        style={[styles.shortcutItem, { backgroundColor: colors.cardBackground }]}
+                        onPress={() => handleQuickAddDrink(drink)}
+                      >
+                        <View style={[styles.shortcutIcon, { backgroundColor: categoryStyle.color + '20' }]}>
                           <FontAwesome5 
-                            name={drink.icon} 
-                            size={20} 
-                            color={drink.iconColor || colors.primary} 
+                            name={categoryStyle.icon} 
+                            size={22} 
+                            color={categoryStyle.color} 
                           />
-                        ) : (
-                          <MaterialCommunityIcons 
-                            name="glass-cocktail" 
-                            size={20} 
-                            color={colors.primary} 
-                          />
-                        )}
-                      </View>
-                      <Text style={[styles.shortcutName, { color: colors.text }]} numberOfLines={1}>
-                        {t(drink.name, { defaultValue: drink.name })}
-                      </Text>
-                      <Text style={[styles.shortcutDetails, { color: colors.textSecondary }]}>
-                        {drink.volume}ml • {drink.percentage}%
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        </View>
+                        <Text style={[styles.shortcutName, { color: colors.text }]} numberOfLines={1}>
+                          {t(drink.name, { defaultValue: drink.name })}
+                        </Text>
+                        <Text style={[styles.shortcutDetails, { color: colors.textSecondary }]}>
+                          {drink.volume}ml • {drink.percentage}%
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
             )}
@@ -1821,6 +1841,38 @@ const styles = StyleSheet.create({
   categoryButtonText: {
     marginTop: 8,
     fontSize: 15,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  // 🎨 Stili per categorie orizzontali
+  categoryHorizontalScroll: {
+    paddingRight: SIZES.padding,
+  },
+  categoryHorizontalButton: {
+    minWidth: 100,
+    paddingHorizontal: SIZES.padding * 1.2,
+    paddingVertical: SIZES.padding,
+    marginRight: SIZES.marginSmall,
+    borderRadius: SIZES.radius,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  categoryHorizontalText: {
+    marginTop: 6,
+    fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',
   },
