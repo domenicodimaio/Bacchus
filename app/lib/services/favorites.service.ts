@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import supabase from '../supabase/client';
 import { Drink } from '../../types/session';
 
 // 🎯 SERVIZIO BEVANDE PREFERITE E RECENTI
