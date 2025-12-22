@@ -971,7 +971,7 @@ export default function AddDrinkScreen() {
                   >
                     <FontAwesome5 
                       name={category.icon} 
-                      size={28} 
+                      size={36} 
                       color={category.color} 
                     />
                     <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
@@ -1219,7 +1219,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(sizeInfo.label, { defaultValue: t(size.name, { defaultValue: size.name }) })}
+                        {t(sizeInfo.label, { ns: 'session', defaultValue: t(size.name, { ns: 'session', defaultValue: size.name }) })}
                       </Text>
                       {sizeInfo.volume && (
                         <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
@@ -1656,6 +1656,7 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     marginTop: SIZES.marginSmall,
+    marginBottom: 120, // 🔧 FIX: Evita overlap con pulsanti in basso
     padding: SIZES.paddingSmall,
     borderRadius: SIZES.radius,
     borderWidth: 1,
@@ -1880,11 +1881,11 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.marginSmall,
   },
   categoryCompactButton: {
-    width: '32%', // 3 colonne
-    aspectRatio: 1.2, // Rettangolare
-    padding: SIZES.paddingSmall,
-    marginBottom: SIZES.marginSmall,
-    borderRadius: SIZES.radius,
+    width: '48%', // 2 colonne (più grande e leggibile)
+    aspectRatio: 1.3, // Leggermente più alto
+    padding: SIZES.padding,
+    marginBottom: SIZES.marginMedium,
+    borderRadius: SIZES.radius * 1.2,
     borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
@@ -1902,9 +1903,9 @@ const styles = StyleSheet.create({
     }),
   },
   categoryCompactText: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: '500',
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
   },
   detailsContainer: {
