@@ -279,45 +279,6 @@ export default function LoginScreen() {
     }
   };
   
-  // Gestisci login Google
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
-      
-      const { success, error } = await loginWithProvider('google');
-      
-      if (success) {
-        // 🔥 FIX PREMIUM: Aspetta che premium sia sincronizzato
-        console.log('⏳ Attendo sincronizzazione premium prima del redirect...');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 🔥 FIX PREMIUM: Verifica che il premium status sia caricato
-        try {
-          const purchaseService = require('../lib/services/purchase.service');
-          const isPremium = await purchaseService.isPremium();
-          console.log('✅ Premium status verificato prima redirect:', isPremium);
-        } catch (premiumCheckError) {
-          console.warn('⚠️ Errore verifica premium status:', premiumCheckError);
-        }
-        
-        router.replace('/(tabs)/dashboard');
-      } else {
-        Alert.alert(
-          t('loginFailed', { ns: 'auth', defaultValue: 'Login Failed' }),
-          error || t('genericError', { ns: 'auth', defaultValue: 'An error occurred' })
-        );
-      }
-    } catch (error) {
-      console.error('Google login error:', error);
-      Alert.alert(
-        t('loginFailed', { ns: 'auth', defaultValue: 'Login Failed' }),
-        t('genericError', { ns: 'auth', defaultValue: 'An error occurred' })
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   // Funzione per login con Apple
   const handleAppleLogin = async () => {
     try {
@@ -591,52 +552,31 @@ export default function LoginScreen() {
               <View style={[styles.dividerLine, { backgroundColor: '#2c3e60' }]} />
             </Animated.View>
             
-            {/* Pulsanti social login */}
-            <Animated.View 
-              style={[
-                styles.socialButtonsContainer,
-                { 
-                  opacity: socialOpacity, 
-                  transform: [{ translateY: socialTranslateY }] 
-                }
-              ]}
-            >
-              {/* Google login button */}
-              <TouchableOpacity 
-                style={[styles.socialButton, { 
-                  backgroundColor: '#ffffff',
-                  borderWidth: 1,
-                  borderColor: '#2c3e60',
-                  marginRight: 8,
-                  flex: 1
-                }]}
-                onPress={handleGoogleLogin}
-                disabled={isLoading}
+            {/* Pulsante Apple login centrato */}
+            {appleAuthAvailable && (
+              <Animated.View 
+                style={[
+                  styles.socialButtonsContainer,
+                  { 
+                    opacity: socialOpacity, 
+                    transform: [{ translateY: socialTranslateY }] 
+                  }
+                ]}
               >
-                <Ionicons name="logo-google" size={20} color="#4285F4" style={styles.socialIcon} />
-                <Text style={[styles.socialButtonText, { color: '#757575' }]}>
-                  Google
-                </Text>
-              </TouchableOpacity>
-              
-              {/* Apple login button */}
-              {appleAuthAvailable && (
                 <TouchableOpacity 
                   style={[styles.socialButton, { 
                     backgroundColor: '#000000',
-                    marginLeft: 8,
-                    flex: 1
                   }]}
                   onPress={handleAppleLogin}
                   disabled={isLoading}
                 >
                   <Ionicons name="logo-apple" size={22} color="#FFFFFF" style={styles.socialIcon} />
                   <Text style={[styles.socialButtonText, { color: '#ffffff' }]}>
-                    Apple
+                    {t('signInWithApple', { defaultValue: 'Accedi con Apple' })}
                   </Text>
                 </TouchableOpacity>
-              )}
-            </Animated.View>
+              </Animated.View>
+            )}
             
             {/* Footer con link di registrazione - Layout verticale */}
             <Animated.View 
@@ -772,12 +712,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   socialButtonsContainer: {
-    flexDirection: 'row',
     width: '100%',
     marginBottom: isIPad ? 5 : 10, // iPad: margine ridotto
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   socialButton: {
-    flex: 1,
+    width: '100%',
     flexDirection: 'row',
     height: isIPad ? 44 : 52, // iPad: più basso ma conforme Apple
     borderRadius: 10,
