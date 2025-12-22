@@ -213,12 +213,16 @@
     "noRecent": "Nessuna bevanda recente",
     "addedToFavorites": "Aggiunto ai preferiti!",
     "removedFromFavorites": "Rimosso dai preferiti",
+    "removed": "Rimosso dai preferiti",
     "quickAdd": "Aggiunta rapida",
     "manage": "Gestisci",
+    "manageInfo": "Puoi rimuovere i preferiti dall'elenco qui sotto tenendo premuto su una bevanda.",
     "clearRecent": "Pulisci",
     "clearRecentTitle": "Pulisci Cronologia",
     "clearRecentMessage": "Vuoi eliminare tutte le bevande recenti?",
-    "recentCleared": "Cronologia pulita"
+    "recentCleared": "Cronologia pulita",
+    "removeTitle": "Rimuovi Preferito",
+    "removeMessage": "Vuoi rimuovere questa bevanda dai preferiti?"
   },
   
   "consumptionTime": "Orario di Consumo",

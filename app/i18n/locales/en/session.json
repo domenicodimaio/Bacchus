@@ -185,12 +185,16 @@
     "noRecent": "No recent drinks",
     "addedToFavorites": "Added to favorites!",
     "removedFromFavorites": "Removed from favorites",
+    "removed": "Removed from favorites",
     "quickAdd": "Quick Add",
     "manage": "Manage",
+    "manageInfo": "You can remove favorites from the list below by long-pressing on a drink.",
     "clearRecent": "Clear",
     "clearRecentTitle": "Clear History",
     "clearRecentMessage": "Do you want to delete all recent drinks?",
-    "recentCleared": "History cleared"
+    "recentCleared": "History cleared",
+    "removeTitle": "Remove Favorite",
+    "removeMessage": "Do you want to remove this drink from favorites?"
   },
   
   "consumptionTime": "Consumption Time",

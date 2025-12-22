@@ -834,11 +834,20 @@ export default function AddDrinkScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await favoritesService.clearRecentDrinks();
-              await loadFavoritesAndRecent();
+              // 🚀 Aggiornamento UI ottimistico (immediato)
+              setRecentDrinks([]);
+              
+              // Toast immediato
               toast.showToast({
                 message: t('favorites.recentCleared', { ns: 'session', defaultValue: 'Cronologia pulita' }),
                 type: 'success'
+              });
+              
+              // Pulizia database in background (non bloccante)
+              favoritesService.clearRecentDrinks().catch(error => {
+                console.error('❌ Errore pulizia recenti:', error);
+                // Ricarica in caso di errore
+                loadFavoritesAndRecent();
               });
             } catch (error) {
               console.error('❌ Errore pulizia recenti:', error);
@@ -846,6 +855,8 @@ export default function AddDrinkScreen() {
                 message: t('error', { ns: 'common', defaultValue: 'Errore' }),
                 type: 'error'
               });
+              // Ricarica dati corretti
+              await loadFavoritesAndRecent();
             }
           }
         }
@@ -944,16 +955,12 @@ export default function AddDrinkScreen() {
                 {t('selectDrinkType', { defaultValue: 'Scegli la categoria' })}
               </Text>
               
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryHorizontalScroll}
-              >
+              <View style={styles.categoryCompactGrid}>
                 {drinkCategories.map((category) => (
                   <TouchableOpacity
                     key={category.id}
                     style={[
-                      styles.categoryHorizontalButton,
+                      styles.categoryCompactButton,
                       selectedCategory === category.id && {
                         borderColor: category.color,
                         backgroundColor: `${category.color}20`,
@@ -964,15 +971,15 @@ export default function AddDrinkScreen() {
                   >
                     <FontAwesome5 
                       name={category.icon} 
-                      size={32} 
+                      size={28} 
                       color={category.color} 
                     />
-                    <Text style={[styles.categoryHorizontalText, { color: colors.text }]}>
+                    <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
                       {t(category.translationKey, { defaultValue: category.defaultValue })}
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
             </View>
             
             {/* 🌟 BEVANDE PREFERITE */}
@@ -1021,6 +1028,27 @@ export default function AddDrinkScreen() {
                         key={drink.id}
                         style={[styles.shortcutItem, { backgroundColor: colors.cardBackground }]}
                         onPress={() => handleQuickAddDrink(drink)}
+                        onLongPress={() => {
+                          Alert.alert(
+                            t('favorites.removeTitle', { ns: 'session', defaultValue: 'Rimuovi Preferito' }),
+                            t('favorites.removeMessage', { ns: 'session', defaultValue: 'Vuoi rimuovere questa bevanda dai preferiti?' }),
+                            [
+                              { text: t('cancel', { ns: 'common', defaultValue: 'Annulla' }), style: 'cancel' },
+                              {
+                                text: t('remove', { ns: 'common', defaultValue: 'Rimuovi' }),
+                                style: 'destructive',
+                                onPress: async () => {
+                                  await favoritesService.removeFromFavorites(drink.id);
+                                  await loadFavoritesAndRecent();
+                                  toast.showToast({
+                                    message: t('favorites.removed', { ns: 'session', defaultValue: 'Rimosso dai preferiti' }),
+                                    type: 'success'
+                                  });
+                                }
+                              }
+                            ]
+                          );
+                        }}
                       >
                         <View style={[styles.shortcutIcon, { backgroundColor: categoryStyle.color + '20' }]}>
                           <FontAwesome5 
@@ -1044,7 +1072,7 @@ export default function AddDrinkScreen() {
             
             {/* 🌟 BEVANDE RECENTI */}
             {recentDrinks.length > 0 && (
-              <View style={[styles.sectionContainer, { marginBottom: 100 }]}>
+              <View style={[styles.sectionContainer, { marginBottom: 120, paddingBottom: 20 }]}>
                 <View style={styles.shortcutsHeaderRow}>
                   <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
                     {t('favorites.recentDrinks', { ns: 'session', defaultValue: 'Recenti' })} ({recentDrinks.length})
@@ -1193,9 +1221,9 @@ export default function AddDrinkScreen() {
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
                         {t(sizeInfo.label, { defaultValue: t(size.name, { defaultValue: size.name }) })}
                       </Text>
-                      {sizeInfo.percentage && (
+                      {sizeInfo.volume && (
                         <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
-                          {sizeInfo.percentage}% ABV
+                          {sizeInfo.volume}ml
                         </Text>
                       )}
               </TouchableOpacity>
@@ -1844,15 +1872,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  // 🎨 Stili per categorie orizzontali
-  categoryHorizontalScroll: {
-    paddingRight: SIZES.padding,
+  // 🎨 Stili per categorie compatte (grid 2x2 o 3x2)
+  categoryCompactGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: SIZES.marginSmall,
   },
-  categoryHorizontalButton: {
-    minWidth: 100,
-    paddingHorizontal: SIZES.padding * 1.2,
-    paddingVertical: SIZES.padding,
-    marginRight: SIZES.marginSmall,
+  categoryCompactButton: {
+    width: '32%', // 3 colonne
+    aspectRatio: 1.2, // Rettangolare
+    padding: SIZES.paddingSmall,
+    marginBottom: SIZES.marginSmall,
     borderRadius: SIZES.radius,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -1870,9 +1901,9 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  categoryHorizontalText: {
+  categoryCompactText: {
     marginTop: 6,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -2008,13 +2039,14 @@ const styles = StyleSheet.create({
   },
   sizeButtonLarge: {
     width: '48%',
-    padding: SIZES.paddingSmall + 4,
+    padding: SIZES.padding,
+    paddingVertical: SIZES.padding * 1.2,
     borderRadius: SIZES.radius,
     borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 70,
+    minHeight: 85,
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
@@ -2028,14 +2060,16 @@ const styles = StyleSheet.create({
     }),
   },
   sizeButtonTextLarge: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 6,
     textAlign: 'center',
+    lineHeight: 20,
   },
   sizeButtonSubtextLarge: {
-    fontSize: 12,
-    opacity: 0.7,
+    fontSize: 13,
+    fontWeight: '500',
+    opacity: 0.8,
     textAlign: 'center',
   },
   favoriteButton: {
