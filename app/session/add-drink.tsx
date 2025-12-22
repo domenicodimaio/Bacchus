@@ -328,11 +328,11 @@ const drinkPresets = [
 // 🍺🍷🍸 DIMENSIONI REALISTICHE DELLE BEVANDE (Italia/Europa)
 // Basate su misure standard dei locali italiani e europei
 const drinkSizes = [
-  { id: 'xs', name: 'drinkSizes.xs', multiplier: 0.6 },
-  { id: 'small', name: 'drinkSizes.small', multiplier: 0.8 },
-  { id: 'medium', name: 'drinkSizes.medium', multiplier: 1.0 },
-  { id: 'large', name: 'drinkSizes.large', multiplier: 1.5 },
-  { id: 'xl', name: 'drinkSizes.xl', multiplier: 2.0 },
+  { id: 'xs', name: 'xs', multiplier: 0.6 },
+  { id: 'small', name: 'small', multiplier: 0.8 },
+  { id: 'medium', name: 'medium', multiplier: 1.0 },
+  { id: 'large', name: 'large', multiplier: 1.5 },
+  { id: 'xl', name: 'xl', multiplier: 2.0 },
 ];
 
 // Categorizzazione migliorata per visualizzazione
@@ -971,7 +971,7 @@ export default function AddDrinkScreen() {
                   >
                     <FontAwesome5 
                       name={category.icon} 
-                      size={36} 
+                      size={32} 
                       color={category.color} 
                     />
                     <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
@@ -1219,7 +1219,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(sizeInfo.label, { ns: 'session', defaultValue: t(size.name, { ns: 'session', defaultValue: size.name }) })}
+                        {t(sizeInfo.label, { ns: 'session', defaultValue: t(`drinkSizes.${size.name}`, { ns: 'session', defaultValue: size.name }) })}
                       </Text>
                       {sizeInfo.volume && (
                         <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
@@ -1881,11 +1881,11 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.marginSmall,
   },
   categoryCompactButton: {
-    width: '48%', // 2 colonne (più grande e leggibile)
-    aspectRatio: 1.3, // Leggermente più alto
-    padding: SIZES.padding,
-    marginBottom: SIZES.marginMedium,
-    borderRadius: SIZES.radius * 1.2,
+    width: '31%', // 3 colonne - RIPRISTINATO ORIGINALE
+    aspectRatio: 1.1,
+    padding: SIZES.paddingSmall,
+    marginBottom: SIZES.marginSmall,
+    borderRadius: SIZES.radius,
     borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
@@ -1903,8 +1903,8 @@ const styles = StyleSheet.create({
     }),
   },
   categoryCompactText: {
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: 6,
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
   },
