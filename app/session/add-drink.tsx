@@ -1114,7 +1114,7 @@ export default function AddDrinkScreen() {
                   >
                     <FontAwesome5 
                       name={category.icon} 
-                      size={28} 
+                      size={24} 
                       color={category.color} 
                     />
                     <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
@@ -1205,10 +1205,10 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(size.label, { ns: 'session', defaultValue: `${size.volume}ml` })}
+                        {t(size.label, { ns: 'session', defaultValue: size.id })}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
-                        {size.volume}ml • {size.percentage}%
+                        {size.volume}ml
                       </Text>
               </TouchableOpacity>
                   );
@@ -1853,8 +1853,8 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.marginSmall,
   },
   categoryCompactButton: {
-    width: '31%', // 3 colonne - RIPRISTINATO ORIGINALE
-    aspectRatio: 1.1,
+    width: '23%', // 4 colonne su unica riga
+    aspectRatio: 1.0,
     padding: SIZES.paddingSmall,
     marginBottom: SIZES.marginSmall,
     borderRadius: SIZES.radius,
@@ -1875,8 +1875,8 @@ const styles = StyleSheet.create({
     }),
   },
   categoryCompactText: {
-    marginTop: 6,
-    fontSize: 13,
+    marginTop: 4,
+    fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
   },
