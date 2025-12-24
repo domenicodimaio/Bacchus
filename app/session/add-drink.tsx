@@ -950,38 +950,6 @@ export default function AddDrinkScreen() {
             />
           </View>
             
-            <View style={styles.sectionContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t('selectDrinkType', { defaultValue: 'Scegli la categoria' })}
-              </Text>
-              
-              <View style={styles.categoryCompactGrid}>
-                {drinkCategories.map((category) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryCompactButton,
-                      selectedCategory === category.id && {
-                        borderColor: category.color,
-                        backgroundColor: `${category.color}20`,
-                      },
-                      { backgroundColor: colors.cardBackground }
-                    ]}
-                    onPress={() => handleSelectCategory(category.id)}
-                  >
-                    <FontAwesome5 
-                      name={category.icon} 
-                      size={32} 
-                      color={category.color} 
-                    />
-                    <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
-                      {t(category.translationKey, { defaultValue: category.defaultValue })}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            
             {/* 🌟 BEVANDE PREFERITE */}
             {favoriteDrinks.length > 0 && (
               <View style={styles.sectionContainer}>
@@ -1072,7 +1040,7 @@ export default function AddDrinkScreen() {
             
             {/* 🌟 BEVANDE RECENTI */}
             {recentDrinks.length > 0 && (
-              <View style={[styles.sectionContainer, { marginBottom: 120, paddingBottom: 20 }]}>
+              <View style={styles.sectionContainer}>
                 <View style={styles.shortcutsHeaderRow}>
                   <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
                     {t('favorites.recentDrinks', { ns: 'session', defaultValue: 'Recenti' })} ({recentDrinks.length})
@@ -1132,6 +1100,38 @@ export default function AddDrinkScreen() {
                 </ScrollView>
               </View>
             )}
+
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {t('selectDrinkType', { defaultValue: 'Scegli la categoria' })}
+            </Text>
+              
+              <View style={styles.categoryCompactGrid}>
+                {drinkCategories.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryCompactButton,
+                      selectedCategory === category.id && {
+                        borderColor: category.color,
+                        backgroundColor: `${category.color}20`,
+                      },
+                      { backgroundColor: colors.cardBackground }
+                    ]}
+                    onPress={() => handleSelectCategory(category.id)}
+                  >
+                    <FontAwesome5 
+                      name={category.icon} 
+                      size={32} 
+                      color={category.color} 
+                    />
+                    <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
+                      {t(category.translationKey, { defaultValue: category.defaultValue })}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
         );
       
@@ -1329,18 +1329,6 @@ export default function AddDrinkScreen() {
             </View>
           </View>
           
-              {/* Risultato alcol */}
-          <View style={styles.resultContainer}>
-                <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>
-                    {t('formLabels.alcoholGrams', { defaultValue: 'Grammi di alcol' })}
-            </Text>
-            <Text style={[styles.resultValue, { color: colors.primary }]}>
-              {alcoholGrams}g
-            </Text>
-                </View>
-          </View>
-
               {/* Info valori personalizzati */}
           {(volumeManuallyEdited || percentageManuallyEdited) && (
             <View style={styles.manualEditIndicator}>
@@ -1656,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     marginTop: SIZES.marginSmall,
-    marginBottom: 120, // 🔧 FIX: Evita overlap con pulsanti in basso
+    marginBottom: SIZES.marginSmall,
     padding: SIZES.paddingSmall,
     borderRadius: SIZES.radius,
     borderWidth: 1,
