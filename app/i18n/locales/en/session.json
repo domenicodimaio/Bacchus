@@ -146,32 +146,34 @@
   
   "drinkSizeLabels": {
     "beer": {
-      "xs": "Small Glass (200ml)",
-      "small": "Glass (250ml)",
-      "medium": "Small Bottle (330ml)",
-      "large": "Pint/Medium (500ml)",
-      "xl": "Large Bottle (660ml)"
+      "small": "Small",
+      "medium": "Medium",
+      "pint": "Pint",
+      "bottleSmall": "Small Bottle",
+      "bottleLarge": "Large Bottle",
+      "can": "Can"
     },
     "wine": {
-      "xs": "Small Glass (100ml)",
-      "small": "Glass (125ml)",
-      "medium": "Medium Glass (150ml)",
-      "large": "Large Glass (200ml)",
-      "xl": "Half Bottle (375ml)"
+      "glassSmall": "Small Glass",
+      "glassStandard": "Standard Glass",
+      "glassLarge": "Large Glass",
+      "halfBottle": "Half Bottle",
+      "fullBottle": "Full Bottle"
     },
     "spirits": {
-      "xs": "Small Shot (25ml)",
-      "small": "Shot (30ml)",
-      "medium": "Generous Shot (40ml)",
-      "large": "Double (60ml)",
-      "xl": "Glass (80ml)"
+      "shotStandard": "Standard Shot",
+      "shotGenerous": "Generous Shot",
+      "doubleShot": "Double Shot",
+      "glassLow": "Low Glass",
+      "glassFull": "Full Glass"
     },
     "cocktail": {
-      "xs": "Tumbler (120ml)",
-      "small": "Rocks Glass (150ml)",
-      "medium": "Standard (200ml)",
-      "large": "Highball (300ml)",
-      "xl": "Hurricane (450ml)"
+      "short": "Short Drink",
+      "long": "Long Drink",
+      "large": "Large Cocktail",
+      "pitcherSmall": "Small Pitcher",
+      "pitcherMedium": "Medium Pitcher",
+      "pitcherLarge": "Large Pitcher"
     }
   },
   

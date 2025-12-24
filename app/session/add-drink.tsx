@@ -325,16 +325,6 @@ const drinkPresets = [
   }
 ];
 
-// 🍺🍷🍸 DIMENSIONI REALISTICHE DELLE BEVANDE (Italia/Europa)
-// Basate su misure standard dei locali italiani e europei
-const drinkSizes = [
-  { id: 'xs', name: 'xs', multiplier: 0.6 },
-  { id: 'small', name: 'small', multiplier: 0.8 },
-  { id: 'medium', name: 'medium', multiplier: 1.0 },
-  { id: 'large', name: 'large', multiplier: 1.5 },
-  { id: 'xl', name: 'xl', multiplier: 2.0 },
-];
-
 // Categorizzazione migliorata per visualizzazione
 const drinkCategories = [
   { id: 'beer', name: 'beer', translationKey: 'Beer', defaultValue: 'Birra', icon: 'beer', color: '#FFC107' },
@@ -343,56 +333,53 @@ const drinkCategories = [
   { id: 'spirits', name: 'spirits', translationKey: 'Spirits', defaultValue: 'Superalcolici', icon: 'glass-whiskey', color: '#9C27B0' }
 ];
 
-// 🍺 BIRRA - Dimensioni reali italiane/europee
-// Basate su: bicchieri da bar (200-250ml), bottiglie piccole (330ml), 
-// pinte (400-500ml), bottiglie grandi (660ml), boccali da litro (1000ml)
-const beerSizeParams = {
-  xs: { volume: 200, percentage: 4.5, label: 'drinkSizeLabels.beer.xs' },      // Bicchiere piccolo
-  small: { volume: 250, percentage: 4.7, label: 'drinkSizeLabels.beer.small' }, // Bicchiere
-  medium: { volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.medium' }, // Bottiglia piccola
-  large: { volume: 500, percentage: 5.2, label: 'drinkSizeLabels.beer.large' },  // Pinta / Bottiglia media
-  xl: { volume: 660, percentage: 5.5, label: 'drinkSizeLabels.beer.xl' }         // Bottiglia grande
-};
+// 🍺🍷🍸🥃 DIMENSIONI SPECIFICHE PER OGNI CATEGORIA
+// Basate sulle specifiche fornite dall'utente
 
-// 🍷 VINO - Dimensioni reali calici e bottiglie
-// Basate su: calice piccolo (100ml), calice standard (125-150ml), 
-// calice grande (175-200ml), mezza bottiglia (375ml), bottiglia (750ml)
-const wineSizeParams = {
-  xs: { volume: 100, percentage: 11.5, label: 'drinkSizeLabels.wine.xs' },      // Calice piccolo
-  small: { volume: 125, percentage: 12.0, label: 'drinkSizeLabels.wine.small' }, // Calice standard
-  medium: { volume: 150, percentage: 12.5, label: 'drinkSizeLabels.wine.medium' }, // Calice medio
-  large: { volume: 200, percentage: 13.0, label: 'drinkSizeLabels.wine.large' },  // Calice grande
-  xl: { volume: 375, percentage: 13.0, label: 'drinkSizeLabels.wine.xl' }         // Mezza bottiglia
-};
+// 🍺 BIRRA
+const beerSizes = [
+  { id: 'small', volume: 200, percentage: 4.5, label: 'drinkSizeLabels.beer.small' },      // Piccola
+  { id: 'medium', volume: 400, percentage: 5.0, label: 'drinkSizeLabels.beer.medium' },    // Media
+  { id: 'pint', volume: 568, percentage: 5.0, label: 'drinkSizeLabels.beer.pint' },        // Pinta
+  { id: 'bottleSmall', volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.bottleSmall' }, // Bottiglia piccola
+  { id: 'bottleLarge', volume: 660, percentage: 5.5, label: 'drinkSizeLabels.beer.bottleLarge' }, // Bottiglia grande
+  { id: 'can', volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.can' }           // Lattina
+];
 
-// 🥃 SUPERALCOLICI - Dimensioni reali shot e bicchieri
-// Basate su: shot piccolo (25ml), shot standard (30-40ml), 
-// shot doppio (60ml), bicchiere (80ml), bicchiere grande (100ml)
-const spiritsSizeParams = {
-  xs: { volume: 25, percentage: 38.0, label: 'drinkSizeLabels.spirits.xs' },      // Shot piccolo
-  small: { volume: 30, percentage: 40.0, label: 'drinkSizeLabels.spirits.small' }, // Shot
-  medium: { volume: 40, percentage: 40.0, label: 'drinkSizeLabels.spirits.medium' }, // Shot generoso
-  large: { volume: 60, percentage: 42.0, label: 'drinkSizeLabels.spirits.large' },  // Doppio
-  xl: { volume: 80, percentage: 42.0, label: 'drinkSizeLabels.spirits.xl' }         // Bicchiere
-};
+// 🍷 VINO
+const wineSizes = [
+  { id: 'glassSmall', volume: 100, percentage: 12.0, label: 'drinkSizeLabels.wine.glassSmall' },     // Calice piccolo
+  { id: 'glassStandard', volume: 125, percentage: 12.0, label: 'drinkSizeLabels.wine.glassStandard' }, // Calice standard
+  { id: 'glassLarge', volume: 150, percentage: 12.5, label: 'drinkSizeLabels.wine.glassLarge' },     // Calice abbondante
+  { id: 'halfBottle', volume: 375, percentage: 13.0, label: 'drinkSizeLabels.wine.halfBottle' },     // Mezza bottiglia
+  { id: 'fullBottle', volume: 750, percentage: 13.0, label: 'drinkSizeLabels.wine.fullBottle' }      // Bottiglia intera
+];
 
-// 🍸 COCKTAIL - Dimensioni reali bicchieri cocktail
-// Basate su: tumbler basso (150ml), rocks glass (200ml), 
-// highball (250-300ml), pint glass (400ml), hurricane glass (500ml)
-const cocktailSizeParams = {
-  xs: { volume: 120, percentage: 10.0, label: 'drinkSizeLabels.cocktail.xs' },      // Tumbler piccolo
-  small: { volume: 150, percentage: 12.0, label: 'drinkSizeLabels.cocktail.small' }, // Rocks glass
-  medium: { volume: 200, percentage: 15.0, label: 'drinkSizeLabels.cocktail.medium' }, // Cocktail standard
-  large: { volume: 300, percentage: 15.0, label: 'drinkSizeLabels.cocktail.large' },  // Highball
-  xl: { volume: 450, percentage: 12.0, label: 'drinkSizeLabels.cocktail.xl' }         // Hurricane
-};
+// 🍸 COCKTAIL
+const cocktailSizes = [
+  { id: 'short', volume: 150, percentage: 15.0, label: 'drinkSizeLabels.cocktail.short' },           // Cocktail piccolo (short drink)
+  { id: 'long', volume: 250, percentage: 12.0, label: 'drinkSizeLabels.cocktail.long' },             // Cocktail standard (long drink)
+  { id: 'large', volume: 300, percentage: 12.0, label: 'drinkSizeLabels.cocktail.large' },           // Cocktail grande
+  { id: 'pitcherSmall', volume: 500, percentage: 10.0, label: 'drinkSizeLabels.cocktail.pitcherSmall' }, // Caraffa piccola
+  { id: 'pitcherMedium', volume: 1000, percentage: 10.0, label: 'drinkSizeLabels.cocktail.pitcherMedium' }, // Caraffa media
+  { id: 'pitcherLarge', volume: 1500, percentage: 10.0, label: 'drinkSizeLabels.cocktail.pitcherLarge' }  // Caraffa grande
+];
+
+// 🥃 SUPERALCOLICI
+const spiritsSizes = [
+  { id: 'shotStandard', volume: 30, percentage: 40.0, label: 'drinkSizeLabels.spirits.shotStandard' },   // Shot standard
+  { id: 'shotGenerous', volume: 40, percentage: 40.0, label: 'drinkSizeLabels.spirits.shotGenerous' },   // Shot abbondante
+  { id: 'doubleShot', volume: 60, percentage: 40.0, label: 'drinkSizeLabels.spirits.doubleShot' },       // Doppio shot
+  { id: 'glassLow', volume: 80, percentage: 40.0, label: 'drinkSizeLabels.spirits.glassLow' },           // Bicchiere basso
+  { id: 'glassFull', volume: 100, percentage: 40.0, label: 'drinkSizeLabels.spirits.glassFull' }         // Bicchiere pieno
+];
 
 // Mappatura completa per tutte le categorie
-const drinkSizeParams = {
-  beer: beerSizeParams,
-  wine: wineSizeParams,
-  spirits: spiritsSizeParams,
-  cocktail: cocktailSizeParams
+const drinkSizesByCategory = {
+  beer: beerSizes,
+  wine: wineSizes,
+  cocktail: cocktailSizes,
+  spirits: spiritsSizes
 };
 
 // Definiamo il validation schema
@@ -422,7 +409,7 @@ export default function AddDrinkScreen() {
   
   // Stati per il form
   const [selectedDrink, setSelectedDrink] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(drinkSizes[1]);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [volume, setVolume] = useState("");
   const [alcoholPercentage, setAlcoholPercentage] = useState("");
   const [alcoholGrams, setAlcoholGrams] = useState("0");
@@ -579,6 +566,11 @@ export default function AddDrinkScreen() {
   // Handler per la selezione della categoria
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
+    // Imposta la prima dimensione della categoria selezionata
+    const sizes = drinkSizesByCategory[category];
+    if (sizes && sizes.length > 0) {
+      setSelectedSize(sizes[0]);
+    }
     // Passa automaticamente allo step successivo
     goToNextStep();
   };
@@ -694,7 +686,7 @@ export default function AddDrinkScreen() {
       
       // Reset form
       setSelectedDrink(null);
-      setSelectedSize(drinkSizes[1]);
+      setSelectedSize(null);
       setVolume("");
       setAlcoholPercentage("");
       setConsumptionTime(new Date());
@@ -1122,7 +1114,7 @@ export default function AddDrinkScreen() {
                   >
                     <FontAwesome5 
                       name={category.icon} 
-                      size={32} 
+                      size={28} 
                       color={category.color} 
                     />
                     <Text style={[styles.categoryCompactText, { color: colors.text }]} numberOfLines={1}>
@@ -1198,19 +1190,13 @@ export default function AddDrinkScreen() {
           </Text>
           
           <View style={styles.drinkSizesGrid}>
-                {drinkSizes.map((size) => {
-                  // Calcola le informazioni specifiche della dimensione in base alla categoria selezionata
-                  const sizeInfo = drinkSizeParams[selectedCategory] && 
-                                  drinkSizeParams[selectedCategory][size.id] ? 
-                                  drinkSizeParams[selectedCategory][size.id] : 
-                                  { volume: 0, percentage: 0, label: size.name };
-                  
+                {drinkSizesByCategory[selectedCategory]?.map((size) => {
                   return (
               <TouchableOpacity
                 key={size.id}
                 style={[
                   styles.sizeButtonLarge,
-                  selectedSize.id === size.id && {
+                  selectedSize?.id === size.id && {
                     borderColor: colors.primary,
                     backgroundColor: `${colors.primary}20`,
                   },
@@ -1219,13 +1205,11 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(sizeInfo.label, { ns: 'session', defaultValue: t(`drinkSizes.${size.name}`, { ns: 'session', defaultValue: size.name }) })}
+                        {t(size.label, { ns: 'session', defaultValue: `${size.volume}ml` })}
                       </Text>
-                      {sizeInfo.volume && (
-                        <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
-                          {sizeInfo.volume}ml
-                        </Text>
-                      )}
+                      <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
+                        {size.volume}ml • {size.percentage}%
+                      </Text>
               </TouchableOpacity>
                   );
                 })}
@@ -1251,8 +1235,8 @@ export default function AddDrinkScreen() {
                   color: isFavoriteDrink ? colors.primary : colors.text 
                 }]}>
                   {isFavoriteDrink 
-                    ? t('favorites.removeFromFavorites', { ns: 'session' }) 
-                    : t('favorites.addToFavorites', { ns: 'session' })}
+                    ? t('favorites.removeFromFavorites', { ns: 'session', defaultValue: 'Rimuovi dai Preferiti' }) 
+                    : t('favorites.addToFavorites', { ns: 'session', defaultValue: 'Aggiungi ai Preferiti' })}
                 </Text>
               </TouchableOpacity>
             )}

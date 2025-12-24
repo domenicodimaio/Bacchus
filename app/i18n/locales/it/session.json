@@ -174,32 +174,34 @@
   
   "drinkSizeLabels": {
     "beer": {
-      "xs": "Bicchiere Piccolo (200ml)",
-      "small": "Bicchiere (250ml)",
-      "medium": "Bottiglia Piccola (330ml)",
-      "large": "Pinta/Media (500ml)",
-      "xl": "Bottiglia Grande (660ml)"
+      "small": "Piccola",
+      "medium": "Media",
+      "pint": "Pinta",
+      "bottleSmall": "Bottiglia Piccola",
+      "bottleLarge": "Bottiglia Grande",
+      "can": "Lattina"
     },
     "wine": {
-      "xs": "Calice Piccolo (100ml)",
-      "small": "Calice (125ml)",
-      "medium": "Calice Medio (150ml)",
-      "large": "Calice Grande (200ml)",
-      "xl": "Mezza Bottiglia (375ml)"
+      "glassSmall": "Calice Piccolo",
+      "glassStandard": "Calice Standard",
+      "glassLarge": "Calice Abbondante",
+      "halfBottle": "Mezza Bottiglia",
+      "fullBottle": "Bottiglia Intera"
     },
     "spirits": {
-      "xs": "Shot Piccolo (25ml)",
-      "small": "Shot (30ml)",
-      "medium": "Shot Generoso (40ml)",
-      "large": "Doppio (60ml)",
-      "xl": "Bicchiere (80ml)"
+      "shotStandard": "Shot Standard",
+      "shotGenerous": "Shot Abbondante",
+      "doubleShot": "Doppio Shot",
+      "glassLow": "Bicchiere Basso",
+      "glassFull": "Bicchiere Pieno"
     },
     "cocktail": {
-      "xs": "Tumbler (120ml)",
-      "small": "Rocks Glass (150ml)",
-      "medium": "Standard (200ml)",
-      "large": "Highball (300ml)",
-      "xl": "Hurricane (450ml)"
+      "short": "Cocktail Piccolo",
+      "long": "Cocktail Standard",
+      "large": "Cocktail Grande",
+      "pitcherSmall": "Caraffa Piccola",
+      "pitcherMedium": "Caraffa Media",
+      "pitcherLarge": "Caraffa Grande"
     }
   },
   
