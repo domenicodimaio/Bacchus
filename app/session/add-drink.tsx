@@ -597,16 +597,18 @@ export default function AddDrinkScreen() {
   const handleSelectSize = (size) => {
     setSelectedSize(size);
     
-    // Aggiorna il volume in base alla dimensione selezionata
-    if (size && size.multiplier && selectedDrink) {
-      const newVolume = Math.round(selectedDrink.volume * size.multiplier);
-      setVolume(newVolume.toString());
+    // Aggiorna il volume e la percentuale in base alla dimensione selezionata
+    if (size && size.volume) {
+      setVolume(size.volume.toString());
+      setVolumeManuallyEdited(false); // Reset manuale edit quando si seleziona una dimensione
       
-      // Ricalcola i grammi di alcol in base al nuovo volume e alla percentuale
-      const percentage = parseFloat(alcoholPercentage);
-      if (!isNaN(percentage)) {
-        // Formula: volume (ml) * percentuale / 100 * 0.789 (densità alcol)
-        const newGrams = Math.round((newVolume * percentage / 100 * 0.789) * 10) / 10;
+      // Aggiorna anche la percentuale se disponibile
+      if (size.percentage) {
+        setAlcoholPercentage(size.percentage.toString());
+        setPercentageManuallyEdited(false);
+        
+        // Ricalcola i grammi di alcol
+        const newGrams = Math.round((size.volume * size.percentage / 100 * 0.789) * 10) / 10;
         setAlcoholGrams(newGrams.toString());
       }
     }
