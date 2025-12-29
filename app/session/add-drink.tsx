@@ -22,7 +22,7 @@ import {
 // 🔥 RILEVAMENTO IPAD: Rileva iPad per ridurre dimensioni button
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isIPad = Platform.OS === 'ios' && Math.min(screenWidth, screenHeight) >= 700;
-import { router, useNavigation, useLocalSearchParams } from 'expo-router';
+import { router, useNavigation, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesome5, MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -336,33 +336,33 @@ const drinkCategories = [
 // 🍺🍷🍸🥃 DIMENSIONI SPECIFICHE PER OGNI CATEGORIA
 // Basate sulle specifiche fornite dall'utente
 
-// 🍺 BIRRA
+// 🍺 BIRRA - Tutte con stessa gradazione (5%)
 const beerSizes = [
-  { id: 'small', volume: 200, percentage: 4.5, label: 'drinkSizeLabels.beer.small' },      // Piccola
+  { id: 'small', volume: 200, percentage: 5.0, label: 'drinkSizeLabels.beer.small' },      // Piccola
   { id: 'medium', volume: 400, percentage: 5.0, label: 'drinkSizeLabels.beer.medium' },    // Media
   { id: 'pint', volume: 568, percentage: 5.0, label: 'drinkSizeLabels.beer.pint' },        // Pinta
   { id: 'bottleSmall', volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.bottleSmall' }, // Bottiglia piccola
-  { id: 'bottleLarge', volume: 660, percentage: 5.5, label: 'drinkSizeLabels.beer.bottleLarge' }, // Bottiglia grande
+  { id: 'bottleLarge', volume: 660, percentage: 5.0, label: 'drinkSizeLabels.beer.bottleLarge' }, // Bottiglia grande
   { id: 'can', volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.can' }           // Lattina
 ];
 
-// 🍷 VINO
+// 🍷 VINO - Tutte con stessa gradazione (12%)
 const wineSizes = [
   { id: 'glassSmall', volume: 100, percentage: 12.0, label: 'drinkSizeLabels.wine.glassSmall' },     // Calice piccolo
   { id: 'glassStandard', volume: 125, percentage: 12.0, label: 'drinkSizeLabels.wine.glassStandard' }, // Calice standard
-  { id: 'glassLarge', volume: 150, percentage: 12.5, label: 'drinkSizeLabels.wine.glassLarge' },     // Calice abbondante
-  { id: 'halfBottle', volume: 375, percentage: 13.0, label: 'drinkSizeLabels.wine.halfBottle' },     // Mezza bottiglia
-  { id: 'fullBottle', volume: 750, percentage: 13.0, label: 'drinkSizeLabels.wine.fullBottle' }      // Bottiglia intera
+  { id: 'glassLarge', volume: 150, percentage: 12.0, label: 'drinkSizeLabels.wine.glassLarge' },     // Calice abbondante
+  { id: 'halfBottle', volume: 375, percentage: 12.0, label: 'drinkSizeLabels.wine.halfBottle' },     // Mezza bottiglia
+  { id: 'fullBottle', volume: 750, percentage: 12.0, label: 'drinkSizeLabels.wine.fullBottle' }      // Bottiglia intera
 ];
 
-// 🍸 COCKTAIL
+// 🍸 COCKTAIL - Tutte con stessa gradazione (12%)
 const cocktailSizes = [
-  { id: 'short', volume: 150, percentage: 15.0, label: 'drinkSizeLabels.cocktail.short' },           // Cocktail piccolo (short drink)
+  { id: 'short', volume: 150, percentage: 12.0, label: 'drinkSizeLabels.cocktail.short' },           // Cocktail piccolo (short drink)
   { id: 'long', volume: 250, percentage: 12.0, label: 'drinkSizeLabels.cocktail.long' },             // Cocktail standard (long drink)
   { id: 'large', volume: 300, percentage: 12.0, label: 'drinkSizeLabels.cocktail.large' },           // Cocktail grande
-  { id: 'pitcherSmall', volume: 500, percentage: 10.0, label: 'drinkSizeLabels.cocktail.pitcherSmall' }, // Caraffa piccola
-  { id: 'pitcherMedium', volume: 1000, percentage: 10.0, label: 'drinkSizeLabels.cocktail.pitcherMedium' }, // Caraffa media
-  { id: 'pitcherLarge', volume: 1500, percentage: 10.0, label: 'drinkSizeLabels.cocktail.pitcherLarge' }  // Caraffa grande
+  { id: 'pitcherSmall', volume: 500, percentage: 12.0, label: 'drinkSizeLabels.cocktail.pitcherSmall' }, // Caraffa piccola
+  { id: 'pitcherMedium', volume: 1000, percentage: 12.0, label: 'drinkSizeLabels.cocktail.pitcherMedium' }, // Caraffa media
+  { id: 'pitcherLarge', volume: 1500, percentage: 12.0, label: 'drinkSizeLabels.cocktail.pitcherLarge' }  // Caraffa grande
 ];
 
 // 🥃 SUPERALCOLICI
@@ -930,6 +930,14 @@ export default function AddDrinkScreen() {
     checkIfFavorite();
   }, [selectedDrink, selectedSize, volume, alcoholPercentage]);
   
+  // 🔄 Ricarica preferiti e recenti quando l'utente torna alla schermata
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Schermata add-drink in focus, ricarico preferiti e recenti');
+      loadFavoritesAndRecent();
+    }, [])
+  );
+  
   // Renderizza solo lo step corrente invece di tutti gli step con animazione
   const renderCurrentStep = () => {
     switch(currentStep) {
@@ -1212,7 +1220,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(size.label, { ns: 'session', defaultValue: size.id })}
+                        {t(size.label)}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
                         {size.volume}ml
