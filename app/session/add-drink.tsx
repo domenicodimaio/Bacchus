@@ -911,11 +911,19 @@ export default function AddDrinkScreen() {
         return;
       }
       
+      console.log('🔍 Controllo preferiti:', {
+        name: selectedDrink.name,
+        volume: parseFloat(volume),
+        percentage: parseFloat(alcoholPercentage)
+      });
+      
       const isFav = await favoritesService.isFavorite(
         selectedDrink.name,
         parseFloat(volume),
         parseFloat(alcoholPercentage)
       );
+      
+      console.log('✅ Risultato controllo preferiti:', isFav);
       setIsFavoriteDrink(isFav);
     };
     
@@ -1204,7 +1212,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(size.label)}
+                        {t(size.label, { ns: 'session', defaultValue: size.id })}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
                         {size.volume}ml

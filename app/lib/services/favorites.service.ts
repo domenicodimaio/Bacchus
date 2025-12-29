@@ -203,16 +203,25 @@ export const isFavorite = async (name: string, volume: number, percentage: numbe
     const userId = await getCurrentUserId();
     if (!userId) return false;
     
-    const { data } = await supabase
+    console.log('🔍 isFavorite check:', { userId, name, volume, percentage });
+    
+    const { data, error } = await supabase
       .from('favorite_drinks')
       .select('id')
       .eq('user_id', userId)
       .eq('name', name)
       .eq('volume', volume)
       .eq('percentage', percentage)
-      .single();
+      .limit(1);
     
-    return !!data;
+    if (error) {
+      console.error('❌ FAVORITES: Errore controllo preferito:', error);
+      return false;
+    }
+    
+    const isFav = data && data.length > 0;
+    console.log('✅ isFavorite result:', isFav, 'data:', data);
+    return isFav;
   } catch (error) {
     console.error('❌ FAVORITES: Errore controllo preferito:', error);
     return false;
