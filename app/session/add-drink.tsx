@@ -566,11 +566,8 @@ export default function AddDrinkScreen() {
   // Handler per la selezione della categoria
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
-    // Imposta la prima dimensione della categoria selezionata
-    const sizes = drinkSizesByCategory[category];
-    if (sizes && sizes.length > 0) {
-      setSelectedSize(sizes[0]);
-    }
+    // NON preselezionare alcuna dimensione - l'utente deve scegliere
+    setSelectedSize(null);
     // Passa automaticamente allo step successivo
     goToNextStep();
   };
@@ -886,7 +883,7 @@ export default function AddDrinkScreen() {
         await favoritesService.removeFromFavorites(existing.id);
         setIsFavoriteDrink(false);
         toast.showToast({ 
-          message: t('favorites.removedFromFavorites', { ns: 'session' }), 
+          message: t('favorites.removedFromFavorites', { ns: 'session', defaultValue: 'Rimosso dai preferiti' }), 
           type: 'info' 
         });
       }
@@ -896,7 +893,7 @@ export default function AddDrinkScreen() {
       if (success) {
         setIsFavoriteDrink(true);
         toast.showToast({ 
-          message: t('favorites.addedToFavorites', { ns: 'session' }), 
+          message: t('favorites.addedToFavorites', { ns: 'session', defaultValue: 'Aggiunto ai preferiti!' }), 
           type: 'success' 
         });
       }
@@ -909,7 +906,7 @@ export default function AddDrinkScreen() {
   // Controlla se la bevanda corrente è nei preferiti
   useEffect(() => {
     const checkIfFavorite = async () => {
-      if (!selectedDrink || !volume || !alcoholPercentage) {
+      if (!selectedDrink || !selectedSize || !volume || !alcoholPercentage) {
         setIsFavoriteDrink(false);
         return;
       }
@@ -923,7 +920,7 @@ export default function AddDrinkScreen() {
     };
     
     checkIfFavorite();
-  }, [selectedDrink, volume, alcoholPercentage]);
+  }, [selectedDrink, selectedSize, volume, alcoholPercentage]);
   
   // Renderizza solo lo step corrente invece di tutti gli step con animazione
   const renderCurrentStep = () => {
@@ -1207,7 +1204,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(size.label, { ns: 'session' })}
+                        {t(size.label, { ns: 'session', defaultValue: size.id })}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
                         {size.volume}ml
