@@ -59,7 +59,7 @@ fi
 log_info "STEP 1: Aggiornando build number..."
 
 # Mostra il build number attuale
-CURRENT_BUILD=$(grep "buildNumber:" app.config.js | grep -o "[0-9]*" | head -1)
+CURRENT_BUILD=$(grep "buildNumber:" app.config.js | grep -oE "[0-9]+" | head -1)
 log_info "Build number attuale: $CURRENT_BUILD"
 
 # Chiedi all'utente il nuovo build number
