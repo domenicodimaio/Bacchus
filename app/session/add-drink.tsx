@@ -1204,7 +1204,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(size.label, { ns: 'session', defaultValue: size.id })}
+                        {t(size.label)}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
                         {size.volume}ml
