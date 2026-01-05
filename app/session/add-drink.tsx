@@ -1391,13 +1391,9 @@ export default function AddDrinkScreen() {
       </View>
       
       <View style={{ flex: 1 }}>
-        <ScrollView 
-          style={styles.contentWrapper}
-          contentContainerStyle={{ paddingBottom: 120 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.contentWrapper}>
           {renderCurrentStep()}
-        </ScrollView>
+        </View>
       </View>
       
       <View style={[styles.actionBar, { paddingBottom: insets.bottom || 16 }]}>
@@ -1531,6 +1527,7 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flex: 1, 
     padding: SIZES.padding,
+    paddingBottom: 100,
   },
   scrollViewContent: {
     flexGrow: 1,
@@ -1664,6 +1661,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   actionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: SIZES.paddingSmall,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
