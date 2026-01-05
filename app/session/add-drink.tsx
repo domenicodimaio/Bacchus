@@ -338,40 +338,40 @@ const drinkCategories = [
 
 // 🍺 BIRRA - Tutte con stessa gradazione (5%)
 const beerSizes = [
-  { id: 'small', volume: 200, percentage: 5.0, label: 'drinkSizeLabels.beer.small' },      // Piccola
-  { id: 'medium', volume: 400, percentage: 5.0, label: 'drinkSizeLabels.beer.medium' },    // Media
-  { id: 'pint', volume: 568, percentage: 5.0, label: 'drinkSizeLabels.beer.pint' },        // Pinta
-  { id: 'bottleSmall', volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.bottleSmall' }, // Bottiglia piccola
-  { id: 'bottleLarge', volume: 660, percentage: 5.0, label: 'drinkSizeLabels.beer.bottleLarge' }, // Bottiglia grande
-  { id: 'can', volume: 330, percentage: 5.0, label: 'drinkSizeLabels.beer.can' }           // Lattina
+  { id: 'small', volume: 200, percentage: 5.0, labelKey: 'beer.small' },      // Piccola
+  { id: 'medium', volume: 400, percentage: 5.0, labelKey: 'beer.medium' },    // Media
+  { id: 'pint', volume: 568, percentage: 5.0, labelKey: 'beer.pint' },        // Pinta
+  { id: 'bottleSmall', volume: 330, percentage: 5.0, labelKey: 'beer.bottleSmall' }, // Bottiglia piccola
+  { id: 'bottleLarge', volume: 660, percentage: 5.0, labelKey: 'beer.bottleLarge' }, // Bottiglia grande
+  { id: 'can', volume: 330, percentage: 5.0, labelKey: 'beer.can' }           // Lattina
 ];
 
 // 🍷 VINO - Tutte con stessa gradazione (12%)
 const wineSizes = [
-  { id: 'glassSmall', volume: 100, percentage: 12.0, label: 'drinkSizeLabels.wine.glassSmall' },     // Calice piccolo
-  { id: 'glassStandard', volume: 125, percentage: 12.0, label: 'drinkSizeLabels.wine.glassStandard' }, // Calice standard
-  { id: 'glassLarge', volume: 150, percentage: 12.0, label: 'drinkSizeLabels.wine.glassLarge' },     // Calice abbondante
-  { id: 'halfBottle', volume: 375, percentage: 12.0, label: 'drinkSizeLabels.wine.halfBottle' },     // Mezza bottiglia
-  { id: 'fullBottle', volume: 750, percentage: 12.0, label: 'drinkSizeLabels.wine.fullBottle' }      // Bottiglia intera
+  { id: 'glassSmall', volume: 100, percentage: 12.0, labelKey: 'wine.glassSmall' },     // Calice piccolo
+  { id: 'glassStandard', volume: 125, percentage: 12.0, labelKey: 'wine.glassStandard' }, // Calice standard
+  { id: 'glassLarge', volume: 150, percentage: 12.0, labelKey: 'wine.glassLarge' },     // Calice abbondante
+  { id: 'halfBottle', volume: 375, percentage: 12.0, labelKey: 'wine.halfBottle' },     // Mezza bottiglia
+  { id: 'fullBottle', volume: 750, percentage: 12.0, labelKey: 'wine.fullBottle' }      // Bottiglia intera
 ];
 
 // 🍸 COCKTAIL - Tutte con stessa gradazione (12%)
 const cocktailSizes = [
-  { id: 'short', volume: 150, percentage: 12.0, label: 'drinkSizeLabels.cocktail.short' },           // Cocktail piccolo (short drink)
-  { id: 'long', volume: 250, percentage: 12.0, label: 'drinkSizeLabels.cocktail.long' },             // Cocktail standard (long drink)
-  { id: 'large', volume: 300, percentage: 12.0, label: 'drinkSizeLabels.cocktail.large' },           // Cocktail grande
-  { id: 'pitcherSmall', volume: 500, percentage: 12.0, label: 'drinkSizeLabels.cocktail.pitcherSmall' }, // Caraffa piccola
-  { id: 'pitcherMedium', volume: 1000, percentage: 12.0, label: 'drinkSizeLabels.cocktail.pitcherMedium' }, // Caraffa media
-  { id: 'pitcherLarge', volume: 1500, percentage: 12.0, label: 'drinkSizeLabels.cocktail.pitcherLarge' }  // Caraffa grande
+  { id: 'short', volume: 150, percentage: 12.0, labelKey: 'cocktail.short' },           // Cocktail piccolo (short drink)
+  { id: 'long', volume: 250, percentage: 12.0, labelKey: 'cocktail.long' },             // Cocktail standard (long drink)
+  { id: 'large', volume: 300, percentage: 12.0, labelKey: 'cocktail.large' },           // Cocktail grande
+  { id: 'pitcherSmall', volume: 500, percentage: 12.0, labelKey: 'cocktail.pitcherSmall' }, // Caraffa piccola
+  { id: 'pitcherMedium', volume: 1000, percentage: 12.0, labelKey: 'cocktail.pitcherMedium' }, // Caraffa media
+  { id: 'pitcherLarge', volume: 1500, percentage: 12.0, labelKey: 'cocktail.pitcherLarge' }  // Caraffa grande
 ];
 
 // 🥃 SUPERALCOLICI
 const spiritsSizes = [
-  { id: 'shotStandard', volume: 30, percentage: 40.0, label: 'drinkSizeLabels.spirits.shotStandard' },   // Shot standard
-  { id: 'shotGenerous', volume: 40, percentage: 40.0, label: 'drinkSizeLabels.spirits.shotGenerous' },   // Shot abbondante
-  { id: 'doubleShot', volume: 60, percentage: 40.0, label: 'drinkSizeLabels.spirits.doubleShot' },       // Doppio shot
-  { id: 'glassLow', volume: 80, percentage: 40.0, label: 'drinkSizeLabels.spirits.glassLow' },           // Bicchiere basso
-  { id: 'glassFull', volume: 100, percentage: 40.0, label: 'drinkSizeLabels.spirits.glassFull' }         // Bicchiere pieno
+  { id: 'shotStandard', volume: 30, percentage: 40.0, labelKey: 'spirits.shotStandard' },   // Shot standard
+  { id: 'shotGenerous', volume: 40, percentage: 40.0, labelKey: 'spirits.shotGenerous' },   // Shot abbondante
+  { id: 'doubleShot', volume: 60, percentage: 40.0, labelKey: 'spirits.doubleShot' },       // Doppio shot
+  { id: 'glassLow', volume: 80, percentage: 40.0, labelKey: 'spirits.glassLow' },           // Bicchiere basso
+  { id: 'glassFull', volume: 100, percentage: 40.0, labelKey: 'spirits.glassFull' }         // Bicchiere pieno
 ];
 
 // Mappatura completa per tutte le categorie
@@ -1220,7 +1220,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(size.label)}
+                        {t(`drinkSizeLabels.${size.labelKey}`, { defaultValue: size.id })}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
                         {size.volume}ml
@@ -1526,6 +1526,7 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flex: 1, 
     padding: SIZES.padding,
+    paddingBottom: 120, // Spazio extra per evitare sovrapposizioni con i pulsanti
   },
   scrollViewContent: {
     flexGrow: 1,
@@ -1670,6 +1671,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: SIZES.padding,
     paddingVertical: SIZES.paddingSmall,
+    gap: 12, // Spazio tra i pulsanti
   },
   singleButtonContainer: {
     flexDirection: 'row',
@@ -1680,7 +1682,8 @@ const styles = StyleSheet.create({
     paddingVertical: SIZES.paddingSmall,
   },
   backButton: {
-    width: 150,
+    flex: 1,
+    maxWidth: 140,
     height: 50,
     borderRadius: 25,
     justifyContent: 'center',
@@ -1688,7 +1691,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   nextButton: {
-    width: 150,
+    flex: 1,
+    maxWidth: 140,
     height: 50,
     borderRadius: 25,
     flexDirection: 'row',
