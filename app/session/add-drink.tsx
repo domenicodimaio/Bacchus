@@ -37,6 +37,7 @@ import { calculateAlcoholGrams } from '../lib/bac/calculator';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -338,40 +339,40 @@ const drinkCategories = [
 
 // 🍺 BIRRA - Tutte con stessa gradazione (5%)
 const beerSizes = [
-  { id: 'small', volume: 200, percentage: 5.0, labelKey: 'beer.small' },      // Piccola
-  { id: 'medium', volume: 400, percentage: 5.0, labelKey: 'beer.medium' },    // Media
-  { id: 'pint', volume: 568, percentage: 5.0, labelKey: 'beer.pint' },        // Pinta
-  { id: 'bottleSmall', volume: 330, percentage: 5.0, labelKey: 'beer.bottleSmall' }, // Bottiglia piccola
-  { id: 'bottleLarge', volume: 660, percentage: 5.0, labelKey: 'beer.bottleLarge' }, // Bottiglia grande
-  { id: 'can', volume: 330, percentage: 5.0, labelKey: 'beer.can' }           // Lattina
+  { id: 'small', volume: 200, percentage: 5.0, labelIT: 'Piccola', labelEN: 'Small' },
+  { id: 'medium', volume: 400, percentage: 5.0, labelIT: 'Media', labelEN: 'Medium' },
+  { id: 'pint', volume: 568, percentage: 5.0, labelIT: 'Pinta', labelEN: 'Pint' },
+  { id: 'bottleSmall', volume: 330, percentage: 5.0, labelIT: 'Bottiglia Piccola', labelEN: 'Small Bottle' },
+  { id: 'bottleLarge', volume: 660, percentage: 5.0, labelIT: 'Bottiglia Grande', labelEN: 'Large Bottle' },
+  { id: 'can', volume: 330, percentage: 5.0, labelIT: 'Lattina', labelEN: 'Can' }
 ];
 
 // 🍷 VINO - Tutte con stessa gradazione (12%)
 const wineSizes = [
-  { id: 'glassSmall', volume: 100, percentage: 12.0, labelKey: 'wine.glassSmall' },     // Calice piccolo
-  { id: 'glassStandard', volume: 125, percentage: 12.0, labelKey: 'wine.glassStandard' }, // Calice standard
-  { id: 'glassLarge', volume: 150, percentage: 12.0, labelKey: 'wine.glassLarge' },     // Calice abbondante
-  { id: 'halfBottle', volume: 375, percentage: 12.0, labelKey: 'wine.halfBottle' },     // Mezza bottiglia
-  { id: 'fullBottle', volume: 750, percentage: 12.0, labelKey: 'wine.fullBottle' }      // Bottiglia intera
+  { id: 'glassSmall', volume: 100, percentage: 12.0, labelIT: 'Calice Piccolo', labelEN: 'Small Glass' },
+  { id: 'glassStandard', volume: 125, percentage: 12.0, labelIT: 'Calice Standard', labelEN: 'Standard Glass' },
+  { id: 'glassLarge', volume: 150, percentage: 12.0, labelIT: 'Calice Abbondante', labelEN: 'Large Glass' },
+  { id: 'halfBottle', volume: 375, percentage: 12.0, labelIT: 'Mezza Bottiglia', labelEN: 'Half Bottle' },
+  { id: 'fullBottle', volume: 750, percentage: 12.0, labelIT: 'Bottiglia Intera', labelEN: 'Full Bottle' }
 ];
 
 // 🍸 COCKTAIL - Tutte con stessa gradazione (12%)
 const cocktailSizes = [
-  { id: 'short', volume: 150, percentage: 12.0, labelKey: 'cocktail.short' },           // Cocktail piccolo (short drink)
-  { id: 'long', volume: 250, percentage: 12.0, labelKey: 'cocktail.long' },             // Cocktail standard (long drink)
-  { id: 'large', volume: 300, percentage: 12.0, labelKey: 'cocktail.large' },           // Cocktail grande
-  { id: 'pitcherSmall', volume: 500, percentage: 12.0, labelKey: 'cocktail.pitcherSmall' }, // Caraffa piccola
-  { id: 'pitcherMedium', volume: 1000, percentage: 12.0, labelKey: 'cocktail.pitcherMedium' }, // Caraffa media
-  { id: 'pitcherLarge', volume: 1500, percentage: 12.0, labelKey: 'cocktail.pitcherLarge' }  // Caraffa grande
+  { id: 'short', volume: 150, percentage: 12.0, labelIT: 'Cocktail Piccolo', labelEN: 'Short Drink' },
+  { id: 'long', volume: 250, percentage: 12.0, labelIT: 'Cocktail Standard', labelEN: 'Long Drink' },
+  { id: 'large', volume: 300, percentage: 12.0, labelIT: 'Cocktail Grande', labelEN: 'Large Cocktail' },
+  { id: 'pitcherSmall', volume: 500, percentage: 12.0, labelIT: 'Caraffa Piccola', labelEN: 'Small Pitcher' },
+  { id: 'pitcherMedium', volume: 1000, percentage: 12.0, labelIT: 'Caraffa Media', labelEN: 'Medium Pitcher' },
+  { id: 'pitcherLarge', volume: 1500, percentage: 12.0, labelIT: 'Caraffa Grande', labelEN: 'Large Pitcher' }
 ];
 
-// 🥃 SUPERALCOLICI
+// 🥃 SUPERALCOLICI - Tutte con stessa gradazione (40%)
 const spiritsSizes = [
-  { id: 'shotStandard', volume: 30, percentage: 40.0, labelKey: 'spirits.shotStandard' },   // Shot standard
-  { id: 'shotGenerous', volume: 40, percentage: 40.0, labelKey: 'spirits.shotGenerous' },   // Shot abbondante
-  { id: 'doubleShot', volume: 60, percentage: 40.0, labelKey: 'spirits.doubleShot' },       // Doppio shot
-  { id: 'glassLow', volume: 80, percentage: 40.0, labelKey: 'spirits.glassLow' },           // Bicchiere basso
-  { id: 'glassFull', volume: 100, percentage: 40.0, labelKey: 'spirits.glassFull' }         // Bicchiere pieno
+  { id: 'shotStandard', volume: 30, percentage: 40.0, labelIT: 'Shot Standard', labelEN: 'Standard Shot' },
+  { id: 'shotGenerous', volume: 40, percentage: 40.0, labelIT: 'Shot Abbondante', labelEN: 'Generous Shot' },
+  { id: 'doubleShot', volume: 60, percentage: 40.0, labelIT: 'Doppio Shot', labelEN: 'Double Shot' },
+  { id: 'glassLow', volume: 80, percentage: 40.0, labelIT: 'Bicchiere Basso', labelEN: 'Low Glass' },
+  { id: 'glassFull', volume: 100, percentage: 40.0, labelIT: 'Bicchiere Pieno', labelEN: 'Full Glass' }
 ];
 
 // Mappatura completa per tutte le categorie
@@ -1220,7 +1221,7 @@ export default function AddDrinkScreen() {
                 onPress={() => handleSelectSize(size)}
               >
                       <Text style={[styles.sizeButtonTextLarge, { color: colors.text }]} numberOfLines={2}>
-                        {t(`drinkSizeLabels.${size.labelKey}`, { defaultValue: size.id })}
+                        {i18n.language === 'it' ? size.labelIT : size.labelEN}
                       </Text>
                       <Text style={[styles.sizeButtonSubtextLarge, { color: colors.textSecondary }]}>
                         {size.volume}ml
@@ -1526,7 +1527,6 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flex: 1, 
     padding: SIZES.padding,
-    paddingBottom: 120, // Spazio extra per evitare sovrapposizioni con i pulsanti
   },
   scrollViewContent: {
     flexGrow: 1,
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   sectionContainer: {
-    marginBottom: SIZES.marginSmall,
+    marginBottom: SIZES.margin,
   },
   sectionTitle: {
     fontSize: SIZES.subtitle,
@@ -1661,6 +1661,8 @@ const styles = StyleSheet.create({
   },
   actionBar: {
     padding: SIZES.paddingSmall,
+    paddingTop: SIZES.padding,
+    marginTop: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
