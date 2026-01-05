@@ -753,7 +753,7 @@ export default function SettingsScreen() {
               <SettingsSection title={t('account', { ns: 'settings', defaultValue: 'Account' })}>
                 <SettingsItem
                   icon={<Ionicons name="person-outline" size={20} color={colors.primary} />}
-                  title={t('accountDetails', { ns: 'settings', defaultValue: 'Account Details' })}
+                  title={t('accountDetails', { ns: 'settings' })}
                   subtitle={user?.email || ''}
                   onPress={null}
                   lastItem={true}
