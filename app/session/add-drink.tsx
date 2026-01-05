@@ -1251,8 +1251,8 @@ export default function AddDrinkScreen() {
                   color: isFavoriteDrink ? colors.primary : colors.text 
                 }]}>
                   {isFavoriteDrink 
-                    ? t('favorites.removeFromFavorites', { ns: 'session', defaultValue: 'Rimuovi dai Preferiti' }) 
-                    : t('favorites.addToFavorites', { ns: 'session', defaultValue: 'Aggiungi ai Preferiti' })}
+                    ? t('favorites.removeFromFavorites') 
+                    : t('favorites.addToFavorites')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1260,7 +1260,7 @@ export default function AddDrinkScreen() {
             {/* Personalizzazione dettagli */}
             <View style={styles.sectionContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t('customizeDetails', { defaultValue: 'Personalizza dettagli' })}
+                {t('customizeDetails')}
               </Text>
               
               <View style={styles.detailsRow}>
@@ -1384,9 +1384,9 @@ export default function AddDrinkScreen() {
           ))}
         </View>
         <Text style={[styles.progressText, {color: colors.textSecondary}]}>
-          {currentStep === 0 && t('selectCategory', { defaultValue: 'Scegli la categoria' })}
-          {currentStep === 1 && t('selectBeverage', { defaultValue: 'Scegli la bevanda' })}
-          {currentStep === 2 && t('adjustDetails', { defaultValue: 'Personalizza dettagli' })}
+          {currentStep === 0 && t('selectCategory')}
+          {currentStep === 1 && t('selectBeverage')}
+          {currentStep === 2 && t('adjustDetails')}
         </Text>
       </View>
       
@@ -1424,7 +1424,7 @@ export default function AddDrinkScreen() {
               onPress={goToPreviousStep}
             >
               <Text style={[styles.backButtonText, {color: colors.primary}]}>
-                {t('back', { defaultValue: 'Indietro' })}
+                {t('back')}
               </Text>
             </TouchableOpacity>
             
@@ -1439,7 +1439,7 @@ export default function AddDrinkScreen() {
                 onPress={goToNextStep}
               >
                 <Text style={styles.nextButtonText}>
-                  {t('next', { defaultValue: 'Avanti' })}
+                  {t('next')}
                 </Text>
                 <Ionicons 
                   name="arrow-forward" 
@@ -1460,7 +1460,7 @@ export default function AddDrinkScreen() {
         >
                 <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{marginRight: 8}} />
                 <Text style={[styles.dashboardButtonText, { color: '#FFFFFF' }]}>
-            {t('confirmDrink', { defaultValue: 'Conferma Bevanda' })}
+            {t('confirmDrink')}
           </Text>
         </TouchableOpacity>
             )}
