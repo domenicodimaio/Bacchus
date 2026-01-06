@@ -1251,8 +1251,8 @@ export default function AddDrinkScreen() {
                   color: isFavoriteDrink ? colors.primary : colors.text 
                 }]}>
                   {isFavoriteDrink 
-                    ? t('favorites.removeFromFavorites') 
-                    : t('favorites.addToFavorites')}
+                    ? t('favorites.removeFromFavorites', { ns: 'session' }) 
+                    : t('favorites.addToFavorites', { ns: 'session' })}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1260,7 +1260,7 @@ export default function AddDrinkScreen() {
             {/* Personalizzazione dettagli */}
             <View style={styles.sectionContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t('customizeDetails')}
+                {t('customizeDetails', { ns: 'session' })}
               </Text>
               
               <View style={styles.detailsRow}>
