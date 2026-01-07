@@ -16,22 +16,22 @@ import config from '../lib/config';
 // Define translation resources directly to avoid any loading issues
 const resources = {
   en: {
-    common: require('../locales/en/common.json'),
-    settings: require('../locales/en/settings.json'),
-    session: require('../locales/en/session.json'),
-    auth: require('../locales/en/auth.json'),
-    dashboard: require('../locales/en/dashboard.json'),
-    profile: require('../locales/en/profile.json'),
-    purchases: require('../locales/en/purchases.json')
+    common: require('./locales/en/common.json'),
+    settings: require('./locales/en/settings.json'),
+    session: require('./locales/en/session.json'),
+    auth: require('./locales/en/auth.json'),
+    dashboard: require('./locales/en/dashboard.json'),
+    profile: require('./locales/en/profile.json'),
+    purchases: require('./locales/en/purchases.json')
   },
   it: {
-    common: require('../locales/it/common.json'),
-    settings: require('../locales/it/settings.json'),
-    session: require('../locales/it/session.json'),
-    auth: require('../locales/it/auth.json'),
-    dashboard: require('../locales/it/dashboard.json'),
-    profile: require('../locales/it/profile.json'),
-    purchases: require('../locales/it/purchases.json')
+    common: require('./locales/it/common.json'),
+    settings: require('./locales/it/settings.json'),
+    session: require('./locales/it/session.json'),
+    auth: require('./locales/it/auth.json'),
+    dashboard: require('./locales/it/dashboard.json'),
+    profile: require('./locales/it/profile.json'),
+    purchases: require('./locales/it/purchases.json')
   }
 };
 
