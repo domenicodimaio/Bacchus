@@ -91,11 +91,11 @@
     "veryHigh": "Molto Alto",
     "veryHighDesc": "Pericolo di perdita di coscienza",
     "safe": "Sicuro",
-    "safeDesc": "Guida consentita - Tasso alcolemico sotto il limite legale di 0.5 g/L",
+    "safeDesc": "Tasso alcolemico sotto il limite legale di 0.5 g/L",
     "warning": "Attenzione",
-    "warningDesc": "Tasso alcolemico tra 0.5 e 0.8 g/L - Non dovresti guidare",
+    "warningDesc": "Tasso alcolemico tra 0.5 e 0.8 g/L - Capacità compromesse",
     "danger": "Pericolo",
-    "dangerDesc": "Tasso alcolemico tra 0.8 e 1.5 g/L - Guida severamente vietata",
+    "dangerDesc": "Tasso alcolemico tra 0.8 e 1.5 g/L - Capacità significativamente compromesse",
     "critical": "Critico",
     "criticalDesc": "Tasso alcolemico superiore a 1.5 g/L - Rischio sanitario elevato",
     "zeroDesc": "Tasso alcolemico prossimo a zero",
@@ -230,11 +230,11 @@
     "large": "Grande"
   },
   "legal": {
-    "safe": "Legale per guidare (conducenti standard).",
-    "caution": "Legale per guidare ma consigliamo prudenza.",
-    "warning": "NON legale per guidare.",
-    "danger": "NON legale per guidare, alto rischio.",
-    "critical": "NON legale per guidare, rischio estremamente elevato."
+    "safe": "Sotto il limite legale (0.5 g/L).",
+    "caution": "Sopra il limite legale - Sanzione amministrativa.",
+    "warning": "Livello elevato - Reato penale.",
+    "danger": "Livello molto elevato - Reato penale grave.",
+    "critical": "Livello critico - Rischio estremamente elevato."
   },
   "messages": {
     "sessionEnded": "Sessione terminata",
@@ -242,10 +242,10 @@
     "itemDeleted": "Elemento eliminato",
     "confirmEndSession": "Sei sicuro di voler terminare questa sessione?"
   },
-  "illegalToDrive": "È illegale guidare con questo livello di alcol",
-  "administrativeViolation": "Violazione amministrativa - Guida vietata",
-  "criminalOffense": "Reato penale - Guida severamente vietata",
-  "timeToLegalDriving": "Ritorno sotto 0.5 (limite legale)",
+  "illegalToDrive": "Livello di alcol sopra il limite legale",
+  "administrativeViolation": "Violazione amministrativa - Sanzione pecuniaria",
+  "criminalOffense": "Reato penale - Sanzioni legali applicabili",
+  "timeToLegalDriving": "Ritorno sotto 0.5 g/L (limite legale)",
   "completelyClean": "Ritorno a 0.00",
   "bacLevel": "Tasso alcolico",
   "currentBACLabel": "Tasso alcolemico",

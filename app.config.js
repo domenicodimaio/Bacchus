@@ -3,7 +3,7 @@ export default {
     name: 'Bacchus',
     slug: 'Bacchus',
     owner: "dome.dima",
-    version: '1.2.3',
+    version: '1.3.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',

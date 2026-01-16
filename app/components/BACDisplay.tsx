@@ -539,7 +539,7 @@ export const BACDisplay: React.FC<BACDisplayProps> = ({
               {validBac > 0.01 && (
                 <>
                   <Text style={[styles.timeInfoLabel, { color: theme.textSecondary }]}>
-                    {validBac > 0.5 ? t('timeToLegalDriving', 'Ritorno sotto limite legale') : t('completelyClean', 'Ritorno a 0.00')}
+                    {validBac > 0.5 ? t('timeToLegalLimit', 'Ritorno sotto 0.5 g/L') : t('completelyClean', 'Ritorno a 0.00')}
                   </Text>
                   
                   <View style={styles.timeValueWithInfoRow}>

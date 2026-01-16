@@ -164,10 +164,10 @@
     "highDesc": "Significant impairment of reflexes and coordination",
     "veryHigh": "Very High",
     "veryHighDesc": "Risk of loss of consciousness",
-    "safeDesc": "Driving allowed - BAC under legal limit of 0.5 g/L",
+    "safeDesc": "BAC under legal limit of 0.5 g/L",
     "warning": "Warning",
-    "warningDesc": "BAC between 0.5 and 0.8 g/L - You should not drive",
-    "dangerDesc": "BAC between 0.8 and 1.5 g/L - Driving strictly prohibited",
+    "warningDesc": "BAC between 0.5 and 0.8 g/L - Impaired abilities",
+    "dangerDesc": "BAC between 0.8 and 1.5 g/L - Significantly impaired abilities",
     "criticalDesc": "BAC above 1.5 g/L - High health risk",
     "zeroDesc": "BAC near zero"
   },
@@ -208,9 +208,9 @@
   "deleteSessionMessage": "Are you sure you want to delete this session? This action cannot be undone.",
   "duration": "Duration",
   "newSession": "New Session",
-  "illegalToDrive": "It's illegal to drive at this alcohol level",
-  "administrativeViolation": "Administrative violation - Driving prohibited",
-  "criminalOffense": "Criminal offense - Driving strictly prohibited",
+  "illegalToDrive": "Alcohol level above legal limit",
+  "administrativeViolation": "Administrative violation - Legal penalties apply",
+  "criminalOffense": "Criminal offense - Severe legal penalties apply",
   "startSessionDescription": "Start a new drinking session from the dashboard to track your BAC levels.",
   "goToDashboard": "Go to Dashboard",
   "noMoreSessions": "No more sessions left",
@@ -252,11 +252,11 @@
   "Spirits": "Spirits",
   "Other": "Other",
   "legal": {
-    "safe": "Legal to drive (standard drivers).",
-    "caution": "Legal to drive but we recommend caution.",
-    "warning": "NOT legal to drive.",
-    "danger": "NOT legal to drive, high risk.",
-    "critical": "NOT legal to drive, extremely high risk."
+    "safe": "Below legal limit (0.5 g/L).",
+    "caution": "Above legal limit - Administrative penalty.",
+    "warning": "High level - Criminal offense.",
+    "danger": "Very high level - Serious criminal offense.",
+    "critical": "Critical level - Extremely high risk."
   },
   "messages": {
     "sessionEnded": "Session ended",

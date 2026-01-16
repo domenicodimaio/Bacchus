@@ -38,24 +38,26 @@ export default function SafetyDisclaimer({
         "🚫 Questo NON è un dispositivo medico certificato",
         "📚 I calcoli sono solo a scopo educativo e informativo", 
         "🏥 Non sostituisce test professionali o dispositivi medici",
-        "🚗 Non guidare mai basandoti solo su questi calcoli",
+        "🧠 Questo strumento aiuta a comprendere gli effetti dell'alcol sul corpo",
         "⚖️ Non ha valore legale in caso di controlli",
         "👨‍⚕️ Consulta sempre un medico per questioni di salute",
         "🧮 I calcoli possono variare significativamente tra individui",
-        "⏰ Il metabolismo dell'alcol dipende da molti fattori personali"
+        "⏰ Il metabolismo dell'alcol dipende da molti fattori personali",
+        "🎓 Utilizza queste informazioni per aumentare la consapevolezza"
       ],
       footer: "Usa sempre il buon senso e rispetta le leggi locali. La tua sicurezza e quella degli altri è la priorità assoluta."
     } : {
       title: "⚠️ Important Safety Disclaimer", 
       points: [
         "🚫 This is NOT a certified medical device",
-        "📚 Calculations are for educational purposes only",
+        "📚 Calculations are for educational and informational purposes only",
         "🏥 Does not replace professional tests or medical devices", 
-        "🚗 Never drive based solely on these calculations",
-        "⚖️ Has no legal value in case of controls",
+        "🧠 This tool helps you understand alcohol's effects on your body",
+        "⚖️ Has no legal value for any decisions or assessments",
         "👨‍⚕️ Always consult a doctor for health matters",
         "🧮 Calculations can vary significantly between individuals",
-        "⏰ Alcohol metabolism depends on many personal factors"
+        "⏰ Alcohol metabolism depends on many personal factors",
+        "🎓 Use this information to increase awareness"
       ],
       footer: "Always use common sense and respect local laws. Your safety and that of others is the absolute priority."
     }
